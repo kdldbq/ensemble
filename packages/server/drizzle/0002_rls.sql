@@ -1,6 +1,9 @@
 ALTER TABLE folders   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE folders   FORCE ROW LEVEL SECURITY;
 ALTER TABLE workbooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workbooks FORCE ROW LEVEL SECURITY;
 ALTER TABLE snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE snapshots FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY folders_tenant_isolation ON folders
   USING (tenant_id::text = current_setting('app.tenant_id', true))
