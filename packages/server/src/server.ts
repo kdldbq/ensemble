@@ -12,6 +12,7 @@ import { createPresenceTracker } from './realtime/presence-tracker'
 import { createMutationBroadcaster } from './realtime/mutation-broadcaster'
 import { createMutationService } from './services/mutation-service'
 import { createSession } from './ws/session'
+import { createTokenBucket } from './realtime/backpressure'
 
 export interface CreateServerOpts {
   databaseUrl: string
@@ -137,7 +138,7 @@ export function createServer(opts: CreateServerOpts) {
             identity,
             workbookId,
             room,
-            bucket: { take: () => true }, // T15 replaces with real TokenBucket
+            bucket: createTokenBucket({ capacity: 30, refillPerSec: 30 }),
           },
           { cellLocks, presence, broadcaster }
         )
