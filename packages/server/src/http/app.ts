@@ -14,6 +14,8 @@ import { healthRoute } from './routes/health'
 import { workbooksRoute } from './routes/workbooks'
 import { snapshotsRoute } from './routes/snapshots'
 import { foldersRoute } from './routes/folders'
+import { grantsRoute } from './routes/grants'
+import type { GrantBody } from './routes/grants'
 
 export interface AppDeps {
   db: Database
@@ -35,6 +37,7 @@ export type AppEnv = {
     services: AppServices
     identity?: { tenantId: string; userId: string }
     capabilities?: Capability
+    grantBody?: GrantBody
   }
 }
 
@@ -64,5 +67,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', workbooksRoute)
   app.route('/', snapshotsRoute)
   app.route('/', foldersRoute)
+  app.route('/', grantsRoute)
   return app
 }
