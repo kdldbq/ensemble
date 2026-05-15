@@ -141,7 +141,7 @@ describe('WS welcome', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: false, canDelete: false }),
       getMaskRules: async () => [],
     }
 
