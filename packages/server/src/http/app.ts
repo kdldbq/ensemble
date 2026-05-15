@@ -3,6 +3,7 @@ import type { MiddlewareHandler } from 'hono'
 import type { Database } from '../db/client'
 import type { IdentityAdapter, PermissionAdapter, EventAdapter } from '../adapters/identity'
 import type { StorageAdapter } from '../adapters/storage'
+import type { Capability } from '../adapters/types'
 import { createWorkbookService } from '../services/workbook-service'
 import { createSnapshotService } from '../services/snapshot-service'
 import type { WorkbookService } from '../services/workbook-service'
@@ -29,6 +30,7 @@ export type AppEnv = {
     deps: AppDeps
     services: AppServices
     identity?: { tenantId: string; userId: string }
+    capabilities?: Capability
   }
 }
 
