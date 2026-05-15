@@ -4,7 +4,7 @@
 
 ensemble is an open-source collaborative spreadsheet platform. It embeds a [Univer](https://univer.ai)-powered editor into any host application and exposes pluggable adapters for identity, permissions, data masking, and blob storage — so each host controls its own auth and data policy.
 
-**Status:** Sprint 1 ("It opens") complete. Single-user editing functional. Sprint 2 (multi-tenant + permissions) next.
+**Status:** Sprint 2 ("Permission + Folder") complete. Multi-tenant with Postgres RLS, JWKS identity, per-route capability enforcement, folder CRUD with cycle prevention, share grants with ancestor walk, and per-recipient snapshot masking. Sprint 3 (real-time collaboration) next.
 
 ## Quickstart
 
@@ -24,6 +24,7 @@ pnpm lint
 | `@ensemble/server` | Hono HTTP + WebSocket server, Drizzle/Postgres persistence, adapter contracts |
 | `@ensemble/react` | React component wrapping the core editor |
 | `@ensemble/vue` | Vue 3 component wrapping the core editor |
+| `@ensemble/identity-jwks` | JWKS-based IdentityAdapter (resolves tenant + user from JWT) |
 | `@ensemble/storage-fs` | Local-filesystem blob storage adapter (dev / single-node) |
 | `@ensemble/storage-s3` | AWS S3 blob storage adapter |
 | `@ensemble/webhook` | Outbound webhook event adapter |
