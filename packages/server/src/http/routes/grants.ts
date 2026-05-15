@@ -47,9 +47,30 @@ export const grantsRoute = new Hono<AppEnv>()
       return c.json(row, 201)
     }
   )
-  .delete('/api/v1/grants/:id', async (c) => {
-    const idCtx = c.get('identity')!
-    await c.get('deps').db.delete(shareGrants)
-      .where(and(eq(shareGrants.id, c.req.param('id')), eq(shareGrants.tenantId, idCtx.tenantId)))
-    return c.body(null, 204)
+  // Pre-middleware: fetch grant row by id so requireCapability can inspect the resource
+  .use('/api/v1/grants/:id', async (c, next) => {
+    if (c.req.method === 'DELETE') {
+      const idCtx = c.get('identity')!
+      const [grant] = await c.get('deps').db
+        .select()
+        .from(shareGrants)
+        .where(and(eq(shareGrants.id, c.req.param('id')), eq(shareGrants.tenantId, idCtx.tenantId)))
+        .limit(1)
+      if (!grant) return c.json({ error: 'not found' }, 404)
+      c.set('grantToDelete', grant)
+    }
+    await next()
   })
+  .delete(
+    '/api/v1/grants/:id',
+    requireCapability('canShare', (c) => {
+      const g = c.get('grantToDelete')!
+      return { type: g.resourceType, id: g.resourceId, tenantId: c.get('identity')!.tenantId }
+    }),
+    async (c) => {
+      const idCtx = c.get('identity')!
+      await c.get('deps').db.delete(shareGrants)
+        .where(and(eq(shareGrants.id, c.req.param('id')), eq(shareGrants.tenantId, idCtx.tenantId)))
+      return c.body(null, 204)
+    }
+  )

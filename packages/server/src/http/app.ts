@@ -17,6 +17,7 @@ import { snapshotsRoute } from './routes/snapshots'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
 import type { GrantBody } from './routes/grants'
+import type { shareGrants } from '../db/schema'
 
 export interface AppDeps {
   db: Database
@@ -40,6 +41,7 @@ export type AppEnv = {
     identity?: { tenantId: string; userId: string }
     capabilities?: Capability
     grantBody?: GrantBody
+    grantToDelete?: typeof shareGrants.$inferSelect
   }
 }
 
