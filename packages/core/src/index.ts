@@ -1,6 +1,6 @@
 export { ApiClient, type ApiClientOpts } from './api-client'
 export { mountWorkbookEditor, type MountOpts, type MountHandle } from './mount'
 export { xlsxToUniverJson, univerJsonToXlsx } from './xlsx-converter'
-export { createEditor, type Editor, type EditorOpts } from './univer-wrapper'
+export { createEditor, loadBrowserPlugins, type Editor, type EditorOpts } from './univer-wrapper'
 export { WsClient, type WelcomeFrame } from './ws-client'
 export * from './types'

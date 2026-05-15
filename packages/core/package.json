@@ -18,6 +18,7 @@
     "@univerjs/docs-ui": "0.22.1",
     "@univerjs/engine-formula": "0.22.1",
     "@univerjs/engine-render": "0.22.1",
+    "@univerjs/icons": "1.1.1",
     "@univerjs/sheets": "0.22.1",
     "@univerjs/sheets-formula": "0.22.1",
     "@univerjs/sheets-ui": "0.22.1",
@@ -25,6 +26,7 @@
     "xlsx": "0.18.5"
   },
   "devDependencies": {
+    "@types/node": "20.16.10",
     "jsdom": "25.0.1"
   }
 }

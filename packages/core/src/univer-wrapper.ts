@@ -11,10 +11,10 @@
  *    No name change needed.
  *
  * 3. UI plugins (@univerjs/ui, @univerjs/sheets-ui, @univerjs/sheets-formula) depend
- *    on @univerjs/icons which is NOT installed in this package. They will fail to import
- *    in jsdom / Node (missing peer dep). We guard with dynamic import + try/catch so
- *    the factory still constructs and returns the { load, getData, destroy } handle.
- *    Full UI plugin registration is only meaningful in a real browser (Task 23 Playwright).
+ *    on @univerjs/icons which is NOT installed in this package for Node/jsdom tests.
+ *    They are loaded via `loadBrowserPlugins(univer, container)` (async, dynamic import)
+ *    which is called by mountWorkbookEditor in a browser context before editor.load().
+ *    Errors are swallowed so Node/jsdom unit tests continue to work headlessly.
  *
  * 4. `defaultTheme` from @univerjs/design also transitively requires @univerjs/icons.
  *    We pass `theme: undefined` when the import fails (graceful degradation).
@@ -44,6 +44,8 @@ export interface Editor {
   load(data: UniverWorkbookData): void
   getData(): UniverWorkbookData
   destroy(): void
+  /** @internal — used by mountWorkbookEditor to attach browser UI plugins before load() */
+  _univer: Univer
 }
 
 /** Map our internal UniverWorkbookData → IWorkbookData for Univer's createUnit */
@@ -92,17 +94,13 @@ export function createEditor(opts: EditorOpts): Editor {
   univer.registerPlugin(UniverFormulaEnginePlugin)
   univer.registerPlugin(UniverSheetsPlugin)
 
-  // UI plugins require @univerjs/icons (not installed for unit tests).
-  // Register them best-effort; failures are expected in jsdom and are
-  // handled gracefully — full rendering is validated by Playwright (Task 23).
-  // We use a sync try/catch around the imports via a factory pattern.
-  _tryRegisterUiPlugins(univer, opts.container)
-
   const injector = univer.__getInjector()
 
   let currentId: string | null = null
 
   return {
+    _univer: univer,
+
     load(data: UniverWorkbookData): void {
       currentId = data.id
       univer.createUnit(UniverInstanceType.UNIVER_SHEET, toUniverWorkbook(data))
@@ -125,49 +123,34 @@ export function createEditor(opts: EditorOpts): Editor {
 }
 
 /**
- * Best-effort registration of UI plugins.
- * These modules transitively depend on @univerjs/icons which is not installed
- * as a dependency of @ensemble/core (it's a UI/browser-only concern). In jsdom
- * and plain Node the import will throw MODULE_NOT_FOUND — we swallow it so that
- * the factory is still usable for headless/data-only use cases.
+ * Load browser-only UI plugins via dynamic import (async).
  *
- * In a real browser build (vite bundled), @univerjs/icons is expected to be
- * available and these plugins will register successfully.
+ * These modules transitively depend on @univerjs/icons which is not installed
+ * for Node/jsdom unit tests. Dynamic import lets Vite tree-shake them properly
+ * in the browser bundle and lets Node/jsdom silently skip them (errors are caught).
+ *
+ * Call this from a browser context (e.g. mountWorkbookEditor) BEFORE editor.load()
+ * so the UI canvas is ready before workbook data is set.
  */
-function _tryRegisterUiPlugins(univer: Univer, container: HTMLElement): void {
-  // We can't use top-level import for these because Vite will statically analyse
-  // them and fail at bundle time if the module is missing. Instead we rely on
-  // the fact that Vitest / Node will have already attempted the ESM resolution
-  // and we catch the thrown errors here via dynamic import wrapped in a
-  // synchronous facade. Since Vitest transforms to CJS internally, the require()
-  // path is safe in the test environment.
+export async function loadBrowserPlugins(univer: Univer, container: HTMLElement): Promise<void> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { UniverUIPlugin } = require('@univerjs/ui') as {
-      UniverUIPlugin: Parameters<typeof univer.registerPlugin>[0]
-    }
-    univer.registerPlugin(UniverUIPlugin, { container })
+    const { UniverUIPlugin } = await import('@univerjs/ui')
+    univer.registerPlugin(UniverUIPlugin as Parameters<typeof univer.registerPlugin>[0], { container })
   } catch {
-    // missing @univerjs/icons — expected in jsdom unit tests
+    // @univerjs/icons not available — expected in jsdom / Node unit tests
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { UniverSheetsUIPlugin } = require('@univerjs/sheets-ui') as {
-      UniverSheetsUIPlugin: Parameters<typeof univer.registerPlugin>[0]
-    }
-    univer.registerPlugin(UniverSheetsUIPlugin)
+    const { UniverSheetsUIPlugin } = await import('@univerjs/sheets-ui')
+    univer.registerPlugin(UniverSheetsUIPlugin as Parameters<typeof univer.registerPlugin>[0])
   } catch {
-    // missing @univerjs/icons — expected in jsdom unit tests
+    // @univerjs/icons not available — expected in jsdom / Node unit tests
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { UniverSheetsFormulaPlugin } = require('@univerjs/sheets-formula') as {
-      UniverSheetsFormulaPlugin: Parameters<typeof univer.registerPlugin>[0]
-    }
-    univer.registerPlugin(UniverSheetsFormulaPlugin)
+    const { UniverSheetsFormulaPlugin } = await import('@univerjs/sheets-formula')
+    univer.registerPlugin(UniverSheetsFormulaPlugin as Parameters<typeof univer.registerPlugin>[0])
   } catch {
-    // missing @univerjs/icons — expected in jsdom unit tests
+    // @univerjs/icons not available — expected in jsdom / Node unit tests
   }
 }
