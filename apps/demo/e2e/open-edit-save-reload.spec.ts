@@ -7,14 +7,14 @@ test.beforeEach(async ({ page }) => {
 
 test('open → REST save → reload preserves a cell value', async ({ page }) => {
   // Wait for Univer to mount (React useEffect sets this class)
-  await expect(page.locator('.ensemble-workbook-root')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.ensemble-workbook-root').first()).toBeVisible({ timeout: 30_000 })
   await page.waitForTimeout(2000) // let Univer canvas finish painting
 
   // Save path: bypass Univer keyboard interaction (unreliable in headless chromium).
   // Instead POST a snapshot directly via fetch — this exercises the full
   // React → core → server REST round-trip in the browser bundle.
   const saved = await page.evaluate(async () => {
-    const wbId = localStorage.getItem('wbId')!
+    const wbId = localStorage.getItem('wbId-shared')!
     const payload = {
       id: wbId,
       sheetOrder: ['s1'],
@@ -29,7 +29,7 @@ test('open → REST save → reload preserves a cell value', async ({ page }) =>
     const bytes = new TextEncoder().encode(JSON.stringify(payload))
     const res = await fetch(`/api/v1/workbooks/${wbId}/snapshots?reason=manual`, {
       method: 'POST',
-      headers: { Authorization: 'Bearer dev:u1', 'content-type': 'application/json' },
+      headers: { Authorization: 'Bearer dev:admin', 'content-type': 'application/json' },
       body: bytes,
     })
     return (await res.json()) as { id: string }
@@ -38,12 +38,12 @@ test('open → REST save → reload preserves a cell value', async ({ page }) =>
 
   // Reload and verify the snapshot survived the round-trip through Postgres + FsStorage
   await page.reload()
-  await expect(page.locator('.ensemble-workbook-root')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.ensemble-workbook-root').first()).toBeVisible({ timeout: 30_000 })
 
   const valueAfterReload = await page.evaluate(async () => {
-    const wbId = localStorage.getItem('wbId')!
+    const wbId = localStorage.getItem('wbId-shared')!
     const res = await fetch(`/api/v1/workbooks/${wbId}/snapshot`, {
-      headers: { Authorization: 'Bearer dev:u1' },
+      headers: { Authorization: 'Bearer dev:admin' },
     })
     if (!res.ok) return null
     const data = (await res.json()) as {
@@ -64,12 +64,12 @@ test.fixme(
     //
     // Sprint 2 plan: run with --headed in CI, or use Univer's command API directly
     // via page.evaluate to inject cell mutations without keyboard simulation.
-    await expect(page.locator('.ensemble-workbook-root')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('.ensemble-workbook-root').first()).toBeVisible({ timeout: 30_000 })
     await page.waitForTimeout(3000) // Univer canvas + UI plugins load
 
     // Univer 0.22: click cell A1 to give Univer focus, then type to enter edit mode,
     // then Enter to commit. Coordinates (80,140): toolbar ~80px + sidebar ~40px.
-    await page.locator('.ensemble-workbook-root').click({ position: { x: 80, y: 140 } })
+    await page.locator('.ensemble-workbook-root').first().click({ position: { x: 80, y: 140 } })
     await page.waitForTimeout(300)
     await page.keyboard.type('hello-from-keyboard')
     await page.keyboard.press('Enter')
@@ -83,12 +83,12 @@ test.fixme(
     expect(saved.id).toMatch(/.+/)
 
     await page.reload()
-    await expect(page.locator('.ensemble-workbook-root')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('.ensemble-workbook-root').first()).toBeVisible({ timeout: 30_000 })
 
     const value = await page.evaluate(async () => {
-      const wbId = localStorage.getItem('wbId')!
+      const wbId = localStorage.getItem('wbId-shared')!
       const res = await fetch(`/api/v1/workbooks/${wbId}/snapshot`, {
-        headers: { Authorization: 'Bearer dev:u1' },
+        headers: { Authorization: 'Bearer dev:admin' },
       })
       if (!res.ok) return null
       const data = (await res.json()) as {

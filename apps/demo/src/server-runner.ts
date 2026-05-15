@@ -23,8 +23,19 @@ const identity: IdentityAdapter = {
   },
 }
 const permission: PermissionAdapter = {
-  getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
-  getMaskRules: async () => [],
+  getCapabilities: async (identity) => {
+    if (identity.userId === 'admin')
+      return { canView: true, canEdit: true, canShare: true, canDelete: true }
+    if (identity.userId === 'viewer')
+      return { canView: true, canEdit: false, canShare: false, canDelete: false }
+    return { canView: false, canEdit: false, canShare: false, canDelete: false }
+  },
+  getMaskRules: async (identity) => {
+    if (identity.userId === 'viewer') {
+      return [{ match: { type: 'column', sheet: '*', column: 'B' }, action: { type: 'redact', replacement: '***' } }]
+    }
+    return []
+  },
 }
 
 const handle = await createServer({
