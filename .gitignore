@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+build/
+.turbo/
+*.log
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Test
+coverage/
+.nyc_output/
