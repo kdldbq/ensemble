@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { MaskRule } from '../adapters/types'
+import type { IdentityContext, MaskRule } from '../adapters/types'
 
 export interface SheetData {
   id: string
@@ -102,7 +102,7 @@ export function applyMaskRules(workbook: WorkbookData, rules: MaskRule[]): Workb
   return clone
 }
 
-export type MaskFetcher = (userId: string, workbookId: string) => Promise<MaskRule[]>
+export type MaskFetcher = (identity: IdentityContext, workbookId: string) => Promise<MaskRule[]>
 
 interface CacheEntry {
   rules: MaskRule[]
@@ -119,16 +119,16 @@ export class MaskRuleCache {
     this.ttlMs = ttlMs
   }
 
-  async get(userId: string, workbookId: string): Promise<MaskRule[]> {
-    const key = `${userId}::${workbookId}`
+  async get(identity: IdentityContext, workbookId: string): Promise<MaskRule[]> {
+    const key = `${identity.userId}::${workbookId}`
     const entry = this.map.get(key)
     if (entry && Date.now() < entry.expiresAt) return entry.rules
-    const rules = await this.fetcher(userId, workbookId)
+    const rules = await this.fetcher(identity, workbookId)
     this.map.set(key, { rules, expiresAt: Date.now() + this.ttlMs })
     return rules
   }
 
-  invalidate(userId: string, workbookId: string): void {
-    this.map.delete(`${userId}::${workbookId}`)
+  invalidate(identity: IdentityContext, workbookId: string): void {
+    this.map.delete(`${identity.userId}::${workbookId}`)
   }
 }

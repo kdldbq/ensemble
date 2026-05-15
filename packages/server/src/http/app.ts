@@ -7,6 +7,7 @@ import type { Capability } from '../adapters/types'
 import { createWorkbookService } from '../services/workbook-service'
 import { createSnapshotService } from '../services/snapshot-service'
 import { createFolderService } from '../services/folder-service'
+import { MaskRuleCache } from '../services/mask-service'
 import type { WorkbookService } from '../services/workbook-service'
 import type { SnapshotService } from '../services/snapshot-service'
 import type { FolderService } from '../services/folder-service'
@@ -29,6 +30,7 @@ export interface AppServices {
   workbooks: WorkbookService
   snapshots: SnapshotService
   folders: FolderService
+  masks: MaskRuleCache
 }
 
 export type AppEnv = {
@@ -51,6 +53,10 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     workbooks: createWorkbookService(deps.db),
     snapshots: createSnapshotService(deps.db, deps.storage),
     folders: createFolderService(deps.db),
+    masks: new MaskRuleCache(
+      (identity, wbId) => deps.permission.getMaskRules(identity, { type: 'workbook', id: wbId, tenantId: identity.tenantId }),
+      60_000,
+    ),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {

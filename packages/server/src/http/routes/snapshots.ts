@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { requireIdentity } from '../auth'
 import { requireCapability } from '../permission'
+import { applyMaskRules } from '../../services/mask-service'
 import type { AppEnv } from '../app'
 
 export const snapshotsRoute = new Hono<AppEnv>()
@@ -37,14 +38,17 @@ export const snapshotsRoute = new Hono<AppEnv>()
     async (c) => {
       const { storage } = c.get('deps')
       const idCtx = c.get('identity')!
-      const { workbooks: wbSvc, snapshots: snapSvc } = c.get('services')
+      const { workbooks: wbSvc, snapshots: snapSvc, masks } = c.get('services')
       const wb = await wbSvc.get({ tenantId: idCtx.tenantId, id: c.req.param('wbId') })
       if (!wb) return c.json({ error: 'not found' }, 404)
       const snap = await snapSvc.getById(c.req.param('id'))
       if (!snap) return c.json({ error: 'not found' }, 404)
       if (snap.workbookId !== c.req.param('wbId')) return c.json({ error: 'not found' }, 404)
       const bytes = await storage.get(snap.storageKey)
-      return c.body(bytes, 200, { 'content-type': 'application/json' })
+      const rules = await masks.get(idCtx, wb.id)
+      if (rules.length === 0) return c.body(bytes, 200, { 'content-type': 'application/json' })
+      const data = JSON.parse(new TextDecoder().decode(bytes)) as Parameters<typeof applyMaskRules>[0]
+      return c.json(applyMaskRules(data, rules))
     },
   )
   .get(
@@ -53,12 +57,15 @@ export const snapshotsRoute = new Hono<AppEnv>()
     async (c) => {
       const { storage } = c.get('deps')
       const idCtx = c.get('identity')!
-      const { workbooks: wbSvc, snapshots: snapSvc } = c.get('services')
+      const { workbooks: wbSvc, snapshots: snapSvc, masks } = c.get('services')
       const wb = await wbSvc.get({ tenantId: idCtx.tenantId, id: c.req.param('wbId') })
       if (!wb) return c.json({ error: 'not found' }, 404)
       const snap = await snapSvc.getLatest(wb.id)
       if (!snap) return c.body(null, 204)
       const bytes = await storage.get(snap.storageKey)
-      return c.body(bytes, 200, { 'content-type': 'application/json' })
+      const rules = await masks.get(idCtx, wb.id)
+      if (rules.length === 0) return c.body(bytes, 200, { 'content-type': 'application/json' })
+      const data = JSON.parse(new TextDecoder().decode(bytes)) as Parameters<typeof applyMaskRules>[0]
+      return c.json(applyMaskRules(data, rules))
     },
   )
