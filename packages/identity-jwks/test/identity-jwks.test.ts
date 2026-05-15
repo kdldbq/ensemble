@@ -79,4 +79,33 @@ describe('JwksIdentityAdapter', () => {
     const token = await sign(privateKey, { sub: 'u' })
     await expect(adapter.resolveFromToken(token)).rejects.toThrow(/tenant_id/i)
   })
+
+  it('returns minimal IdentityContext when optional claims absent', async () => {
+    const { privateKey, fetch } = await setup()
+    const adapter = new JwksIdentityAdapter({
+      jwksUrl: 'https://host/jwks', issuer: 'test-issuer', audience: 'test-audience', fetch,
+    })
+    const token = await sign(privateKey, {
+      sub: 'minimal-user',
+      tenant_id: '44444444-4444-4444-4444-444444444444',
+    })
+    const ctx = await adapter.resolveFromToken(token)
+    expect(ctx).toEqual({
+      tenantId: '44444444-4444-4444-4444-444444444444',
+      userId: 'minimal-user',
+    })
+    expect(ctx.email).toBeUndefined()
+    expect(ctx.displayName).toBeUndefined()
+    expect(ctx.roles).toBeUndefined()
+  })
+
+  it('rejects when JWKS endpoint returns non-2xx', async () => {
+    const fetch = vi.fn(async () => new Response('boom', { status: 500 }))
+    const adapter = new JwksIdentityAdapter({
+      jwksUrl: 'https://host/jwks', issuer: 'test-issuer', audience: 'test-audience', fetch,
+    })
+    const { privateKey: pk } = await setup()
+    const token = await sign(pk, { sub: 'u', tenant_id: '55555555-5555-5555-5555-555555555555' })
+    await expect(adapter.resolveFromToken(token)).rejects.toThrow(/500|JwksCache/i)
+  })
 })
