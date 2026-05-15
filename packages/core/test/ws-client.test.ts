@@ -111,3 +111,42 @@ describe('WsClient', () => {
     expect(() => client.close()).not.toThrow()
   })
 })
+
+describe('WsClient.acquireLock + submitMutation + onApplyMutation', () => {
+  it('acquireLock resolves with lock_granted', async () => {
+    const { sockets, Ctor } = stubSocketFactory()
+    const client = new WsClient({ url: 'ws://x', workbookId: 'w', token: () => 't', WebSocketImpl: Ctor as never })
+    const p = client.connect()
+    sockets[0].fire('open', '')
+    sockets[0].fire('message', JSON.stringify({ type: 'welcome', workbookId: 'w', seqNum: 0, snapshot: null }))
+    await p
+    const ackP = client.acquireLock('A1:A1')
+    sockets[0].fire('message', JSON.stringify({ type: 'lock_granted', region: 'A1:A1', ownerId: 'me', ttlSec: 30 }))
+    expect(await ackP).toEqual({ acquired: true, ownerId: 'me', ttlSec: 30 })
+  })
+
+  it('submitMutation resolves with mutation_accepted', async () => {
+    const { sockets, Ctor } = stubSocketFactory()
+    const client = new WsClient({ url: 'ws://x', workbookId: 'w', token: () => 't', WebSocketImpl: Ctor as never })
+    const p = client.connect()
+    sockets[0].fire('open', '')
+    sockets[0].fire('message', JSON.stringify({ type: 'welcome', workbookId: 'w', seqNum: 0, snapshot: null }))
+    await p
+    const submitP = client.submitMutation({ region: 'A1:A1', payload: { v: 1 } })
+    sockets[0].fire('message', JSON.stringify({ type: 'mutation_accepted', clientSeq: 1, seqNum: 7 }))
+    expect(await submitP).toEqual({ clientSeq: 1, seqNum: 7 })
+  })
+
+  it('onApplyMutation receives incoming frames', async () => {
+    const { sockets, Ctor } = stubSocketFactory()
+    const client = new WsClient({ url: 'ws://x', workbookId: 'w', token: () => 't', WebSocketImpl: Ctor as never })
+    const p = client.connect()
+    sockets[0].fire('open', '')
+    sockets[0].fire('message', JSON.stringify({ type: 'welcome', workbookId: 'w', seqNum: 0, snapshot: null }))
+    await p
+    const got: Array<{ seqNum: number }> = []
+    client.onApplyMutation((f) => got.push(f))
+    sockets[0].fire('message', JSON.stringify({ type: 'apply_mutation', seqNum: 5, userId: 'other', payload: {} }))
+    expect(got).toEqual([{ seqNum: 5, userId: 'other', payload: {} }])
+  })
+})
