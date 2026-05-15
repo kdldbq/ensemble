@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import WebSocket from 'ws'
+import { sql } from 'drizzle-orm'
 import { db, dbUrl } from './_dbHelpers'
 import { tenants, workbooks } from '../../src/db/schema'
 import { createServer } from '../../src/server'
@@ -191,6 +192,52 @@ describe('WS welcome', () => {
     const frame = await wsFirstMessage(`ws://127.0.0.1:${handle.port}/api/v1/ws/${nonExistentId}?token=ok`)
     expect(frame.type).toBe('error')
     expect(frame.code).toBe('not_found')
+    await handle.close()
+  })
+
+  it('welcome snapshot is masked per recipient', async () => {
+    const [tenant] = await db.insert(tenants).values({ name: 'ws-mask' }).returning()
+    const [wb] = await db.insert(workbooks).values({ tenantId: tenant.id, ownerId: 'owner', name: 'WB' }).returning()
+    const identity: IdentityAdapter = {
+      resolveFromToken: async (t) => {
+        if (t !== 'ok') throw new Error('bad')
+        return { tenantId: tenant.id, userId: 'viewer' }
+      },
+    }
+    const permission: PermissionAdapter = {
+      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getMaskRules: async () => [
+        { match: { type: 'column', sheet: '*', column: 'A' }, action: { type: 'redact', replacement: '***' } },
+      ],
+    }
+    const memBlobs = new Map<string, Uint8Array>()
+    const wbData = {
+      id: wb.id, sheetOrder: ['s1'],
+      sheets: { s1: { id: 's1', name: 's', cellData: { '0': { '0': { v: 'header' } }, '1': { '0': { v: 'secret' } } } } },
+    }
+    const key = 'ws-mask-key'
+    memBlobs.set(key, new TextEncoder().encode(JSON.stringify(wbData)))
+    await db.execute(sql`
+      INSERT INTO snapshots (workbook_id, storage_key, size_bytes, created_by, reason)
+      VALUES (${wb.id}, ${key}, 0, 'owner', 'manual')
+    `)
+
+    const storage = {
+      put: async (k: string, b: Uint8Array) => { memBlobs.set(k, b) },
+      get: async (k: string) => memBlobs.get(k) ?? new Uint8Array(),
+      delete: async (k: string) => { memBlobs.delete(k) },
+    }
+    const handle = await createServer({
+      databaseUrl: dbUrl, identity, permission, storage, event: new NoopEventAdapter(),
+    }).listen({ port: 0 })
+    const ws = new WebSocket(`ws://127.0.0.1:${handle.port}/api/v1/ws/${wb.id}?token=ok`)
+    const frame: { snapshot: { sheets: { s1: { cellData: Record<string, Record<string, { v?: unknown }>> } } } } =
+      await new Promise((resolve, reject) => {
+        ws.once('message', (data) => resolve(JSON.parse(data.toString())))
+        ws.once('error', reject)
+      })
+    expect(frame.snapshot.sheets.s1.cellData['1']['0'].v).toBe('***')
+    ws.close()
     await handle.close()
   })
 })
