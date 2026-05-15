@@ -1,4 +1,19 @@
+import { timingSafeEqual } from 'node:crypto'
 import type { Capability, IdentityContext, ResourceRef } from '../adapters/types'
+
+/**
+ * Constant-time string equality for public_link tokens.
+ *
+ * NOTE: grant.granteeId stores the public_link token in cleartext (Sprint 2
+ * design). This blocks timing-attack-based token recovery but DB compromise
+ * still leaks tokens. Sprint 4 may wrap with HMAC + server secret.
+ */
+function safeStringEq(a: string, b: string): boolean {
+  const ba = Buffer.from(a)
+  const bb = Buffer.from(b)
+  if (ba.length !== bb.length) return false
+  return timingSafeEqual(ba, bb)
+}
 
 export interface Grant {
   resourceType: 'folder' | 'workbook'
@@ -43,7 +58,8 @@ function isApplicable(grant: Grant, identity: IdentityContext, presentedToken?: 
   switch (grant.granteeType) {
     case 'user':          return grant.granteeId === identity.userId
     case 'tenant_member': return true
-    case 'public_link':   return !!presentedToken && grant.granteeId === presentedToken
+    case 'public_link':
+      return !!presentedToken && !!grant.granteeId && safeStringEq(grant.granteeId, presentedToken)
   }
 }
 
