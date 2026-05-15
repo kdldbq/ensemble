@@ -1,0 +1,28 @@
+{
+  "name": "@ensemble/react",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@ensemble/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@ensemble/core": "workspace:*",
+    "@testing-library/react": "16.0.1",
+    "@types/react": "18.3.11",
+    "@types/react-dom": "18.3.0",
+    "jsdom": "25.0.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
