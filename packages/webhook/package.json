@@ -1,6 +1,12 @@
 {
   "name": "@ensemble/webhook",
   "version": "0.0.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kdldbq/ensemble.git",
+    "directory": "packages/webhook"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

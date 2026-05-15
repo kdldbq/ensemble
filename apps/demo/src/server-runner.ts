@@ -12,6 +12,10 @@ const sql = postgres(process.env.DATABASE_URL!, { max: 1 })
 await sql`INSERT INTO tenants (id, name) VALUES (${TENANT_ID}, 'demo') ON CONFLICT (id) DO NOTHING`
 await sql.end()
 
+// WARNING: DEV-ONLY STUB — Do NOT use in production.
+// This adapter accepts any token prefixed with "dev:" without verification.
+// Production hosts must implement IdentityAdapter with real JWT/JWKS verification
+// (see @ensemble/identity-jwks in Sprint 2).
 const identity: IdentityAdapter = {
   resolveFromToken: async (token) => {
     if (!token.startsWith('dev:')) throw new Error('bad token')
