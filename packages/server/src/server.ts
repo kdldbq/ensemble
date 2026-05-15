@@ -119,7 +119,7 @@ export function createServer(opts: CreateServerOpts) {
           tenantId: identity.tenantId,
           userId: identity.userId,
           workbookId,
-          lastSeq,
+          ...(lastSeq !== undefined ? { lastSeq } : {}),
         })
 
         // Register client in room and create session dispatcher
