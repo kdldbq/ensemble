@@ -7,5 +7,5 @@ export default defineConfig({
       '@ensemble/core': path.resolve(__dirname, '../core/src/index.ts'),
     },
   },
-  test: { environment: 'jsdom' },
+  test: { environment: 'jsdom', globals: true },
 })
