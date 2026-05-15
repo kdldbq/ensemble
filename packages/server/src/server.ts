@@ -114,7 +114,7 @@ export function createServer(opts: CreateServerOpts) {
         }
 
         // Send welcome frame (with optional last_seq replay)
-        const welcomeDeps = { ...deps, mutations: mutationService, permission: opts.permission }
+        const welcomeDeps = { ...deps, mutations: mutationService, permission: opts.permission, presence, redis }
         await sendWelcome(ws, welcomeDeps, {
           tenantId: identity.tenantId,
           userId: identity.userId,

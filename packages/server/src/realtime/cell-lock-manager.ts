@@ -1,5 +1,26 @@
 import type { Redis } from '../redis/client'
 
+export async function scanLocks(
+  redis: Redis,
+  workbookId: string
+): Promise<Array<{ region: string; ownerId: string }>> {
+  const prefix = `ensemble:lock:${workbookId}:`
+  const out: Array<{ region: string; ownerId: string }> = []
+  let cursor = '0'
+  do {
+    const [next, keys] = await redis.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 100)
+    cursor = next
+    if (keys.length > 0) {
+      const values = await redis.mget(...keys)
+      for (let i = 0; i < keys.length; i++) {
+        const v = values[i]
+        if (v) out.push({ region: keys[i]!.slice(prefix.length), ownerId: v })
+      }
+    }
+  } while (cursor !== '0')
+  return out
+}
+
 export interface AcquireInput { workbookId: string; region: string; userId: string }
 export interface AcquireResult { acquired: boolean; ownerId: string; ttlSec: number }
 

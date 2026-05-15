@@ -4,9 +4,14 @@ import { createSnapshotService } from '../services/snapshot-service'
 import { createWorkbookService } from '../services/workbook-service'
 import { applyMaskRules, type WorkbookData } from '../services/mask-service'
 import type { MutationService } from '../services/mutation-service'
+import type { PresenceTracker } from '../realtime/presence-tracker'
+import type { Redis } from '../redis/client'
+import { scanLocks } from '../realtime/cell-lock-manager'
 
 export interface WelcomeDeps extends AppDeps {
   mutations: MutationService
+  presence: PresenceTracker
+  redis: Redis
 }
 
 export interface WelcomeCtx {
@@ -49,14 +54,19 @@ export async function sendWelcome(
   // Determine current seqNum for the welcome frame
   const currentSeq = await deps.mutations.currentSeq(wb.id)
 
+  const [presenceEntries, lockEntries] = await Promise.all([
+    Promise.resolve(deps.presence.list(wb.id)),
+    scanLocks(deps.redis, wb.id),
+  ])
+
   ws.send(
     JSON.stringify({
       type: 'welcome',
       workbookId: wb.id,
       seqNum: currentSeq,
       snapshot: snapshotData,
-      presence: [],
-      locks: [],
+      presence: presenceEntries,
+      locks: lockEntries,
     })
   )
 
