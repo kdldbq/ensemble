@@ -43,3 +43,20 @@ export const snapshots = pgTable('snapshots', {
   reason: snapshotReason('reason').notNull().default('auto'),
   name: text('name'),
 })
+
+export const grantResourceType = pgEnum('grant_resource_type', ['folder', 'workbook'])
+export const granteeType = pgEnum('grantee_type', ['user', 'tenant_member', 'public_link'])
+export const permissionLevel = pgEnum('permission_level', ['view', 'edit', 'manage'])
+
+export const shareGrants = pgTable('share_grants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  resourceType: grantResourceType('resource_type').notNull(),
+  resourceId: uuid('resource_id').notNull(),
+  granteeType: granteeType('grantee_type').notNull(),
+  granteeId: text('grantee_id'),
+  permission: permissionLevel('permission').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  grantedBy: text('granted_by').notNull(),
+  grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+})
