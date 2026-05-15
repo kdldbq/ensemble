@@ -1,0 +1,30 @@
+{
+  "name": "@ensemble/core",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@univerjs/core": "0.22.1",
+    "@univerjs/design": "0.22.1",
+    "@univerjs/docs": "0.22.1",
+    "@univerjs/docs-ui": "0.22.1",
+    "@univerjs/engine-formula": "0.22.1",
+    "@univerjs/engine-render": "0.22.1",
+    "@univerjs/sheets": "0.22.1",
+    "@univerjs/sheets-formula": "0.22.1",
+    "@univerjs/sheets-ui": "0.22.1",
+    "@univerjs/ui": "0.22.1",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "jsdom": "25.0.1"
+  }
+}
