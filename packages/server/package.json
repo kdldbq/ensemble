@@ -26,6 +26,7 @@
     "@types/node": "20.16.10",
     "@types/ws": "8.5.12",
     "drizzle-kit": "0.27.0",
-    "@testcontainers/postgresql": "10.13.2"
+    "@testcontainers/postgresql": "10.13.2",
+    "@ensemble/storage-fs": "workspace:*"
   }
 }

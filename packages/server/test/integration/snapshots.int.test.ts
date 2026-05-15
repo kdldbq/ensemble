@@ -3,6 +3,10 @@ import { buildApp } from '../../src/http/app'
 import { db } from './_setup'
 import { tenants, workbooks } from '../../src/db/schema'
 import { NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '../../src/adapters/identity'
+import { FsStorage } from '@ensemble/storage-fs'
+import { mkdtemp } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 function memStorage() {
   const blobs = new Map<string, Uint8Array>()
@@ -105,5 +109,36 @@ describe('snapshots REST', () => {
       headers: { Authorization: 'Bearer x' },
     })
     expect(get.status).toBe(204)
+  })
+
+  it('snapshot round-trips through FsStorage', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'snap-fs-'))
+    const storage = new FsStorage({ root: dir })
+    const [tenant] = await db.insert(tenants).values({ name: 'snap-fs-t' }).returning()
+    const [wb] = await db
+      .insert(workbooks)
+      .values({ tenantId: tenant.id, ownerId: 'u1', name: 'WB' })
+      .returning()
+    const identity: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
+    }
+    const permission: PermissionAdapter = {
+      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getMaskRules: async () => [],
+    }
+    const app = buildApp({ db, identity, permission, storage, event: new NoopEventAdapter() })
+    const payload = new TextEncoder().encode('{"fs":"ok"}')
+    const post = await app.request(`/api/v1/workbooks/${wb.id}/snapshots`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: payload,
+    })
+    expect(post.status).toBe(201)
+    const get = await app.request(`/api/v1/workbooks/${wb.id}/snapshot`, {
+      headers: { Authorization: 'Bearer x' },
+    })
+    expect(get.status).toBe(200)
+    const body = new Uint8Array(await get.arrayBuffer())
+    expect(new TextDecoder().decode(body)).toBe('{"fs":"ok"}')
   })
 })
