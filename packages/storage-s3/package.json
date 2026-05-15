@@ -1,0 +1,24 @@
+{
+  "name": "@ensemble/storage-s3",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.668.0",
+    "@aws-sdk/s3-request-presigner": "3.668.0"
+  },
+  "devDependencies": {
+    "@ensemble/server": "workspace:*",
+    "@types/node": "20.16.10",
+    "testcontainers": "10.13.2"
+  }
+}
