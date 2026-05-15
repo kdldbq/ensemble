@@ -40,7 +40,7 @@ export function createServer(opts: CreateServerOpts) {
   }
 
   const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket(
-    nodeWsInit as Parameters<typeof createNodeWebSocket>[0]
+    nodeWsInit as never
   )
 
   // createEvents MUST be synchronous — any await before nodeUpgradeWebSocket

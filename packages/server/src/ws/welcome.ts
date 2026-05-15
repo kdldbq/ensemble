@@ -1,4 +1,4 @@
-import type { WSContext } from '@hono/node-ws'
+import type { WSContext } from 'hono/ws'
 import type { AppDeps } from '../http/app'
 import { createSnapshotService } from '../services/snapshot-service'
 import { createWorkbookService } from '../services/workbook-service'

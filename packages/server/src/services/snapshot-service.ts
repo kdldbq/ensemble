@@ -25,7 +25,7 @@ export function createSnapshotService(db: Database, storage: StorageAdapter) {
           sizeBytes: input.body.byteLength,
           createdBy: input.userId,
           reason: input.reason,
-          name: input.name,
+          ...(input.name !== undefined ? { name: input.name } : {}),
         })
         .returning()
       return row

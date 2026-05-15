@@ -22,8 +22,9 @@ export const snapshotsRoute = new Hono<AppEnv>()
       userId: id.userId,
       body,
       reason,
-      name,
+      ...(name !== undefined ? { name } : {}),
     })
+    if (!snap) return c.json({ error: 'snapshot creation failed' }, 500)
     await createWorkbookService(db).setCurrentSnapshot({ tenantId: id.tenantId, id: wbId, snapshotId: snap.id })
     return c.json(snap, 201)
   })

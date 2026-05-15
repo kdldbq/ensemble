@@ -14,7 +14,7 @@ export function createWorkbookService(db: Database) {
           tenantId: input.tenantId,
           ownerId: input.userId,
           name: input.name,
-          folderId: input.folderId,
+          ...(input.folderId !== undefined ? { folderId: input.folderId } : {}),
         })
         .returning()
       return row
