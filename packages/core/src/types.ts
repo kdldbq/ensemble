@@ -31,3 +31,28 @@ export interface UniverWorkbookData {
   sheetOrder: string[]
   sheets: Record<string, UniverSheet>
 }
+
+export interface Folder {
+  id: string
+  tenantId: string
+  parentId: string | null
+  name: string
+  ownerId: string
+  spaceType: 'personal' | 'shared'
+  isDeleted: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Grant {
+  id: string
+  tenantId: string
+  resourceType: 'folder' | 'workbook'
+  resourceId: string
+  granteeType: 'user' | 'tenant_member' | 'public_link'
+  granteeId: string | null
+  permission: 'view' | 'edit' | 'manage'
+  expiresAt: string | null
+  grantedBy: string
+  grantedAt: string
+}

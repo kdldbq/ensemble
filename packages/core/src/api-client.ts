@@ -1,4 +1,4 @@
-import type { Snapshot, UniverWorkbookData, Workbook } from './types'
+import type { Folder, Grant, Snapshot, UniverWorkbookData, Workbook } from './types'
 
 export interface ApiClientOpts {
   baseUrl: string
@@ -74,5 +74,47 @@ export class ApiClient {
       body: bytes,
     })
     return res.json() as Promise<Snapshot>
+  }
+
+  async listFolders(): Promise<{ items: Folder[] }> {
+    return (await this.req('/api/v1/folders')).json() as Promise<{ items: Folder[] }>
+  }
+  async createFolder(input: { name: string; parentId: string | null; spaceType: 'personal' | 'shared' }): Promise<Folder> {
+    const res = await this.req('/api/v1/folders', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return res.json() as Promise<Folder>
+  }
+  async renameFolder(id: string, name: string): Promise<Folder> {
+    const res = await this.req(`/api/v1/folders/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    return res.json() as Promise<Folder>
+  }
+  async moveFolder(id: string, newParentId: string | null): Promise<Folder> {
+    const res = await this.req(`/api/v1/folders/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ parentId: newParentId }),
+    })
+    return res.json() as Promise<Folder>
+  }
+  async deleteFolder(id: string): Promise<void> {
+    await this.req(`/api/v1/folders/${id}`, { method: 'DELETE' })
+  }
+  async createGrant(input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt'>): Promise<Grant> {
+    const res = await this.req('/api/v1/grants', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return res.json() as Promise<Grant>
+  }
+  async deleteGrant(id: string): Promise<void> {
+    await this.req(`/api/v1/grants/${id}`, { method: 'DELETE' })
   }
 }

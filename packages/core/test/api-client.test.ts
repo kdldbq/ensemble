@@ -69,3 +69,41 @@ describe('ApiClient', () => {
     expect(snap).toBeNull()
   })
 })
+
+describe('ApiClient folders + grants', () => {
+  it('listFolders / createFolder / renameFolder / moveFolder / deleteFolder', async () => {
+    let lastReq: { method: string; url: string; body?: unknown } | null = null
+    const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      lastReq = { method: init?.method ?? 'GET', url, body: init?.body ? JSON.parse(String(init.body)) : undefined }
+      if (init?.method === 'POST')   return new Response(JSON.stringify({ id: 'f1', name: 'F' }), { status: 201 })
+      if (init?.method === 'PATCH')  return new Response(JSON.stringify({ id: 'f1', name: 'F2' }), { status: 200 })
+      if (init?.method === 'DELETE') return new Response(null, { status: 204 })
+      return new Response(JSON.stringify({ items: [{ id: 'f1' }] }), { status: 200 })
+    })
+    const api = new ApiClient({ baseUrl: 'https://x', token: async () => 't', fetch })
+    expect((await api.listFolders()).items).toEqual([{ id: 'f1' }])
+    await api.createFolder({ name: 'F', parentId: null, spaceType: 'personal' })
+    expect(lastReq?.body).toEqual({ name: 'F', parentId: null, spaceType: 'personal' })
+    await api.renameFolder('f1', 'F2')
+    expect(lastReq?.body).toEqual({ name: 'F2' })
+    await api.moveFolder('f1', 'parent2')
+    expect(lastReq?.body).toEqual({ parentId: 'parent2' })
+    await api.deleteFolder('f1')
+    expect(lastReq?.method).toBe('DELETE')
+  })
+
+  it('createGrant / deleteGrant', async () => {
+    const fetch = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return new Response(JSON.stringify({ id: 'g1' }), { status: 201 })
+      return new Response(null, { status: 204 })
+    })
+    const api = new ApiClient({ baseUrl: 'https://x', token: async () => 't', fetch })
+    const g = await api.createGrant({
+      resourceType: 'workbook', resourceId: 'wb',
+      granteeType: 'user', granteeId: 'u2', permission: 'view',
+      expiresAt: null,
+    })
+    expect(g.id).toBe('g1')
+    await api.deleteGrant('g1')
+  })
+})
