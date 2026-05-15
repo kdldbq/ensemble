@@ -111,6 +111,44 @@ describe('snapshots REST', () => {
     expect(get.status).toBe(204)
   })
 
+  it('GET blob returns 404 when snapshotId belongs to a different workbook', async () => {
+    const [tenant] = await db.insert(tenants).values({ name: 'snap-xwb-t' }).returning()
+    const [wb1] = await db
+      .insert(workbooks)
+      .values({ tenantId: tenant.id, ownerId: 'u1', name: 'WB1' })
+      .returning()
+    const [wb2] = await db
+      .insert(workbooks)
+      .values({ tenantId: tenant.id, ownerId: 'u1', name: 'WB2' })
+      .returning()
+
+    const ms = memStorage()
+    const identity: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
+    }
+    const permission: PermissionAdapter = {
+      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getMaskRules: async () => [],
+    }
+    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+
+    // Create a snapshot under wb1
+    const payload = new TextEncoder().encode('{"wb":"1"}')
+    const post = await app.request(`/api/v1/workbooks/${wb1.id}/snapshots`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: payload,
+    })
+    expect(post.status).toBe(201)
+    const snap = (await post.json()) as { id: string }
+
+    // Try to access that snapshot via wb2 — must be 404 (not 403 to avoid leaking existence)
+    const get = await app.request(`/api/v1/workbooks/${wb2.id}/snapshots/${snap.id}/blob`, {
+      headers: { Authorization: 'Bearer x' },
+    })
+    expect(get.status).toBe(404)
+  })
+
   it('snapshot round-trips through FsStorage', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'snap-fs-'))
     const storage = new FsStorage({ root: dir })

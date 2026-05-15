@@ -39,7 +39,7 @@ export function createSnapshotService(db: Database, storage: StorageAdapter) {
         .select()
         .from(snapshots)
         .where(eq(snapshots.workbookId, workbookId))
-        .orderBy(desc(snapshots.createdAt))
+        .orderBy(desc(snapshots.createdAt), desc(snapshots.id))
         .limit(1)
       return rows[0] ?? null
     },

@@ -15,6 +15,12 @@ export interface WorkbookEditorProps {
 export function WorkbookEditor(props: WorkbookEditorProps) {
   const ref = useRef<HTMLDivElement>(null)
   const handleRef = useRef<MountHandle | null>(null)
+  // Stabilize mutable props via refs so token/onReady changes don't trigger remount
+  const tokenRef = useRef(props.token)
+  tokenRef.current = props.token
+  const onReadyRef = useRef(props.onReady)
+  onReadyRef.current = props.onReady
+
   useEffect(() => {
     if (!ref.current) return
     let cancelled = false
@@ -23,16 +29,17 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
       workbookId: props.workbookId,
       apiBaseUrl: props.apiBaseUrl,
       wsBaseUrl: props.wsBaseUrl,
-      token: props.token,
+      token: tokenRef.current,
     }).then((h) => {
-      if (cancelled) { h.destroy(); return }
+      if (cancelled) { void h.destroy(); return }
       handleRef.current = h
-      props.onReady?.(h)
+      onReadyRef.current?.(h)
     })
     return () => {
       cancelled = true
-      handleRef.current?.destroy()
+      void handleRef.current?.destroy()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.workbookId, props.apiBaseUrl, props.wsBaseUrl])
   return (
     <div

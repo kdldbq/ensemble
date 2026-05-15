@@ -63,10 +63,14 @@ describe('mountWorkbookEditor', () => {
       _wsConnect: wsStub,
     })
 
-    // load was called with the blank fallback (id = workbookId)
-    const loaded = fakeEditor._loaded[0] as { id: string }
+    // load was called with the blank fallback (id = workbookId, sheetId derived from workbookId)
+    const loaded = fakeEditor._loaded[0] as { id: string; sheetOrder: string[]; sheets: Record<string, { id: string }> }
     expect(fakeEditor._loaded.length).toBe(1)
     expect(loaded.id).toBe('wb2')
+    // B3: sheetId is derived from workbookId, not hardcoded 's1'
+    expect(loaded.sheetOrder).toEqual(['s1-wb2'])
+    expect(loaded.sheets['s1-wb2']).toBeDefined()
+    expect(loaded.sheets['s1-wb2'].id).toBe('s1-wb2')
   })
 
   it('save() uploads snapshot and returns id', async () => {
@@ -154,5 +158,28 @@ describe('mountWorkbookEditor', () => {
 
     handle.destroy()
     expect(fakeEditor.destroy).toHaveBeenCalledOnce()
+  })
+
+  it('await destroy() resolves without throwing (B1 async destroy)', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const fakeEditor = makeFakeEditor()
+
+    const handle = await mountWorkbookEditor({
+      container,
+      workbookId: 'w',
+      apiBaseUrl: 'https://api',
+      wsBaseUrl: 'wss://api',
+      token: () => 't',
+      fetch: vi.fn(async (url: string) => {
+        if (url.endsWith('/snapshot'))
+          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+        return new Response('', { status: 200 })
+      }) as never,
+      _editorFactory: () => fakeEditor as never,
+      _wsConnect: wsStub,
+    })
+
+    await expect(handle.destroy()).resolves.toBeUndefined()
   })
 })

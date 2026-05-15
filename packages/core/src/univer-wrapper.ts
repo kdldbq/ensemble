@@ -132,25 +132,31 @@ export function createEditor(opts: EditorOpts): Editor {
  * Call this from a browser context (e.g. mountWorkbookEditor) BEFORE editor.load()
  * so the UI canvas is ready before workbook data is set.
  */
-export async function loadBrowserPlugins(univer: Univer, container: HTMLElement): Promise<void> {
+export async function loadBrowserPlugins(
+  univer: Univer,
+  container: HTMLElement,
+  onError?: (plugin: string, error: unknown) => void,
+): Promise<void> {
+  const warn = onError ?? ((plugin, err) => console.warn(`ensemble: failed to load browser plugin "${plugin}"`, err))
+
   try {
     const { UniverUIPlugin } = await import('@univerjs/ui')
     univer.registerPlugin(UniverUIPlugin as Parameters<typeof univer.registerPlugin>[0], { container })
-  } catch {
-    // @univerjs/icons not available — expected in jsdom / Node unit tests
+  } catch (err) {
+    warn('@univerjs/ui', err)
   }
 
   try {
     const { UniverSheetsUIPlugin } = await import('@univerjs/sheets-ui')
     univer.registerPlugin(UniverSheetsUIPlugin as Parameters<typeof univer.registerPlugin>[0])
-  } catch {
-    // @univerjs/icons not available — expected in jsdom / Node unit tests
+  } catch (err) {
+    warn('@univerjs/sheets-ui', err)
   }
 
   try {
     const { UniverSheetsFormulaPlugin } = await import('@univerjs/sheets-formula')
     univer.registerPlugin(UniverSheetsFormulaPlugin as Parameters<typeof univer.registerPlugin>[0])
-  } catch {
-    // @univerjs/icons not available — expected in jsdom / Node unit tests
+  } catch (err) {
+    warn('@univerjs/sheets-formula', err)
   }
 }

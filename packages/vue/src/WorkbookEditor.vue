@@ -15,7 +15,7 @@ let handle: MountHandle | null = null
 
 async function mountNow() {
   if (!containerRef.value) return
-  handle?.destroy()
+  void handle?.destroy()
   handle = await mountWorkbookEditor({
     container: containerRef.value,
     workbookId: props.workbookId,

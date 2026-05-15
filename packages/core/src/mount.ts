@@ -20,7 +20,7 @@ export interface MountOpts {
 export interface MountHandle {
   save(): Promise<{ id: string }>
   exportXlsx(): Uint8Array
-  destroy(): void
+  destroy(): Promise<void>
 }
 
 export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle> {
@@ -48,12 +48,13 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
   }
 
   const snapshot = (await api.getLatestSnapshot(opts.workbookId)) as UniverWorkbookData | null
+  const sheetId = `s1-${opts.workbookId}`
   const data: UniverWorkbookData =
     snapshot ??
     {
       id: opts.workbookId,
-      sheetOrder: ['s1'],
-      sheets: { s1: { id: 's1', name: 'Sheet1', cellData: {} } },
+      sheetOrder: [sheetId],
+      sheets: { [sheetId]: { id: sheetId, name: 'Sheet1', cellData: {} } },
     }
   editor.load(data)
 
@@ -67,7 +68,7 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     exportXlsx() {
       return univerJsonToXlsx(editor.getData())
     },
-    destroy() {
+    async destroy() {
       editor.destroy()
       ws.close()
     },
