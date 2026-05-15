@@ -61,6 +61,15 @@ importers:
         specifier: 0.27.0
         version: 0.27.0
 
+  packages/storage-fs:
+    devDependencies:
+      '@ensemble/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: 20.16.10
+        version: 20.16.10
+
 packages:
 
   '@ampproject/remapping@2.3.0':
