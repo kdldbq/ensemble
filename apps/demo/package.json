@@ -1,0 +1,32 @@
+{
+  "name": "@ensemble/demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:server": "tsx src/server-runner.ts",
+    "dev:web": "vite",
+    "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:web\"",
+    "build": "vite build",
+    "e2e": "playwright test --config e2e/playwright.config.ts",
+    "e2e:install": "playwright install --with-deps chromium"
+  },
+  "dependencies": {
+    "@ensemble/core": "workspace:*",
+    "@ensemble/react": "workspace:*",
+    "@ensemble/server": "workspace:*",
+    "@ensemble/storage-fs": "workspace:*",
+    "postgres": "3.4.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.0",
+    "@types/react": "18.3.11",
+    "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "4.3.2",
+    "concurrently": "9.0.1",
+    "tsx": "4.19.1",
+    "vite": "5.4.8"
+  }
+}

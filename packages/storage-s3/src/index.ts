@@ -28,7 +28,7 @@ export class S3Storage implements StorageAdapter {
         Bucket: this.bucket,
         Key: key,
         Body: body,
-        ContentType: opts?.contentType,
+        ...(opts?.contentType !== undefined ? { ContentType: opts.contentType } : {}),
       }),
     )
   }
@@ -46,7 +46,7 @@ export class S3Storage implements StorageAdapter {
     const cmd = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
-      ResponseContentDisposition: filename ? `attachment; filename="${filename}"` : undefined,
+      ...(filename ? { ResponseContentDisposition: `attachment; filename="${filename}"` } : {}),
     })
     return getSignedUrl(this.client, cmd, { expiresIn: ttlSec })
   }
