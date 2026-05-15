@@ -1,21 +1,11 @@
-# Node
 node_modules/
 dist/
-build/
+coverage/
 .turbo/
+.DS_Store
 *.log
-
-# Env
 .env
 .env.local
-.env.*.local
-
-# Editor / OS
-.DS_Store
-.idea/
-.vscode/
-*.swp
-
-# Test
-coverage/
-.nyc_output/
+playwright-report/
+test-results/
+.vite/
