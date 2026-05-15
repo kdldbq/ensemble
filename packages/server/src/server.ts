@@ -85,6 +85,8 @@ export function createServer(opts: CreateServerOpts) {
   const wsHandler = upgradeWebSocket((c) => {
     const token = c.req.query('token') ?? ''
     const workbookId = c.req.param('workbookId')
+    const lastSeqStr = c.req.query('last_seq')
+    const lastSeq = lastSeqStr != null && lastSeqStr !== '' ? Number(lastSeqStr) : undefined
     return {
       async onOpen(_e, ws) {
         // Authenticate
@@ -110,11 +112,13 @@ export function createServer(opts: CreateServerOpts) {
           return
         }
 
-        // Send welcome frame
-        await sendWelcome(ws, deps, {
+        // Send welcome frame (with optional last_seq replay)
+        const welcomeDeps = { ...deps, mutations: mutationService, permission: opts.permission }
+        await sendWelcome(ws, welcomeDeps, {
           tenantId: identity.tenantId,
           userId: identity.userId,
           workbookId,
+          lastSeq,
         })
 
         // Register client in room and create session dispatcher
