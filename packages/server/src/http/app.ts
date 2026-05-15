@@ -6,11 +6,14 @@ import type { StorageAdapter } from '../adapters/storage'
 import type { Capability } from '../adapters/types'
 import { createWorkbookService } from '../services/workbook-service'
 import { createSnapshotService } from '../services/snapshot-service'
+import { createFolderService } from '../services/folder-service'
 import type { WorkbookService } from '../services/workbook-service'
 import type { SnapshotService } from '../services/snapshot-service'
+import type { FolderService } from '../services/folder-service'
 import { healthRoute } from './routes/health'
 import { workbooksRoute } from './routes/workbooks'
 import { snapshotsRoute } from './routes/snapshots'
+import { foldersRoute } from './routes/folders'
 
 export interface AppDeps {
   db: Database
@@ -23,6 +26,7 @@ export interface AppDeps {
 export interface AppServices {
   workbooks: WorkbookService
   snapshots: SnapshotService
+  folders: FolderService
 }
 
 export type AppEnv = {
@@ -43,6 +47,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   const services: AppServices = {
     workbooks: createWorkbookService(deps.db),
     snapshots: createSnapshotService(deps.db, deps.storage),
+    folders: createFolderService(deps.db),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {
@@ -58,5 +63,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', healthRoute)
   app.route('/', workbooksRoute)
   app.route('/', snapshotsRoute)
+  app.route('/', foldersRoute)
   return app
 }
