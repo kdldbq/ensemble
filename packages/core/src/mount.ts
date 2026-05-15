@@ -47,7 +47,7 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     await loadBrowserPlugins(editor._univer, opts.container)
   }
 
-  const snapshot = (await api.getLatestSnapshot(opts.workbookId)) as UniverWorkbookData | null
+  const snapshot = await api.getLatestSnapshot(opts.workbookId)
   const sheetId = `s1-${opts.workbookId}`
   const data: UniverWorkbookData =
     snapshot ??

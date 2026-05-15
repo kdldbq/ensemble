@@ -4,8 +4,11 @@ coverage/
 .turbo/
 .DS_Store
 *.log
+*.tsbuildinfo
 .env
 .env.local
+.env*
+!.env.example
 playwright-report/
 test-results/
 .vite/

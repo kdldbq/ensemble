@@ -13,6 +13,13 @@ export class NotImplementedIdentityAdapter implements IdentityAdapter {
 export interface PermissionAdapter {
   getCapabilities(identity: IdentityContext, resource: ResourceRef): Promise<Capability>
   getMaskRules(identity: IdentityContext, workbook: ResourceRef): Promise<MaskRule[]>
+  /**
+   * Filter the list of visible resources for the identity.
+   * @returns object with optional `allowedIds`:
+   *   - `undefined` → no filter applied (all results visible)
+   *   - `[]`        → nothing visible (full restriction)
+   *   - `[...ids]`  → only these ids are visible
+   */
   filterListVisibility?(
     identity: IdentityContext,
     scope: 'folders' | 'workbooks'
@@ -20,10 +27,10 @@ export interface PermissionAdapter {
 }
 
 export class NotImplementedPermissionAdapter implements PermissionAdapter {
-  getCapabilities(): Promise<Capability> {
+  getCapabilities(_identity: IdentityContext, _resource: ResourceRef): Promise<Capability> {
     return Promise.reject(new Error('PermissionAdapter not implemented'))
   }
-  getMaskRules(): Promise<MaskRule[]> {
+  getMaskRules(_identity: IdentityContext, _workbook: ResourceRef): Promise<MaskRule[]> {
     return Promise.reject(new Error('PermissionAdapter not implemented'))
   }
 }

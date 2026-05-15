@@ -1,4 +1,4 @@
-import type { Snapshot, Workbook } from './types'
+import type { Snapshot, UniverWorkbookData, Workbook } from './types'
 
 export interface ApiClientOpts {
   baseUrl: string
@@ -55,10 +55,10 @@ export class ApiClient {
     return (await this.req(`/api/v1/workbooks/${id}`)).json() as Promise<Workbook>
   }
 
-  async getLatestSnapshot(id: string): Promise<unknown | null> {
+  async getLatestSnapshot(id: string): Promise<UniverWorkbookData | null> {
     const res = await this.req(`/api/v1/workbooks/${id}/snapshot`)
     if (res.status === 204) return null
-    return res.json()
+    return res.json() as Promise<UniverWorkbookData>
   }
 
   async uploadSnapshot(

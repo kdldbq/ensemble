@@ -35,6 +35,13 @@ export interface MaskRule {
   action: MaskAction
 }
 
+/**
+ * Event payload published by EventAdapter.publish.
+ *
+ * All `at` fields are ISO-8601 timestamps (e.g. "2026-05-15T10:30:00.000Z").
+ * EventAdapter implementations should treat publish as fire-and-forget:
+ * errors must be swallowed and never propagated to the trigger caller.
+ */
 export type EnsembleEvent =
   | { type: 'workbook.created'; workbookId: string; userId: string; at: string }
   | { type: 'workbook.opened';  workbookId: string; userId: string; at: string }
