@@ -11,6 +11,7 @@ export function xlsxToUniverJson(bytes: Uint8Array): UniverWorkbookData {
   const sheets: Record<string, UniverSheet> = {}
   wb.SheetNames.forEach((name, idx) => {
     const ws = wb.Sheets[name]
+    /* c8 ignore next — defensive: SheetNames key always exists in Sheets map */
     if (!ws) return
     const id = sheetIdFromName(name, idx)
     sheetOrder.push(id)
@@ -37,11 +38,13 @@ export function univerJsonToXlsx(data: UniverWorkbookData): Uint8Array {
   const wb = XLSX.utils.book_new()
   for (const sheetId of data.sheetOrder) {
     const sheet = data.sheets[sheetId]
+    /* c8 ignore next — defensive: sheetOrder kept in sync with sheets map */
     if (!sheet) continue
     const aoa: unknown[][] = []
     for (const rStr of Object.keys(sheet.cellData)) {
       const r = Number(rStr)
       const row = sheet.cellData[rStr]
+      /* c8 ignore next — defensive: Object.keys returns valid keys */
       if (!row) continue
       const aoaRow = (aoa[r] ??= [])
       for (const cStr of Object.keys(row)) {

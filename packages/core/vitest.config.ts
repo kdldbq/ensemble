@@ -11,9 +11,7 @@ export default defineConfig({
         'src/index.ts',          // barrel re-exports only, no runtime logic
         'src/types.ts',          // pure type declarations, no runtime code
       ],
-      // branches: 78 — 3 browser-only branches in mount.ts (_editorFactory ?? and _wsConnect else)
-      // are untestable in jsdom; covered by T23 Playwright e2e. All other thresholds remain strict.
-      thresholds: { lines: 90, statements: 90, functions: 85, branches: 78 },
+      thresholds: { lines: 90, statements: 90, functions: 85, branches: 80 },
     },
   },
 })

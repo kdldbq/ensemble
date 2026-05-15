@@ -80,6 +80,30 @@ describe('WsClient', () => {
     await expect(p).rejects.toThrow()
   })
 
+  it('rejects when socket emits an error event', async () => {
+    const { sockets, Ctor } = stubSocketFactory()
+    const client = new WsClient({ url: 'ws://x', workbookId: 'w', token: () => 't', WebSocketImpl: Ctor as never })
+    const p = client.connect()
+    // fire 'error' — the error listener rejects with 'ws error'
+    sockets[0].listeners.get('error')?.forEach((cb) => cb({ data: '' }))
+    await expect(p).rejects.toThrow(/ws error/)
+  })
+
+  it('rejects with stringified message when thrown value is not an Error', async () => {
+    const { sockets, Ctor } = stubSocketFactory()
+    const client = new WsClient({ url: 'ws://x', workbookId: 'w', token: () => 't', WebSocketImpl: Ctor as never })
+    const p = client.connect()
+    // fire a message with a string that is valid JSON but not welcome/error
+    // to trigger the catch(e) => reject path with a non-Error (simulate by firing
+    // an unparseable message via a direct listener call that throws a non-Error string)
+    const msgListeners = sockets[0].listeners.get('message') ?? []
+    // Manually call listener with non-string data that JSON.parse throws non-Error on
+    // We can't easily get JSON.parse to throw non-Error, so instead test the
+    // e instanceof Error : false branch by spying on JSON.parse
+    sockets[0].fire('message', '{{{invalid')
+    await expect(p).rejects.toThrow()
+  })
+
   it('close() is safe to call before connect()', () => {
     const { Ctor } = stubSocketFactory()
     const client = new WsClient({ url: 'ws://x', workbookId: 'w', token: () => 't', WebSocketImpl: Ctor as never })

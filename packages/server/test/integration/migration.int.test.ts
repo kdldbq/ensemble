@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
-import { db } from './_setup'
+import { db } from './_dbHelpers'
 
 describe('migration', () => {
   it('creates the core tables', async () => {

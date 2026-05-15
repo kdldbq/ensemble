@@ -40,6 +40,7 @@ export class WsClient {
 
   private _buildSocket(token: string): Promise<WelcomeFrame> {
     const url = `${this.opts.url.replace(/\/$/, '')}/api/v1/ws/${this.opts.workbookId}?token=${encodeURIComponent(token)}`
+    /* v8 ignore next — browser-only fallback; tests always supply WebSocketImpl */
     const Ctor = this.opts.WebSocketImpl ?? WebSocket
     const ws = new Ctor(url)
     this.socket = ws

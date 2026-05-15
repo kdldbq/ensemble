@@ -12,14 +12,13 @@ export default defineConfig({
         'src/adapters/permission.ts',
         'src/adapters/event.ts',
         'src/adapters/storage.ts',
+        // CLI entry — exercised by migrate.int.test.ts via child_process.spawn,
+        // which v8 cannot instrument in the parent process.
         'src/db/migrate.ts',
       ],
-      // branches threshold lowered from 80 to 75: uncovered branches are defensive
-      // 5xx fallbacks (e.g. "if (!snap) return 500") and conditional-spread undefined
-      // paths required by exactOptionalPropertyTypes. T15/T23 will raise it back.
-      thresholds: { lines: 90, statements: 90, functions: 85, branches: 75 },
+      thresholds: { lines: 90, statements: 90, functions: 85, branches: 80 },
     },
-    setupFiles: ['./test/integration/_setup.ts'],
+    globalSetup: ['./test/integration/_globalSetup.ts'],
     testTimeout: 30_000,
     hookTimeout: 60_000,
   },

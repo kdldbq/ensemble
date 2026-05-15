@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import WebSocket from 'ws'
-import { db, dbUrl } from './_setup'
+import { db, dbUrl } from './_dbHelpers'
 import { tenants, workbooks } from '../../src/db/schema'
 import { createServer } from '../../src/server'
 import type { IdentityAdapter, PermissionAdapter } from '../../src/adapters/identity'
@@ -124,6 +124,49 @@ describe('WS welcome', () => {
     expect(msg).not.toBeNull()
     expect(msg!.type).toBe('error')
     expect(msg!.code).toBe('forbidden')
+    await handle.close()
+  })
+
+  it('welcome frame includes snapshot data when a snapshot exists', async () => {
+    const [tenant] = await db.insert(tenants).values({ name: 'ws-snap' }).returning()
+    const [wb] = await db
+      .insert(workbooks)
+      .values({ tenantId: tenant.id, ownerId: 'u1', name: 'WS-snap' })
+      .returning()
+
+    const snapshotBody = new TextEncoder().encode('{"sheets":{}}')
+    const storage = memStorage()
+
+    const identity: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
+    }
+    const permission: PermissionAdapter = {
+      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getMaskRules: async () => [],
+    }
+
+    // First start server and POST a snapshot via HTTP so the db row + blob exist
+    const handle = await createServer({
+      databaseUrl: dbUrl,
+      identity,
+      permission,
+      storage,
+      event: new NoopEventAdapter(),
+    }).listen({ port: 0 })
+
+    // Seed the snapshot via the REST API
+    const base = `http://127.0.0.1:${handle.port}`
+    const postRes = await fetch(`${base}/api/v1/workbooks/${wb.id}/snapshots`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: snapshotBody,
+    })
+    expect(postRes.status).toBe(201)
+
+    // Now connect via WS — welcome frame should contain snapshot
+    const frame = await wsFirstMessage(`ws://127.0.0.1:${handle.port}/api/v1/ws/${wb.id}?token=ok`)
+    expect(frame.type).toBe('welcome')
+    expect(frame.snapshot).not.toBeNull()
     await handle.close()
   })
 
