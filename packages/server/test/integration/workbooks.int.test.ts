@@ -58,6 +58,23 @@ describe('workbooks REST', () => {
     expect(items.items.length).toBe(0)
   })
 
+  it('POST without name returns 400 name required', async () => {
+    const [tenant] = await db.insert(tenants).values({ name: 'no-name' }).returning()
+    const identity: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
+    }
+    const app = buildApp(deps(identity))
+
+    const res = await app.request('/api/v1/workbooks', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    expect(res.status).toBe(400)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toBe('name required')
+  })
+
   it('DELETE soft-deletes and subsequent GET returns 404', async () => {
     const [tenant] = await db.insert(tenants).values({ name: 'del' }).returning()
     const identity: IdentityAdapter = {

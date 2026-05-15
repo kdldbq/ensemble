@@ -50,4 +50,60 @@ describe('snapshots REST', () => {
     const body = new Uint8Array(await get.arrayBuffer())
     expect(new TextDecoder().decode(body)).toBe('{"sheets":{}}')
   })
+
+  it('GET /snapshot returns the latest snapshot bytes after a POST', async () => {
+    const [tenant] = await db.insert(tenants).values({ name: 'snap-latest-t' }).returning()
+    const [wb] = await db
+      .insert(workbooks)
+      .values({ tenantId: tenant.id, ownerId: 'u1', name: 'WB-latest' })
+      .returning()
+
+    const ms = memStorage()
+    const identity: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
+    }
+    const permission: PermissionAdapter = {
+      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getMaskRules: async () => [],
+    }
+    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+
+    const payload = new TextEncoder().encode('{"sheets":{"s1":{}}}')
+    const post = await app.request(`/api/v1/workbooks/${wb.id}/snapshots`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: payload,
+    })
+    expect(post.status).toBe(201)
+
+    const get = await app.request(`/api/v1/workbooks/${wb.id}/snapshot`, {
+      headers: { Authorization: 'Bearer x' },
+    })
+    expect(get.status).toBe(200)
+    const body = new Uint8Array(await get.arrayBuffer())
+    expect(new TextDecoder().decode(body)).toBe('{"sheets":{"s1":{}}}')
+  })
+
+  it('GET /snapshot returns 204 when workbook has no snapshots', async () => {
+    const [tenant] = await db.insert(tenants).values({ name: 'snap-empty-t' }).returning()
+    const [wb] = await db
+      .insert(workbooks)
+      .values({ tenantId: tenant.id, ownerId: 'u1', name: 'WB-empty' })
+      .returning()
+
+    const ms = memStorage()
+    const identity: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
+    }
+    const permission: PermissionAdapter = {
+      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getMaskRules: async () => [],
+    }
+    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+
+    const get = await app.request(`/api/v1/workbooks/${wb.id}/snapshot`, {
+      headers: { Authorization: 'Bearer x' },
+    })
+    expect(get.status).toBe(204)
+  })
 })
