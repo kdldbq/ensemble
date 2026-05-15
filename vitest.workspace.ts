@@ -6,4 +6,5 @@ export default [
   'packages/storage-fs',
   'packages/storage-s3',
   'packages/webhook',
+  'packages/identity-jwks',
 ]

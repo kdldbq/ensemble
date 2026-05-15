@@ -116,6 +116,19 @@ importers:
         specifier: 25.0.1
         version: 25.0.1
 
+  packages/identity-jwks:
+    dependencies:
+      jose:
+        specifier: 5.9.6
+        version: 5.9.6
+    devDependencies:
+      '@ensemble/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: 20.16.10
+        version: 20.16.10
+
   packages/react:
     devDependencies:
       '@ensemble/core':
