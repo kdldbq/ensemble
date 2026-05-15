@@ -47,7 +47,8 @@ export function createMutationService(deps: { db: Database }) {
     },
 
     async since(workbookId: string, lastSeq: number, maxRows = 200): Promise<MutationRow[]> {
-      return deps.db.execute<MutationRow>(sql`
+      type Row = Record<string, unknown>
+      const rows = await deps.db.execute<Row>(sql`
         SELECT id, workbook_id AS "workbookId", seq_num AS "seqNum",
                user_id AS "userId", applied_at AS "appliedAt", payload
         FROM mutations
@@ -55,6 +56,7 @@ export function createMutationService(deps: { db: Database }) {
         ORDER BY seq_num ASC
         LIMIT ${maxRows}
       `)
+      return rows as unknown as MutationRow[]
     },
 
     async currentSeq(workbookId: string): Promise<number> {

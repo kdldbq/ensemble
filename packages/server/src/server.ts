@@ -5,6 +5,13 @@ import { createDb } from './db/client'
 import type { IdentityAdapter, PermissionAdapter, EventAdapter } from './adapters/identity'
 import type { StorageAdapter } from './adapters/storage'
 import { sendWelcome } from './ws/welcome'
+import { createRedis } from './redis/client'
+import { createRoomRegistry } from './realtime/collab-room'
+import { createCellLockManager } from './realtime/cell-lock-manager'
+import { createPresenceTracker } from './realtime/presence-tracker'
+import { createMutationBroadcaster } from './realtime/mutation-broadcaster'
+import { createMutationService } from './services/mutation-service'
+import { createSession } from './ws/session'
 
 export interface CreateServerOpts {
   databaseUrl: string
@@ -12,6 +19,7 @@ export interface CreateServerOpts {
   permission: PermissionAdapter
   storage: StorageAdapter
   event: EventAdapter
+  redisUrl?: string
 }
 
 export function createServer(opts: CreateServerOpts) {
@@ -23,6 +31,35 @@ export function createServer(opts: CreateServerOpts) {
     storage: opts.storage,
     event: opts.event,
   }
+
+  // Realtime infrastructure
+  const redis = createRedis(opts.redisUrl ?? process.env['REDIS_URL'] ?? 'redis://localhost:6379')
+  const roomRegistry = createRoomRegistry()
+  const cellLocks = createCellLockManager({ redis, ttlSec: 30 })
+  const presence = createPresenceTracker({ evictAfterMs: 15000 })
+  const mutationService = createMutationService({ db })
+  const broadcaster = createMutationBroadcaster({
+    mutations: mutationService,
+    getMaskRulesFor: async (userId, workbookId) => {
+      // We need a tenantId to call getMaskRules but at this layer we only have userId.
+      // Use a synthetic identity with empty tenantId; PermissionAdapter implementations
+      // that need the tenantId should look it up from userId internally.
+      return opts.permission.getMaskRules(
+        { userId, tenantId: '' },
+        { type: 'workbook', id: workbookId, tenantId: '' }
+      )
+    },
+  })
+
+  // Sweep stale presence entries every second
+  presence.startSweep({
+    intervalMs: 1000,
+    onEvict: (wbId, cid) => {
+      const room = roomRegistry.get(wbId)
+      room?.broadcast({ type: 'user_left', clientId: cid })
+      room?.removeClient(cid)
+    },
+  })
 
   // We need createNodeWebSocket({ app }) but the app must be fully built first.
   // Use a two-phase approach: build a temporary Hono for createNodeWebSocket,
@@ -79,6 +116,46 @@ export function createServer(opts: CreateServerOpts) {
           userId: identity.userId,
           workbookId,
         })
+
+        // Register client in room and create session dispatcher
+        const clientId = crypto.randomUUID()
+        const room = roomRegistry.getOrCreate(workbookId)
+        room.addClient({
+          clientId,
+          userId: identity.userId,
+          send: (frame) => ws.send(JSON.stringify(frame)),
+        })
+
+        const session = createSession(
+          {
+            ws,
+            clientId,
+            identity,
+            workbookId,
+            room,
+            bucket: { take: () => true }, // T15 replaces with real TokenBucket
+          },
+          { cellLocks, presence, broadcaster }
+        )
+
+        // Attach session to the raw WS so onMessage/onClose can reach it
+        ;(ws as unknown as Record<string, unknown>)['_session'] = session
+      },
+
+      onMessage(e, ws) {
+        const session = (ws as unknown as Record<string, unknown>)['_session'] as
+          | ReturnType<typeof createSession>
+          | undefined
+        if (!session) return
+        const data = typeof e.data === 'string' ? e.data : String(e.data)
+        void session.onMessage(data)
+      },
+
+      onClose(_e, ws) {
+        const session = (ws as unknown as Record<string, unknown>)['_session'] as
+          | ReturnType<typeof createSession>
+          | undefined
+        session?.onClose()
       },
     }
   })
@@ -94,7 +171,11 @@ export function createServer(opts: CreateServerOpts) {
           injectWebSocket(server)
           resolve({
             port: info.port,
-            close: () => new Promise((r) => server.close(() => r())),
+            close: () =>
+              new Promise((r) => server.close(async () => {
+                await redis.quit()
+                r()
+              })),
           })
         })
       })
