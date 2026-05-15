@@ -1,4 +1,4 @@
-import { boolean, pgEnum, pgTable, text, timestamp, uuid, bigint } from 'drizzle-orm/pg-core'
+import { bigint, bigserial, boolean, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
 export const spaceType = pgEnum('space_type', ['personal', 'shared'])
 export const snapshotReason = pgEnum('snapshot_reason', ['auto', 'manual', 'named'])
@@ -60,3 +60,19 @@ export const shareGrants = pgTable('share_grants', {
   grantedBy: text('granted_by').notNull(),
   grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const mutations = pgTable(
+  'mutations',
+  {
+    id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+    workbookId: uuid('workbook_id').notNull().references(() => workbooks.id),
+    seqNum: bigint('seq_num', { mode: 'number' }).notNull(),
+    userId: text('user_id').notNull(),
+    appliedAt: timestamp('applied_at', { withTimezone: true }).notNull().defaultNow(),
+    payload: jsonb('payload').notNull(),
+  },
+  (t) => ({
+    workbookSeqUnique: uniqueIndex('mutations_workbook_seq_unique').on(t.workbookId, t.seqNum),
+    workbookSeqAsc: index('mutations_workbook_seq_idx').on(t.workbookId, t.seqNum),
+  })
+)

@@ -29,6 +29,20 @@
       "when": 1778853900000,
       "tag": "0004_rls_share_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778857571967,
+      "tag": "0005_mutations",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778857600000,
+      "tag": "0006_rls_mutations",
+      "breakpoints": true
     }
   ]
 }
