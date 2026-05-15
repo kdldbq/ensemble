@@ -3,6 +3,7 @@ import type { Database } from '../db/client'
 import type { IdentityAdapter, PermissionAdapter, EventAdapter } from '../adapters/identity'
 import type { StorageAdapter } from '../adapters/storage'
 import { healthRoute } from './routes/health'
+import { workbooksRoute } from './routes/workbooks'
 
 export interface AppDeps {
   db: Database
@@ -21,5 +22,6 @@ export function buildApp(deps: AppDeps) {
     await next()
   })
   app.route('/', healthRoute)
+  app.route('/', workbooksRoute)
   return app
 }
