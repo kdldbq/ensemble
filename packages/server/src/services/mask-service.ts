@@ -101,3 +101,34 @@ export function applyMaskRules(workbook: WorkbookData, rules: MaskRule[]): Workb
   }
   return clone
 }
+
+export type MaskFetcher = (userId: string, workbookId: string) => Promise<MaskRule[]>
+
+interface CacheEntry {
+  rules: MaskRule[]
+  expiresAt: number
+}
+
+export class MaskRuleCache {
+  private map = new Map<string, CacheEntry>()
+  private readonly ttlMs: number
+  private readonly fetcher: MaskFetcher
+
+  constructor(fetcher: MaskFetcher, ttlMs: number) {
+    this.fetcher = fetcher
+    this.ttlMs = ttlMs
+  }
+
+  async get(userId: string, workbookId: string): Promise<MaskRule[]> {
+    const key = `${userId}::${workbookId}`
+    const entry = this.map.get(key)
+    if (entry && Date.now() < entry.expiresAt) return entry.rules
+    const rules = await this.fetcher(userId, workbookId)
+    this.map.set(key, { rules, expiresAt: Date.now() + this.ttlMs })
+    return rules
+  }
+
+  invalidate(userId: string, workbookId: string): void {
+    this.map.delete(`${userId}::${workbookId}`)
+  }
+}

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { applyMaskRules } from '../../src/services/mask-service'
+import { describe, expect, it, vi } from 'vitest'
+import { applyMaskRules, MaskRuleCache } from '../../src/services/mask-service'
 import type { MaskRule } from '../../src/adapters/types'
 
 function wb() {
@@ -80,5 +80,38 @@ describe('applyMaskRules', () => {
     ]
     const out = applyMaskRules(wb(), rules)
     expect(out.sheets.s1.cellData['1']['1'].v).toBe('second')
+  })
+})
+
+describe('MaskRuleCache', () => {
+  it('caches by (userId, workbookId)', async () => {
+    const fetcher = vi.fn(async (): Promise<MaskRule[]> => [
+      { match: { type: 'column', sheet: '*', column: 'A' }, action: { type: 'remove' } },
+    ])
+    const cache = new MaskRuleCache(fetcher, 60_000)
+    await cache.get('u1', 'wb1')
+    await cache.get('u1', 'wb1')
+    await cache.get('u2', 'wb1')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  it('expires after TTL', async () => {
+    vi.useFakeTimers()
+    const fetcher = vi.fn(async (): Promise<MaskRule[]> => [])
+    const cache = new MaskRuleCache(fetcher, 60_000)
+    await cache.get('u', 'wb')
+    vi.advanceTimersByTime(60_001)
+    await cache.get('u', 'wb')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    vi.useRealTimers()
+  })
+
+  it('invalidate drops the entry', async () => {
+    const fetcher = vi.fn(async (): Promise<MaskRule[]> => [])
+    const cache = new MaskRuleCache(fetcher, 60_000)
+    await cache.get('u', 'wb')
+    cache.invalidate('u', 'wb')
+    await cache.get('u', 'wb')
+    expect(fetcher).toHaveBeenCalledTimes(2)
   })
 })
