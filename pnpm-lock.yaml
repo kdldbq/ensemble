@@ -89,6 +89,15 @@ importers:
         specifier: 10.13.2
         version: 10.13.2
 
+  packages/webhook:
+    devDependencies:
+      '@ensemble/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: 20.16.10
+        version: 20.16.10
+
 packages:
 
   '@ampproject/remapping@2.3.0':
