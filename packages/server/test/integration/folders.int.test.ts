@@ -71,4 +71,35 @@ describe('folders REST', () => {
     expect(move.status).toBe(400)
     expect(((await move.json()) as { error: string }).error).toMatch(/cycle/i)
   })
+
+  it('POST 403 when parentId set + caller lacks canEdit on parent', async () => {
+    const [tenant] = await db.insert(tenants).values({ name: 'folders-parent-deny' }).returning()
+    const identity: IdentityAdapter = { resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }) }
+    const permission: PermissionAdapter = {
+      getCapabilities: async (_i, resource) => {
+        if (resource.type === 'folder') {
+          return { canView: true, canEdit: false, canShare: false, canDelete: false }
+        }
+        return { canView: true, canEdit: true, canShare: true, canDelete: true }
+      },
+      getMaskRules: async () => [],
+    }
+    const app = buildApp({
+      db, identity, permission,
+      storage: { put: async () => {}, get: async () => new Uint8Array(), delete: async () => {} },
+      event: new NoopEventAdapter(),
+    })
+    const root = (await (await app.request('/api/v1/folders', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'root', parentId: null, spaceType: 'personal' }),
+    })).json()) as { id: string }
+
+    const child = await app.request('/api/v1/folders', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'child', parentId: root.id, spaceType: 'personal' }),
+    })
+    expect(child.status).toBe(403)
+  })
 })

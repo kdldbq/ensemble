@@ -27,6 +27,13 @@ export const foldersRoute = new Hono<AppEnv>()
     if (body.spaceType !== 'personal' && body.spaceType !== 'shared') {
       return c.json({ error: 'spaceType must be personal or shared' }, 400)
     }
+    if (body.parentId) {
+      const cap = await c.get('deps').permission.getCapabilities(
+        id,
+        { type: 'folder', id: body.parentId, tenantId: id.tenantId }
+      )
+      if (!cap.canEdit) return c.json({ error: 'cannot create folder under this parent' }, 403)
+    }
     const created = await c.get('services').folders.create({
       tenantId: id.tenantId, userId: id.userId,
       name: body.name, parentId: body.parentId ?? null, spaceType: body.spaceType,
