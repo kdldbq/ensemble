@@ -4,6 +4,7 @@ import type { IdentityAdapter, PermissionAdapter, EventAdapter } from '../adapte
 import type { StorageAdapter } from '../adapters/storage'
 import { healthRoute } from './routes/health'
 import { workbooksRoute } from './routes/workbooks'
+import { snapshotsRoute } from './routes/snapshots'
 
 export interface AppDeps {
   db: Database
@@ -23,5 +24,6 @@ export function buildApp(deps: AppDeps) {
   })
   app.route('/', healthRoute)
   app.route('/', workbooksRoute)
+  app.route('/', snapshotsRoute)
   return app
 }
