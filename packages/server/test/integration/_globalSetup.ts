@@ -1,17 +1,23 @@
 /**
  * Vitest globalSetup — runs ONCE before all test files (not per-file like setupFiles).
- * Starts a shared Testcontainers Postgres, runs migrations, and exposes
- * DATABASE_URL via process.env so integration tests can create their own db clients.
+ * Starts a shared Testcontainers Postgres + Redis, runs migrations, and exposes
+ * DATABASE_URL / REDIS_URL via process.env so integration tests can create their own clients.
  */
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
+import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
 
 let container: StartedPostgreSqlContainer
+let redisContainer: StartedRedisContainer
 
 export async function setup() {
-  container = await new PostgreSqlContainer('postgres:16').start()
+  ;[container, redisContainer] = await Promise.all([
+    new PostgreSqlContainer('postgres:16').start(),
+    new RedisContainer('redis:7-alpine').start(),
+  ])
+  process.env['REDIS_URL'] = redisContainer.getConnectionUrl()
   const url = container.getConnectionUri()
   process.env['DATABASE_URL'] = url
 
@@ -37,5 +43,6 @@ export async function setup() {
 }
 
 export async function teardown() {
+  await redisContainer?.stop()
   await container?.stop()
 }

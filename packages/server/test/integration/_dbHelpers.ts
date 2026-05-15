@@ -24,3 +24,9 @@ export const db: Database = createDb(dbUrl)
 
 export const appDbUrl: string = getAppDbUrl()
 export const appDb: Database = createDb(appDbUrl)
+
+export function redisUrl(): string {
+  const url = process.env['REDIS_URL']
+  if (!url) throw new Error('REDIS_URL not set — did _globalSetup.ts run?')
+  return url
+}

@@ -26,13 +26,15 @@
     "drizzle-orm": "0.36.0",
     "postgres": "3.4.4",
     "jose": "5.9.6",
-    "ws": "8.18.0"
+    "ws": "8.18.0",
+    "ioredis": "5.4.1"
   },
   "devDependencies": {
     "@types/node": "20.16.10",
     "@types/ws": "8.5.12",
     "drizzle-kit": "0.27.0",
     "@testcontainers/postgresql": "10.13.2",
+    "@testcontainers/redis": "10.13.2",
     "@ensemble/storage-fs": "workspace:*"
   }
 }
