@@ -15,8 +15,16 @@ export const workbooksRoute = new Hono<AppEnv>()
   })
   .get('/api/v1/workbooks', async (c) => {
     const id = c.get('identity')!
-    const items = await c.get('services').workbooks.listForTenant(id.tenantId)
-    return c.json({ items })
+    const { permission } = c.get('deps')
+    let all = await c.get('services').workbooks.listForTenant(id.tenantId)
+    if (permission.filterListVisibility) {
+      const filter = await permission.filterListVisibility(id, 'workbooks')
+      if (filter.allowedIds !== undefined) {
+        const set = new Set(filter.allowedIds)
+        all = all.filter((w) => set.has(w.id))
+      }
+    }
+    return c.json({ items: all })
   })
   .get(
     '/api/v1/workbooks/:id',
