@@ -11,6 +11,7 @@ export const workbooksRoute = new Hono<AppEnv>()
     const body = (await c.req.json()) as { name?: string; folderId?: string }
     if (!body.name) return c.json({ error: 'name required' }, 400)
     const wb = await svc.create({ tenantId: id.tenantId, userId: id.userId, name: body.name, ...(body.folderId !== undefined ? { folderId: body.folderId } : {}) })
+    void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'workbook.created', resourceId: wb.id })
     return c.json(wb, 201)
   })
   .get('/api/v1/workbooks', async (c) => {
@@ -33,6 +34,7 @@ export const workbooksRoute = new Hono<AppEnv>()
       const id = c.get('identity')!
       const wb = await c.get('services').workbooks.get({ tenantId: id.tenantId, id: c.req.param('id') })
       if (!wb) return c.json({ error: 'not found' }, 404)
+      void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'workbook.opened', resourceId: wb.id })
       return c.json(wb)
     },
   )

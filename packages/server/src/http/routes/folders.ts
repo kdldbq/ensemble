@@ -38,6 +38,7 @@ export const foldersRoute = new Hono<AppEnv>()
       tenantId: id.tenantId, userId: id.userId,
       name: body.name, parentId: body.parentId ?? null, spaceType: body.spaceType,
     })
+    void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'folder.created', resourceId: created.id })
     return c.json(created, 201)
   })
   .patch(

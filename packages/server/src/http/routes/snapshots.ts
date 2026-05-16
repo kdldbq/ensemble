@@ -29,6 +29,7 @@ export const snapshotsRoute = new Hono<AppEnv>()
       })
       if (!snap) return c.json({ error: 'snapshot creation failed' }, 500)
       await wbSvc.setCurrentSnapshot({ tenantId: id.tenantId, id: wbId, snapshotId: snap.id })
+      void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'workbook.edited', resourceId: wbId, extra: { batchedOpsCount: 0 } })
       return c.json(snap, 201)
     },
   )

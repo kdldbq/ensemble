@@ -44,6 +44,7 @@ export const grantsRoute = new Hono<AppEnv>()
         grantedBy: id.userId,
         ...(body.expiresAt ? { expiresAt: new Date(body.expiresAt) } : {}),
       }).returning()
+      void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'share.granted', resourceId: row.id })
       return c.json(row, 201)
     }
   )

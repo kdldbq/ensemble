@@ -8,9 +8,11 @@ import { createWorkbookService } from '../services/workbook-service'
 import { createSnapshotService } from '../services/snapshot-service'
 import { createFolderService } from '../services/folder-service'
 import { MaskRuleCache } from '../services/mask-service'
+import { createEventEmitter } from '../events/event-emitter'
 import type { WorkbookService } from '../services/workbook-service'
 import type { SnapshotService } from '../services/snapshot-service'
 import type { FolderService } from '../services/folder-service'
+import type { EventEmitter } from '../events/event-emitter'
 import { healthRoute } from './routes/health'
 import { workbooksRoute } from './routes/workbooks'
 import { snapshotsRoute } from './routes/snapshots'
@@ -32,6 +34,7 @@ export interface AppServices {
   snapshots: SnapshotService
   folders: FolderService
   masks: MaskRuleCache
+  events: EventEmitter
 }
 
 export type AppEnv = {
@@ -59,6 +62,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
       (identity, wbId) => deps.permission.getMaskRules(identity, { type: 'workbook', id: wbId, tenantId: identity.tenantId }),
       60_000,
     ),
+    events: createEventEmitter({ db: deps.db, eventAdapter: deps.event }),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {
