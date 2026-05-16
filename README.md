@@ -20,15 +20,15 @@ pnpm lint
 
 | Package | Purpose |
 |---|---|
-| `@ensemble/core` | Univer editor bootstrap, sheet codec (import/export XLSX) |
-| `@ensemble/server` | Hono HTTP + WebSocket server, Drizzle/Postgres persistence, adapter contracts |
-| `@ensemble/react` | React component wrapping the core editor |
-| `@ensemble/vue` | Vue 3 component wrapping the core editor |
-| `@ensemble/identity-jwks` | JWKS-based IdentityAdapter (resolves tenant + user from JWT) |
-| `@ensemble/storage-fs` | Local-filesystem blob storage adapter (dev / single-node) |
-| `@ensemble/storage-s3` | AWS S3 blob storage adapter |
-| `@ensemble/webhook` | Outbound webhook event adapter |
-| `@ensemble/demo` | Demo app: single-tenant dev server + Vite front-end |
+| `@ensemble-sheets/core` | Univer editor bootstrap, sheet codec (import/export XLSX) |
+| `@ensemble-sheets/server` | Hono HTTP + WebSocket server, Drizzle/Postgres persistence, adapter contracts |
+| `@ensemble-sheets/react` | React component wrapping the core editor |
+| `@ensemble-sheets/vue` | Vue 3 component wrapping the core editor |
+| `@ensemble-sheets/identity-jwks` | JWKS-based IdentityAdapter (resolves tenant + user from JWT) |
+| `@ensemble-sheets/storage-fs` | Local-filesystem blob storage adapter (dev / single-node) |
+| `@ensemble-sheets/storage-s3` | AWS S3 blob storage adapter |
+| `@ensemble-sheets/webhook` | Outbound webhook event adapter |
+| `@ensemble-sheets/demo` | Demo app: single-tenant dev server + Vite front-end |
 
 ## Documentation
 

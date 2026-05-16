@@ -1,4 +1,4 @@
-import type { IdentityAdapter } from '@ensemble/server'
+import type { IdentityAdapter } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export interface IdentityConformanceFixture {

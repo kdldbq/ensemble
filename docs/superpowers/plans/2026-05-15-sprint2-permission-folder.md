@@ -6,7 +6,7 @@
 
 **Architecture:**
 - **Tenant isolation**: enable RLS on every table that has `tenant_id`; every request `SET LOCAL app.tenant_id = '<uuid>'` inside a transaction so RLS policies fire automatically.
-- **Identity**: `@ensemble/identity-jwks` verifies host-issued JWTs against a JWKS endpoint (cached, key rotation aware). It returns an `IdentityContext` the server stamps onto every request.
+- **Identity**: `@ensemble-sheets/identity-jwks` verifies host-issued JWTs against a JWKS endpoint (cached, key rotation aware). It returns an `IdentityContext` the server stamps onto every request.
 - **Permission**: every route handler calls `PermissionAdapter.getCapabilities(identity, resource)` before touching data. Failures return 403.
 - **Sharing**: `share_grants` table stores direct grants; resolution walks workbook → folder ancestors; `public_link` grants matched by signed token in query.
 - **Masking**: pure function `applyMaskRules(workbookData, rules)` mutates JSON. Wired into `GET /workbooks/:id/snapshot` and WS welcome frame. Per-(user, workbook) cache, 60s TTL.
@@ -34,11 +34,11 @@
 | Milestone | Tasks | Green-at-end definition |
 |---|---|---|
 | **M1: Multi-tenant RLS** | T1-T3 | RLS policies on folders/workbooks/snapshots; cross-tenant probe test fails closed; `withTenant` helper |
-| **M2: identity-jwks** | T4-T6 | `@ensemble/identity-jwks` reference impl with JWKS cache + key rotation; 401 on bad JWT |
+| **M2: identity-jwks** | T4-T6 | `@ensemble-sheets/identity-jwks` reference impl with JWKS cache + key rotation; 401 on bad JWT |
 | **M3: share_grants** | T7-T10 | `share_grants` schema + GrantResolver walking folder ancestors + public_link tokens |
 | **M4: Folder CRUD + endpoint enforcement** | T11-T16 | 4 folder endpoints + every workbook/snapshot route guarded by `PermissionAdapter` |
 | **M5: Snapshot masking** | T17-T20 | Pure `applyMaskRules` covering 3 match × 3 action; wired into REST + WS; cache 60s TTL |
-| **M6: Frontend + Demo + e2e** | T21-T25 | `@ensemble/core` folders/grants client; `<FolderNavigator>` React+Vue; demo two-pane masked-view e2e |
+| **M6: Frontend + Demo + e2e** | T21-T25 | `@ensemble-sheets/core` folders/grants client; `<FolderNavigator>` React+Vue; demo two-pane masked-view e2e |
 
 After each milestone: `pnpm -r test --coverage && pnpm -r build` clean before advancing.
 
@@ -145,7 +145,7 @@ describe('withTenant', () => {
 - [ ] **Step 1.2: Run — expect fail**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/tenant-context.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/tenant-context.test.ts
 ```
 
 Expected: FAIL (`Cannot find module`).
@@ -179,7 +179,7 @@ export async function withTenant<T>(
 - [ ] **Step 1.4: Run — expect pass + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/tenant-context.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/tenant-context.test.ts
 git add packages/server
 git commit -m "feat(server): withTenant helper for RLS-aware transactions"
 ```
@@ -225,7 +225,7 @@ CREATE POLICY snapshots_tenant_isolation ON snapshots
 
 - [ ] **Step 2.2: Update drizzle journal**
 
-Append an entry to `packages/server/drizzle/meta/_journal.json` mirroring existing entries (idx incremented, tag `0002_rls`, when=unix-ms, breakpoints=true). If drizzle-kit's format rejects handwritten entries, run `pnpm --filter @ensemble/server exec drizzle-kit generate --custom` and replace the generated empty file's contents.
+Append an entry to `packages/server/drizzle/meta/_journal.json` mirroring existing entries (idx incremented, tag `0002_rls`, when=unix-ms, breakpoints=true). If drizzle-kit's format rejects handwritten entries, run `pnpm --filter @ensemble-sheets/server exec drizzle-kit generate --custom` and replace the generated empty file's contents.
 
 - [ ] **Step 2.3: Verify migration runs against fresh container**
 
@@ -233,7 +233,7 @@ Append an entry to `packages/server/drizzle/meta/_journal.json` mirroring existi
 docker rm -f ensemble-rls-test 2>/dev/null || true
 docker run -d --name ensemble-rls-test -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=test -p 54322:5432 postgres:16
 sleep 5
-DATABASE_URL=postgres://postgres:postgres@localhost:54322/test pnpm --filter @ensemble/server exec node dist/db/migrate.js
+DATABASE_URL=postgres://postgres:postgres@localhost:54322/test pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 docker exec ensemble-rls-test psql -U postgres -d test -c "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public';"
 docker rm -f ensemble-rls-test
 ```
@@ -321,7 +321,7 @@ describe('Postgres RLS', () => {
 - [ ] **Step 3.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/rls.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/rls.int.test.ts
 git add packages/server
 git commit -m "test(server): cross-tenant probe + WITH CHECK + snapshot RLS integration tests"
 ```
@@ -330,7 +330,7 @@ git commit -m "test(server): cross-tenant probe + WITH CHECK + snapshot RLS inte
 
 ---
 
-# Milestone 2 — `@ensemble/identity-jwks`
+# Milestone 2 — `@ensemble-sheets/identity-jwks`
 
 ## Task 4: Package skeleton + JWKS cache
 
@@ -347,7 +347,7 @@ Create `packages/identity-jwks/package.json`:
 
 ```json
 {
-  "name": "@ensemble/identity-jwks",
+  "name": "@ensemble-sheets/identity-jwks",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -365,10 +365,10 @@ Create `packages/identity-jwks/package.json`:
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*" },
   "dependencies": { "jose": "5.9.6" },
   "devDependencies": {
-    "@ensemble/server": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10"
   }
 }
@@ -532,7 +532,7 @@ export class JwksCache {
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/identity-jwks test
+pnpm --filter @ensemble-sheets/identity-jwks test
 git add packages/identity-jwks pnpm-lock.yaml
 git commit -m "feat(identity-jwks): JWKS fetch + TTL cache + kid-miss refresh"
 ```
@@ -640,7 +640,7 @@ Create `packages/identity-jwks/src/index.ts`:
 
 ```ts
 import { importJWK, jwtVerify } from 'jose'
-import type { IdentityAdapter, IdentityContext } from '@ensemble/server'
+import type { IdentityAdapter, IdentityContext } from '@ensemble-sheets/server'
 import { JwksCache, type Jwk } from './jwks-cache'
 
 export interface JwksIdentityOpts {
@@ -702,8 +702,8 @@ export class JwksIdentityAdapter implements IdentityAdapter {
 - [ ] **Step 5.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server build
-pnpm --filter @ensemble/identity-jwks test
+pnpm --filter @ensemble-sheets/server build
+pnpm --filter @ensemble-sheets/identity-jwks test
 git add packages/identity-jwks
 git commit -m "feat(identity-jwks): JwksIdentityAdapter with issuer/audience/tenant claim validation"
 ```
@@ -718,7 +718,7 @@ git commit -m "feat(identity-jwks): JwksIdentityAdapter with issuer/audience/ten
 - [ ] **Step 6.1: Verify coverage**
 
 ```bash
-pnpm --filter @ensemble/identity-jwks test -- --coverage
+pnpm --filter @ensemble-sheets/identity-jwks test -- --coverage
 ```
 
 Expected: 8/8 pass + thresholds met. If branches short, add a test for fetch failure or stale-TTL refresh.
@@ -769,7 +769,7 @@ export const shareGrants = pgTable('share_grants', {
 - [ ] **Step 7.2: Generate migration**
 
 ```bash
-pnpm --filter @ensemble/server exec drizzle-kit generate --name share_grants
+pnpm --filter @ensemble-sheets/server exec drizzle-kit generate --name share_grants
 ```
 
 - [ ] **Step 7.3: Add RLS migration**
@@ -788,11 +788,11 @@ Update `_journal.json` for this handwritten migration too.
 - [ ] **Step 7.4: Verify + commit**
 
 ```bash
-pnpm --filter @ensemble/server build
+pnpm --filter @ensemble-sheets/server build
 docker rm -f sg-test 2>/dev/null
 docker run -d --name sg-test -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=t -p 54323:5432 postgres:16
 sleep 5
-DATABASE_URL=postgres://postgres:postgres@localhost:54323/t pnpm --filter @ensemble/server exec node dist/db/migrate.js
+DATABASE_URL=postgres://postgres:postgres@localhost:54323/t pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 docker exec sg-test psql -U postgres -d t -c "\d share_grants"
 docker rm -f sg-test
 
@@ -999,7 +999,7 @@ export async function resolveCapability(ctx: GrantContext): Promise<Capability> 
 - [ ] **Step 8.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/grant-service.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/grant-service.test.ts
 git add packages/server
 git commit -m "feat(server): GrantResolver with folder ancestor walk + grantee types + expiry"
 ```
@@ -1114,7 +1114,7 @@ describe('grant resolution', () => {
 - [ ] **Step 9.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/grant-resolution.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/grant-resolution.int.test.ts
 git add packages/server
 git commit -m "feat(server): grant repository (folderAncestors recursive CTE + findGrants) + integration test"
 ```
@@ -1173,7 +1173,7 @@ describe('public_link grants', () => {
 - [ ] **Step 10.2: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/public-link.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/public-link.int.test.ts
 git add packages/server
 git commit -m "test(server): public_link grant resolution integration"
 ```
@@ -1298,7 +1298,7 @@ export type FolderService = ReturnType<typeof createFolderService>
 - [ ] **Step 11.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/folder-service.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/folder-service.test.ts
 git add packages/server
 git commit -m "feat(server): FolderService (create/rename/move/softDelete/list) + cycle check"
 ```
@@ -1411,7 +1411,7 @@ Edit `packages/server/src/http/app.ts` — extend `AppEnv.Variables` to include 
 - [ ] **Step 12.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/permission-middleware.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/permission-middleware.test.ts
 git add packages/server
 git commit -m "feat(server): requireCapability middleware for per-route enforcement"
 ```
@@ -1604,7 +1604,7 @@ Edit `packages/server/src/http/app.ts`:
 - [ ] **Step 13.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/folders.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/folders.int.test.ts
 git add packages/server
 git commit -m "feat(server): /api/v1/folders LIST/POST/PATCH/DELETE with cycle check + capability checks"
 ```
@@ -1691,7 +1691,7 @@ Edit `packages/server/src/http/routes/snapshots.ts`:
 - [ ] **Step 14.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test
+pnpm --filter @ensemble-sheets/server test
 git add packages/server
 git commit -m "feat(server): enforce PermissionAdapter capabilities on workbook + snapshot routes"
 ```
@@ -1840,7 +1840,7 @@ Add `grantBody?: GrantBody` to `AppEnv.Variables`. Wire `grantsRoute` into `buil
 - [ ] **Step 15.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/grants.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/grants.int.test.ts
 git add packages/server
 git commit -m "feat(server): POST /grants + DELETE /grants/:id with canShare check"
 ```
@@ -1911,7 +1911,7 @@ Edit `packages/server/src/http/routes/workbooks.ts` — replace LIST handler:
 - [ ] **Step 16.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/list-filter.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/list-filter.int.test.ts
 git add packages/server
 git commit -m "feat(server): apply PermissionAdapter.filterListVisibility on workbooks LIST"
 ```
@@ -2133,7 +2133,7 @@ export function applyMaskRules(workbook: WorkbookData, rules: MaskRule[]): Workb
 - [ ] **Step 17.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/mask-service.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/mask-service.test.ts
 git add packages/server
 git commit -m "feat(server): applyMaskRules — column/header/row × redact/hash/remove"
 ```
@@ -2228,7 +2228,7 @@ export class MaskRuleCache {
 - [ ] **Step 18.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/mask-service.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/mask-service.test.ts
 git add packages/server
 git commit -m "feat(server): MaskRuleCache per (userId, workbookId) with TTL + invalidate"
 ```
@@ -2396,8 +2396,8 @@ Add the import.
 - [ ] **Step 19.5: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/snapshot-masking.int.test.ts
-pnpm --filter @ensemble/server test
+pnpm --filter @ensemble-sheets/server test test/integration/snapshot-masking.int.test.ts
+pnpm --filter @ensemble-sheets/server test
 git add packages/server
 git commit -m "feat(server): apply mask rules on snapshot GET + WS welcome egress"
 ```
@@ -2466,7 +2466,7 @@ Add `import { sql } from 'drizzle-orm'` if missing.
 - [ ] **Step 20.2: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/ws-welcome.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/ws-welcome.int.test.ts
 git add packages/server
 git commit -m "test(server): WS welcome applies per-recipient mask rules"
 ```
@@ -2612,7 +2612,7 @@ Add `Folder, Grant` to the imports at top of `api-client.ts`.
 - [ ] **Step 21.4: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/core test
+pnpm --filter @ensemble-sheets/core test
 git add packages/core
 git commit -m "feat(core): ApiClient folders + grants methods"
 ```
@@ -2634,7 +2634,7 @@ Create `packages/react/test/FolderNavigator.test.tsx`:
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { FolderNavigator } from '../src/FolderNavigator'
-import type { Folder } from '@ensemble/core'
+import type { Folder } from '@ensemble-sheets/core'
 
 function makeApi(initial: Folder[]) {
   let items = initial
@@ -2686,7 +2686,7 @@ describe('<FolderNavigator />', () => {
 Create `packages/react/src/FolderNavigator.tsx`:
 
 ```tsx
-import type { ApiClient, Folder } from '@ensemble/core'
+import type { ApiClient, Folder } from '@ensemble-sheets/core'
 import { useCallback, useEffect, useState } from 'react'
 
 export interface FolderNavigatorProps {
@@ -2742,7 +2742,7 @@ Edit `packages/react/src/index.ts` to add `export { FolderNavigator, type Folder
 - [ ] **Step 22.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/react test
+pnpm --filter @ensemble-sheets/react test
 git add packages/react
 git commit -m "feat(react): <FolderNavigator /> component"
 ```
@@ -2810,7 +2810,7 @@ Create `packages/vue/src/FolderNavigator.vue`:
 
 ```vue
 <script setup lang="ts">
-import type { ApiClient, Folder } from '@ensemble/core'
+import type { ApiClient, Folder } from '@ensemble-sheets/core'
 import { onMounted, ref } from 'vue'
 
 const props = defineProps<{
@@ -2862,7 +2862,7 @@ Edit `packages/vue/src/index.ts` to also export `FolderNavigator`.
 - [ ] **Step 23.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/vue test
+pnpm --filter @ensemble-sheets/vue test
 git add packages/vue
 git commit -m "feat(vue): <FolderNavigator /> SFC"
 ```
@@ -2903,7 +2903,7 @@ const permission: PermissionAdapter = {
 Edit `apps/demo/src/main.tsx`:
 
 ```tsx
-import { WorkbookEditor } from '@ensemble/react'
+import { WorkbookEditor } from '@ensemble-sheets/react'
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
@@ -3022,10 +3022,10 @@ test('admin sees raw value, viewer sees mask', async ({ page }) => {
 
 ```bash
 export DATABASE_URL=postgres://postgres:postgres@localhost:5432/ensemble_dev
-pnpm --filter @ensemble/server build
-pnpm --filter @ensemble/server exec node dist/db/migrate.js
+pnpm --filter @ensemble-sheets/server build
+pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 pnpm -r build
-pnpm --filter @ensemble/demo e2e
+pnpm --filter @ensemble-sheets/demo e2e
 git add apps/demo
 git commit -m "feat(demo): two-pane masked-view e2e proving per-user mask divergence"
 ```
@@ -3046,7 +3046,7 @@ Edit `README.md` — change status line to:
 Status: Sprint 2 ("Permission + Folder") complete. Multi-tenant with Postgres RLS, JWKS identity, per-route capability enforcement, folder CRUD with cycle prevention, share grants with ancestor walk, and per-recipient snapshot masking. Sprint 3 (real-time collaboration) next.
 ```
 
-Add `@ensemble/identity-jwks` to the package table.
+Add `@ensemble-sheets/identity-jwks` to the package table.
 
 - [ ] **Step 25.2: First ADR**
 
@@ -3090,7 +3090,7 @@ git commit -m "docs: Sprint 2 status + ADR 0001 (RLS choice)"
 
 **1. Spec §9 Sprint 2 coverage**:
 - ✅ Multi-tenant: every table has `tenant_id`, RLS → T1, T2, T3, T7
-- ✅ `IdentityAdapter` first impl: `@ensemble/identity-jwks` → T4-T6
+- ✅ `IdentityAdapter` first impl: `@ensemble-sheets/identity-jwks` → T4-T6
 - ✅ `PermissionAdapter` enforced on every endpoint → T12, T14, T16
 - ✅ Folder CRUD → T11, T13
 - ✅ Share grants table + resolution with ancestor walk → T7, T8, T9, T10, T15

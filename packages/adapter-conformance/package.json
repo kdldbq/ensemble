@@ -1,5 +1,5 @@
 {
-  "name": "@ensemble/adapter-conformance",
+  "name": "@ensemble-sheets/adapter-conformance",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,6 +13,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*", "vitest": "^2.1.0" },
-  "devDependencies": { "@ensemble/server": "workspace:*", "vitest": "2.1.4" }
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*", "vitest": "^2.1.0" },
+  "devDependencies": { "@ensemble-sheets/server": "workspace:*", "vitest": "2.1.4" }
 }

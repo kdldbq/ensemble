@@ -1,13 +1,13 @@
 ---
-"@ensemble/core": minor
-"@ensemble/server": minor
-"@ensemble/react": minor
-"@ensemble/vue": minor
-"@ensemble/storage-fs": minor
-"@ensemble/storage-s3": minor
-"@ensemble/webhook": minor
-"@ensemble/identity-jwks": minor
-"@ensemble/adapter-conformance": minor
+"@ensemble-sheets/core": minor
+"@ensemble-sheets/server": minor
+"@ensemble-sheets/react": minor
+"@ensemble-sheets/vue": minor
+"@ensemble-sheets/storage-fs": minor
+"@ensemble-sheets/storage-s3": minor
+"@ensemble-sheets/webhook": minor
+"@ensemble-sheets/identity-jwks": minor
+"@ensemble-sheets/adapter-conformance": minor
 ---
 
 Initial v0.1.0 GA release. Single-user editing, multi-tenant RLS, realtime

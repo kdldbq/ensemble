@@ -1,5 +1,5 @@
 {
-  "name": "@ensemble/server",
+  "name": "@ensemble-sheets/server",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "repository": {
@@ -36,6 +36,6 @@
     "drizzle-kit": "0.27.0",
     "@testcontainers/postgresql": "10.13.2",
     "@testcontainers/redis": "10.13.2",
-    "@ensemble/storage-fs": "workspace:*"
+    "@ensemble-sheets/storage-fs": "workspace:*"
   }
 }

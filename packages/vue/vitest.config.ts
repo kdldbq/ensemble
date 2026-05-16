@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@ensemble/core': path.resolve(__dirname, '../core/src/index.ts'),
+      '@ensemble-sheets/core': path.resolve(__dirname, '../core/src/index.ts'),
     },
   },
   test: { environment: 'jsdom' },

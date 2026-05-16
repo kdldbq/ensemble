@@ -1,5 +1,5 @@
 {
-  "name": "@ensemble/webhook",
+  "name": "@ensemble-sheets/webhook",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "repository": {
@@ -17,9 +17,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*" },
   "devDependencies": {
-    "@ensemble/server": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10"
   }
 }

@@ -1,4 +1,4 @@
-import type { EnsembleEvent, EventAdapter } from '@ensemble/server'
+import type { EnsembleEvent, EventAdapter } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export function runEventConformance(name: string, adapterFactory: () => EventAdapter): void {

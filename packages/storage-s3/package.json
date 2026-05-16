@@ -1,5 +1,5 @@
 {
-  "name": "@ensemble/storage-s3",
+  "name": "@ensemble-sheets/storage-s3",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "repository": {
@@ -17,13 +17,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*" },
   "dependencies": {
     "@aws-sdk/client-s3": "3.668.0",
     "@aws-sdk/s3-request-presigner": "3.668.0"
   },
   "devDependencies": {
-    "@ensemble/server": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10",
     "testcontainers": "10.13.2"
   }

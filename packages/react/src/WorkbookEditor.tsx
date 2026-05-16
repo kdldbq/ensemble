@@ -1,5 +1,5 @@
-import { mountWorkbookEditor } from '@ensemble/core'
-import { type MountHandle, type WsClient } from '@ensemble/core'
+import { mountWorkbookEditor } from '@ensemble-sheets/core'
+import { type MountHandle, type WsClient } from '@ensemble-sheets/core'
 import { useEffect, useRef } from 'react'
 
 export interface WorkbookEditorProps {

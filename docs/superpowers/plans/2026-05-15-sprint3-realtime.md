@@ -182,7 +182,7 @@ export type { Redis } from 'ioredis'
 - [ ] **Step 1.5: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/redis.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/redis.int.test.ts
 git add packages/server pnpm-lock.yaml
 git commit -m "feat(server): Redis client + Testcontainers integration"
 ```
@@ -224,7 +224,7 @@ Add imports if missing: `bigserial, bigint, jsonb, index, uniqueIndex`.
 - [ ] **Step 2.2: Generate migration**
 
 ```bash
-pnpm --filter @ensemble/server exec drizzle-kit generate --name mutations
+pnpm --filter @ensemble-sheets/server exec drizzle-kit generate --name mutations
 ```
 
 - [ ] **Step 2.3: RLS migration**
@@ -252,11 +252,11 @@ Append to `_journal.json` (idx incremented, tag `0006_rls_mutations`).
 - [ ] **Step 2.4: Verify**
 
 ```bash
-pnpm --filter @ensemble/server build
+pnpm --filter @ensemble-sheets/server build
 docker rm -f mut-test 2>/dev/null
 docker run -d --name mut-test -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=t -p 54325:5432 postgres:16
 sleep 5
-DATABASE_URL=postgres://postgres:postgres@localhost:54325/t pnpm --filter @ensemble/server exec node dist/db/migrate.js
+DATABASE_URL=postgres://postgres:postgres@localhost:54325/t pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 docker exec mut-test psql -U postgres -d t -c "\d mutations"
 docker rm -f mut-test
 ```
@@ -420,7 +420,7 @@ describe('MutationService persistence', () => {
 - [ ] **Step 3.4: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/mutation-service.test.ts test/integration/mutation-persist.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/mutation-service.test.ts test/integration/mutation-persist.int.test.ts
 git add packages/server
 git commit -m "feat(server): MutationService with FOR UPDATE-locked seq_num + since/currentSeq"
 ```
@@ -462,7 +462,7 @@ describe('mutations RLS', () => {
 - [ ] **Step 4.2: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/rls-mutations.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/rls-mutations.int.test.ts
 git add packages/server
 git commit -m "test(server): cross-tenant mutations RLS integration"
 ```
@@ -641,7 +641,7 @@ export type CellLockManager = ReturnType<typeof createCellLockManager>
 - [ ] **Step 5.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/cell-lock-manager.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/cell-lock-manager.test.ts
 git add packages/server
 git commit -m "feat(server): CellLockManager with Redis NX EX + Lua CAS release/renew"
 ```
@@ -699,7 +699,7 @@ describe('CellLockManager real Redis', () => {
 - [ ] **Step 6.2: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/cell-lock-real-redis.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/cell-lock-real-redis.int.test.ts
 git add packages/server
 git commit -m "test(server): real-Redis CellLockManager contention + TTL expiry"
 ```
@@ -710,7 +710,7 @@ git commit -m "test(server): real-Redis CellLockManager contention + TTL expiry"
 
 This is a no-code checkpoint, no commit:
 
-- [ ] Run `pnpm --filter @ensemble/server test --coverage` and verify all M1+M2 tests green; thresholds met.
+- [ ] Run `pnpm --filter @ensemble-sheets/server test --coverage` and verify all M1+M2 tests green; thresholds met.
 - [ ] Confirm `release/renew` are real Lua EVAL calls (`redis.eval` in test/integration); a `GET+DEL` two-step would race in production.
 
 > **🟢 Milestone 2 checkpoint.**
@@ -840,7 +840,7 @@ export type RoomRegistry = ReturnType<typeof createRoomRegistry>
 - [ ] **Step 8.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/collab-room.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/collab-room.test.ts
 git add packages/server
 git commit -m "feat(server): CollabRoom + RoomRegistry"
 ```
@@ -995,7 +995,7 @@ export type PresenceTracker = ReturnType<typeof createPresenceTracker>
 - [ ] **Step 9.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/presence-tracker.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/presence-tracker.test.ts
 git add packages/server
 git commit -m "feat(server): PresenceTracker with TTL eviction + periodic sweep"
 ```
@@ -1006,7 +1006,7 @@ git commit -m "feat(server): PresenceTracker with TTL eviction + periodic sweep"
 
 No-code checkpoint:
 
-- [ ] Run `pnpm --filter @ensemble/server test --coverage` and verify all M1-M3 tests green.
+- [ ] Run `pnpm --filter @ensemble-sheets/server test --coverage` and verify all M1-M3 tests green.
 
 > **🟢 Milestone 3 checkpoint.**
 
@@ -1120,7 +1120,7 @@ export function parseInboundFrame(raw: string): InboundFrame | null {
 - [ ] **Step 11.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/messages.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/messages.test.ts
 git add packages/server
 git commit -m "feat(server): WS frame types + parser with malformed/unknown guards"
 ```
@@ -1324,7 +1324,7 @@ Edit `packages/server/src/server.ts`:
 - [ ] **Step 12.4: Build + commit**
 
 ```bash
-pnpm --filter @ensemble/server build
+pnpm --filter @ensemble-sheets/server build
 git add packages/server
 git commit -m "feat(server): MutationBroadcaster + WS Session dispatcher; wired through createServer"
 ```
@@ -1415,7 +1415,7 @@ describe('2-client collab', () => {
 - [ ] **Step 13.2: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/collab-two-clients.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/collab-two-clients.int.test.ts
 git add packages/server
 git commit -m "test(server): 2-client collab — acquire/submit/apply_mutation round-trip"
 ```
@@ -1504,7 +1504,7 @@ Edit `packages/server/src/server.ts`:
 - [ ] **Step 14.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/reconnect-replay.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/reconnect-replay.int.test.ts
 git add packages/server
 git commit -m "feat(server): WS reconnect replays mutations since last_seq with masked egress"
 ```
@@ -1588,7 +1588,7 @@ Confirm `session.ts` from T12 has the bucket check on `submit_mutation`. Wire it
 - [ ] **Step 15.4: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/backpressure.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/backpressure.test.ts
 git add packages/server
 git commit -m "feat(server): 30 ops/sec token-bucket backpressure on submit_mutation"
 ```
@@ -1641,7 +1641,7 @@ Replace the existing welcome frame send with real `seqNum`, `presence: presenceL
 - [ ] **Step 16.2: Run all server tests + commit**
 
 ```bash
-pnpm --filter @ensemble/server test
+pnpm --filter @ensemble-sheets/server test
 git add packages/server
 git commit -m "feat(server): WS welcome ships real seqNum + presence + locks"
 ```
@@ -1790,7 +1790,7 @@ Inside the existing `connect()`, after welcome resolves, call `this.attachDemuxe
 - [ ] **Step 17.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/core test
+pnpm --filter @ensemble-sheets/core test
 git add packages/core
 git commit -m "feat(core): WsClient.acquireLock + submitMutation + onApplyMutation"
 ```
@@ -1859,7 +1859,7 @@ Update `packages/react/src/index.ts` to export it.
 - [ ] **Step 18.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/react test
+pnpm --filter @ensemble-sheets/react test
 git add packages/react
 git commit -m "feat(react): <LockBadge /> for cell-lock owner indicator"
 ```
@@ -1921,7 +1921,7 @@ Update `packages/vue/src/index.ts` to export it.
 - [ ] **Step 19.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/vue test
+pnpm --filter @ensemble-sheets/vue test
 git add packages/vue
 git commit -m "feat(vue): <LockBadge /> SFC"
 ```
@@ -1993,10 +1993,10 @@ test('two contexts share state via REST reflection', async ({ browser }) => {
 
 ```bash
 export DATABASE_URL=postgres://postgres:postgres@localhost:5432/ensemble_dev
-pnpm --filter @ensemble/server build
-pnpm --filter @ensemble/server exec node dist/db/migrate.js
+pnpm --filter @ensemble-sheets/server build
+pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 pnpm -r build
-pnpm --filter @ensemble/demo e2e
+pnpm --filter @ensemble-sheets/demo e2e
 git add apps/demo
 git commit -m "feat(demo): 2-context collab e2e (REST reflection path)"
 ```

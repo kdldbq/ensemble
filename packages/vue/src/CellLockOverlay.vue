@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WsClient } from '@ensemble/core'
+import type { WsClient } from '@ensemble-sheets/core'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import LockBadge from './LockBadge.vue'
 

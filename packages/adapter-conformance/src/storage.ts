@@ -1,4 +1,4 @@
-import type { StorageAdapter } from '@ensemble/server'
+import type { StorageAdapter } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export function runStorageConformance(name: string, adapterFactory: () => StorageAdapter): void {

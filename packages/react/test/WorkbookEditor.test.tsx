@@ -2,7 +2,7 @@ import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { WorkbookEditor } from '../src/WorkbookEditor'
 
-vi.mock('@ensemble/core', () => ({
+vi.mock('@ensemble-sheets/core', () => ({
   mountWorkbookEditor: vi.fn(async () => ({
     save: vi.fn(),
     exportXlsx: vi.fn(() => new Uint8Array()),
@@ -20,7 +20,7 @@ describe('<WorkbookEditor />', () => {
         token={async () => 't'}
       />
     )
-    const { mountWorkbookEditor } = await import('@ensemble/core')
+    const { mountWorkbookEditor } = await import('@ensemble-sheets/core')
     expect(mountWorkbookEditor as unknown as { mock: unknown }).toBeDefined()
     expect(mountWorkbookEditor).toHaveBeenCalledWith(
       expect.objectContaining({ workbookId: 'w1', apiBaseUrl: 'https://api' })

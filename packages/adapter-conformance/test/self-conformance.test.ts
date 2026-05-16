@@ -1,4 +1,4 @@
-import { NoopEventAdapter } from '@ensemble/server'
+import { NoopEventAdapter } from '@ensemble-sheets/server'
 import {
   runEventConformance, runPermissionConformance, runStorageConformance,
 } from '../src/index'

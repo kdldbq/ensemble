@@ -1,5 +1,5 @@
 {
-  "name": "@ensemble/identity-jwks",
+  "name": "@ensemble-sheets/identity-jwks",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,10 +17,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*" },
   "dependencies": { "jose": "5.9.6" },
   "devDependencies": {
-    "@ensemble/server": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10"
   }
 }

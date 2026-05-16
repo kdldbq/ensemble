@@ -6,7 +6,7 @@ import {
   type S3ClientConfig,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type { StorageAdapter } from '@ensemble/server'
+import type { StorageAdapter } from '@ensemble-sheets/server'
 
 export interface S3StorageOpts extends S3ClientConfig {
   bucket: string

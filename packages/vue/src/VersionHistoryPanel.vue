@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ApiClient, Version } from '@ensemble/core'
+import type { ApiClient, Version } from '@ensemble-sheets/core'
 import { onMounted, ref } from 'vue'
 
 const props = defineProps<{

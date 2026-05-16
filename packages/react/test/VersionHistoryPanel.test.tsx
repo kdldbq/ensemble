@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { VersionHistoryPanel } from '../src/VersionHistoryPanel'
-import type { Version } from '@ensemble/core'
+import type { Version } from '@ensemble-sheets/core'
 
 function makeApi(initial: Version[]) {
   let items = initial

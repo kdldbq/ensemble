@@ -1,5 +1,5 @@
 import { importJWK, jwtVerify } from 'jose'
-import type { IdentityAdapter, IdentityContext } from '@ensemble/server'
+import type { IdentityAdapter, IdentityContext } from '@ensemble-sheets/server'
 import { JwksCache, type Jwk } from './jwks-cache'
 
 export interface JwksIdentityOpts {

@@ -6,15 +6,15 @@ description: Embed ensemble in your Node backend.
 ## Install
 
 ```bash
-pnpm add @ensemble/server @ensemble/identity-jwks @ensemble/storage-s3
+pnpm add @ensemble-sheets/server @ensemble-sheets/identity-jwks @ensemble-sheets/storage-s3
 ```
 
 ## Boot
 
 ```ts
-import { createServer } from '@ensemble/server'
-import { JwksIdentityAdapter } from '@ensemble/identity-jwks'
-import { S3Storage } from '@ensemble/storage-s3'
+import { createServer } from '@ensemble-sheets/server'
+import { JwksIdentityAdapter } from '@ensemble-sheets/identity-jwks'
+import { S3Storage } from '@ensemble-sheets/storage-s3'
 
 const server = createServer({
   databaseUrl: process.env.DATABASE_URL!,
@@ -39,5 +39,5 @@ await server.listen({ port: 3000 })
 ## React component
 
 ```tsx
-import { WorkbookEditor, VersionHistoryPanel, CellLockOverlay } from '@ensemble/react'
+import { WorkbookEditor, VersionHistoryPanel, CellLockOverlay } from '@ensemble-sheets/react'
 ```

@@ -3,15 +3,15 @@
 ## [0.1.0] — 2026-MM-DD
 
 ### Added
-- Single-user workbook editor (`@ensemble/core` + `@ensemble/react` + `@ensemble/vue`)
+- Single-user workbook editor (`@ensemble-sheets/core` + `@ensemble-sheets/react` + `@ensemble-sheets/vue`)
 - xlsx ↔ Univer JSON conversion in the browser
-- `@ensemble/server` REST: workbooks, snapshots, folders, grants, versions, xlsx export
+- `@ensemble-sheets/server` REST: workbooks, snapshots, folders, grants, versions, xlsx export
 - WebSocket realtime: cell-lock + per-recipient masked broadcast
 - Multi-tenant Postgres RLS (6 tables + audit log)
-- `@ensemble/identity-jwks` (JWKS-based IdentityAdapter)
-- `@ensemble/storage-s3` + `@ensemble/storage-fs`
-- `@ensemble/webhook` for non-Node host integration
-- `@ensemble/adapter-conformance` test factory package
+- `@ensemble-sheets/identity-jwks` (JWKS-based IdentityAdapter)
+- `@ensemble-sheets/storage-s3` + `@ensemble-sheets/storage-fs`
+- `@ensemble-sheets/webhook` for non-Node host integration
+- `@ensemble-sheets/adapter-conformance` test factory package
 - Last_seq reconnect replay + 30 ops/sec backpressure
 - Snapshot masking with Redis pub/sub invalidation
 - Two-pane masked-view + multi-context Playwright e2e

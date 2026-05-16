@@ -4,7 +4,7 @@
 
 **Goal:** Stand up the ensemble monorepo and deliver an end-to-end **single-user** workbook editor: open a `.xlsx` in the browser, edit it, save a snapshot to storage (FS or S3), reload, see the edit. No collab, no masking, no permissions yet — but every adapter interface, every package boundary, and every test harness used in later sprints lands here.
 
-**Architecture:** pnpm-workspaces monorepo. Backend = Hono on Node + Drizzle + Postgres + adapter pattern (Identity / Permission / Storage / Event). Frontend = `@ensemble/core` vanilla TS (Univer + SheetJS + REST + WS-welcome) with thin `@ensemble/react` and `@ensemble/vue` wrappers. Storage adapters: local FS (dev) and S3 (prod-ish). `WebhookAdapter` proves the non-Node host path. Tests use Vitest + Testcontainers (Postgres) + Playwright (e2e smoke).
+**Architecture:** pnpm-workspaces monorepo. Backend = Hono on Node + Drizzle + Postgres + adapter pattern (Identity / Permission / Storage / Event). Frontend = `@ensemble-sheets/core` vanilla TS (Univer + SheetJS + REST + WS-welcome) with thin `@ensemble-sheets/react` and `@ensemble-sheets/vue` wrappers. Storage adapters: local FS (dev) and S3 (prod-ish). `WebhookAdapter` proves the non-Node host path. Tests use Vitest + Testcontainers (Postgres) + Playwright (e2e smoke).
 
 **Tech Stack:** Node 20+, pnpm 9, TypeScript 5.5 (strict), Hono 4, Drizzle ORM, postgres-js, `@hono/node-server`, `@hono/node-ws`, Univer OSS, SheetJS (`xlsx`), Vitest, `@testcontainers/postgresql`, Playwright, Biome, Changesets, AWS SDK v3 (`@aws-sdk/client-s3`).
 
@@ -15,11 +15,11 @@
 ## Conventions used in this plan
 
 - **Working directory** for all commands: repo root `/Users/cedric/Projects.localized/ensemble` unless a step says otherwise.
-- **Coverage target**: 90%+ lines for `@ensemble/core` and `@ensemble/server`. Verify with `pnpm -r test --coverage` at each TDD checkpoint.
+- **Coverage target**: 90%+ lines for `@ensemble-sheets/core` and `@ensemble-sheets/server`. Verify with `pnpm -r test --coverage` at each TDD checkpoint.
 - **Commits**: small and frequent. After every `Step: Commit` checkbox you should have a green test suite for everything written so far.
 - **TDD discipline**: every behavior-changing task starts with a *failing* test, runs it red, then implements minimally, runs it green, then commits. Skim/type-only edits (configs, package.json) don't need a failing-test step but do need a verification step.
 - **Conformance suite preview**: Sprint 1 lays the seams for the adapter-conformance test package that Sprint 2 fills in. Don't ship it yet; just keep contracts clean.
-- **Naming**: package directories under `packages/` use unscoped folder names (`core`, `server`, `react`, `vue`, `storage-s3`, `storage-fs`, `webhook`). Their `package.json` `name` field is the scoped form (`@ensemble/core`, etc.).
+- **Naming**: package directories under `packages/` use unscoped folder names (`core`, `server`, `react`, `vue`, `storage-s3`, `storage-fs`, `webhook`). Their `package.json` `name` field is the scoped form (`@ensemble-sheets/core`, etc.).
 
 ---
 
@@ -35,7 +35,7 @@ ensemble/
 ├── .changeset/config.json
 ├── .github/workflows/ci.yml
 ├── packages/
-│   ├── core/                              @ensemble/core
+│   ├── core/                              @ensemble-sheets/core
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   ├── src/
@@ -50,7 +50,7 @@ ensemble/
 │   │       ├── ws-client.test.ts
 │   │       ├── xlsx-converter.test.ts
 │   │       └── univer-wrapper.test.ts
-│   ├── server/                            @ensemble/server
+│   ├── server/                            @ensemble-sheets/server
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   ├── drizzle.config.ts
@@ -92,25 +92,25 @@ ensemble/
 │   │           ├── workbooks.int.test.ts
 │   │           ├── snapshots.int.test.ts
 │   │           └── ws-welcome.int.test.ts
-│   ├── react/                             @ensemble/react
+│   ├── react/                             @ensemble-sheets/react
 │   │   ├── package.json
 │   │   ├── src/index.ts
 │   │   ├── src/WorkbookEditor.tsx
 │   │   └── test/WorkbookEditor.test.tsx
-│   ├── vue/                               @ensemble/vue
+│   ├── vue/                               @ensemble-sheets/vue
 │   │   ├── package.json
 │   │   ├── src/index.ts
 │   │   ├── src/WorkbookEditor.vue
 │   │   └── test/WorkbookEditor.test.ts
-│   ├── storage-fs/                        @ensemble/storage-fs
+│   ├── storage-fs/                        @ensemble-sheets/storage-fs
 │   │   ├── package.json
 │   │   ├── src/index.ts
 │   │   └── test/storage-fs.test.ts
-│   ├── storage-s3/                        @ensemble/storage-s3
+│   ├── storage-s3/                        @ensemble-sheets/storage-s3
 │   │   ├── package.json
 │   │   ├── src/index.ts
 │   │   └── test/storage-s3.test.ts        uses LocalStack via Testcontainers
-│   └── webhook/                           @ensemble/webhook
+│   └── webhook/                           @ensemble-sheets/webhook
 │       ├── package.json
 │       ├── src/index.ts                   WebhookAdapter (identity + permission + event)
 │       └── test/webhook.test.ts
@@ -135,7 +135,7 @@ ensemble/
 | **M2**    | T4 – T7     | DB schema migrates, adapter contracts compile, Hono app starts |
 | **M3**    | T8 – T11    | Workbook + Snapshot REST work against real Postgres (Testcontainers) |
 | **M4**    | T12 – T15   | Storage-FS, Storage-S3, Webhook adapter all conformance-pass |
-| **M5**    | T16 – T19   | `@ensemble/core` opens an xlsx, talks REST, gets WS welcome |
+| **M5**    | T16 – T19   | `@ensemble-sheets/core` opens an xlsx, talks REST, gets WS welcome |
 | **M6**    | T20 – T22   | Demo app: open → edit → save → reload (Playwright e2e green) |
 
 After **each milestone**: review checkpoint — run `pnpm -r build && pnpm -r test --coverage` and confirm overall coverage ≥90% on `core`+`server`. If below, write the missing tests *before* moving on.
@@ -340,11 +340,11 @@ Edit the generated `.changeset/config.json`:
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [["@ensemble/*"]],
+  "linked": [["@ensemble-sheets/*"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@ensemble/demo"]
+  "ignore": ["@ensemble-sheets/demo"]
 }
 ```
 
@@ -441,7 +441,7 @@ Create `packages/server/package.json`:
 
 ```json
 {
-  "name": "@ensemble/server",
+  "name": "@ensemble-sheets/server",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -541,7 +541,7 @@ describe('adapter contracts', () => {
 - [ ] **Step 4.4: Run — expect fail (module not found)**
 
 ```bash
-pnpm --filter @ensemble/server test
+pnpm --filter @ensemble-sheets/server test
 ```
 
 Expected: FAIL.
@@ -685,7 +685,7 @@ export type { StorageAdapter } from './adapters/storage'
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/server test
+pnpm --filter @ensemble-sheets/server test
 ```
 
 Expected: 4/4 pass.
@@ -822,7 +822,7 @@ console.log('migrations applied')
 - [ ] **Step 5.5: Generate the SQL migration**
 
 ```bash
-pnpm --filter @ensemble/server exec drizzle-kit generate
+pnpm --filter @ensemble-sheets/server exec drizzle-kit generate
 ```
 
 Expected: file `packages/server/drizzle/0001_init.sql` (or similar suffix) is created. Commit it as-is.
@@ -903,8 +903,8 @@ describe('migration', () => {
 - [ ] **Step 5.9: Run integration test**
 
 ```bash
-pnpm --filter @ensemble/server build
-pnpm --filter @ensemble/server test
+pnpm --filter @ensemble-sheets/server build
+pnpm --filter @ensemble-sheets/server test
 ```
 
 Expected: 5 tests pass (4 adapter shape + 1 migration smoke). Requires Docker running.
@@ -955,7 +955,7 @@ describe('GET /healthz', () => {
 })
 ```
 
-Run: `pnpm --filter @ensemble/server test test/integration/health.int.test.ts` → expect FAIL.
+Run: `pnpm --filter @ensemble-sheets/server test test/integration/health.int.test.ts` → expect FAIL.
 
 - [ ] **Step 6.2: Health route**
 
@@ -1002,7 +1002,7 @@ export function buildApp(deps: AppDeps) {
 - [ ] **Step 6.4: Re-run test — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/health.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/health.int.test.ts
 ```
 
 Expected: 1/1 PASS.
@@ -1095,7 +1095,7 @@ export const requireIdentity: MiddlewareHandler<AppEnv> = async (c, next) => {
 - [ ] **Step 7.3: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/auth.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/auth.test.ts
 ```
 
 Expected: 3/3 PASS.
@@ -1230,7 +1230,7 @@ export type WorkbookService = ReturnType<typeof createWorkbookService>
 - [ ] **Step 8.3: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/workbook-service.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/workbook-service.test.ts
 ```
 
 Expected: 2/2 PASS.
@@ -1396,7 +1396,7 @@ import { workbooksRoute } from './routes/workbooks'
 - [ ] **Step 9.4: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/workbooks.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/workbooks.int.test.ts
 ```
 
 Expected: 3/3 PASS.
@@ -1651,7 +1651,7 @@ import { snapshotsRoute } from './routes/snapshots'
 - [ ] **Step 10.6: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server test
+pnpm --filter @ensemble-sheets/server test
 ```
 
 Expected: all tests so far PASS.
@@ -1866,7 +1866,7 @@ export { buildApp, type AppDeps } from './http/app'
 - [ ] **Step 11.5: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/ws-welcome.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/ws-welcome.int.test.ts
 ```
 
 Expected: 1/1 PASS.
@@ -1878,13 +1878,13 @@ git add packages/server
 git commit -m "feat(server): WS /api/v1/ws/:workbookId welcome handshake"
 ```
 
-> **🟢 Milestone 3 checkpoint** — run `pnpm --filter @ensemble/server test --coverage`. **Verify coverage ≥ 90% lines on `src/`.** If short, the gap is almost certainly error branches in `routes/*.ts` and `auth.ts` — add tests for: missing Authorization header, identity throwing, missing workbook on snapshot POST, empty body 400.
+> **🟢 Milestone 3 checkpoint** — run `pnpm --filter @ensemble-sheets/server test --coverage`. **Verify coverage ≥ 90% lines on `src/`.** If short, the gap is almost certainly error branches in `routes/*.ts` and `auth.ts` — add tests for: missing Authorization header, identity throwing, missing workbook on snapshot POST, empty body 400.
 
 ---
 
 # Milestone 4 — Storage + Webhook adapters
 
-## Task 12: `@ensemble/storage-fs`
+## Task 12: `@ensemble-sheets/storage-fs`
 
 **Files:**
 - Create: `packages/storage-fs/package.json`
@@ -1898,7 +1898,7 @@ Create `packages/storage-fs/package.json`:
 
 ```json
 {
-  "name": "@ensemble/storage-fs",
+  "name": "@ensemble-sheets/storage-fs",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -1910,9 +1910,9 @@ Create `packages/storage-fs/package.json`:
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*" },
   "devDependencies": {
-    "@ensemble/server": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10"
   }
 }
@@ -1977,7 +1977,7 @@ Create `packages/storage-fs/src/index.ts`:
 ```ts
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, normalize, resolve, sep } from 'node:path'
-import type { StorageAdapter } from '@ensemble/server'
+import type { StorageAdapter } from '@ensemble-sheets/server'
 
 export interface FsStorageOpts { root: string }
 
@@ -2012,9 +2012,9 @@ export class FsStorage implements StorageAdapter {
 - [ ] **Step 12.4: Build server first (peer dep) then test**
 
 ```bash
-pnpm --filter @ensemble/server build
+pnpm --filter @ensemble-sheets/server build
 pnpm install
-pnpm --filter @ensemble/storage-fs test
+pnpm --filter @ensemble-sheets/storage-fs test
 ```
 
 Expected: 3/3 PASS.
@@ -2028,7 +2028,7 @@ git commit -m "feat(storage-fs): local filesystem StorageAdapter"
 
 ---
 
-## Task 13: `@ensemble/storage-s3`
+## Task 13: `@ensemble-sheets/storage-s3`
 
 **Files:**
 - Create: `packages/storage-s3/package.json`
@@ -2044,7 +2044,7 @@ Create `packages/storage-s3/package.json`:
 
 ```json
 {
-  "name": "@ensemble/storage-s3",
+  "name": "@ensemble-sheets/storage-s3",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -2056,13 +2056,13 @@ Create `packages/storage-s3/package.json`:
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*" },
   "dependencies": {
     "@aws-sdk/client-s3": "3.668.0",
     "@aws-sdk/s3-request-presigner": "3.668.0"
   },
   "devDependencies": {
-    "@ensemble/server": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10",
     "testcontainers": "10.13.2"
   }
@@ -2127,7 +2127,7 @@ Create `packages/storage-s3/src/index.ts`:
 ```ts
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client, type S3ClientConfig } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type { StorageAdapter } from '@ensemble/server'
+import type { StorageAdapter } from '@ensemble-sheets/server'
 
 export interface S3StorageOpts extends S3ClientConfig {
   bucket: string
@@ -2176,7 +2176,7 @@ export class S3Storage implements StorageAdapter {
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/storage-s3 test
+pnpm --filter @ensemble-sheets/storage-s3 test
 ```
 
 Expected: 1/1 PASS (slow — ~30s for LocalStack pull on first run).
@@ -2190,7 +2190,7 @@ git commit -m "feat(storage-s3): S3/R2/MinIO StorageAdapter via aws-sdk v3"
 
 ---
 
-## Task 14: `@ensemble/webhook` — generic HTTP adapter wrapper
+## Task 14: `@ensemble-sheets/webhook` — generic HTTP adapter wrapper
 
 **Files:**
 - Create: `packages/webhook/package.json`
@@ -2206,7 +2206,7 @@ Create `packages/webhook/package.json`:
 
 ```json
 {
-  "name": "@ensemble/webhook",
+  "name": "@ensemble-sheets/webhook",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -2218,9 +2218,9 @@ Create `packages/webhook/package.json`:
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*" },
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*" },
   "devDependencies": {
-    "@ensemble/server": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10"
   }
 }
@@ -2316,7 +2316,7 @@ import type {
   Capability,
   MaskRule,
   EnsembleEvent,
-} from '@ensemble/server'
+} from '@ensemble-sheets/server'
 
 export interface WebhookOpts {
   url: string
@@ -2390,9 +2390,9 @@ export class WebhookEventAdapter implements EventAdapter {
 - [ ] **Step 14.4: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server build
+pnpm --filter @ensemble-sheets/server build
 pnpm install
-pnpm --filter @ensemble/webhook test
+pnpm --filter @ensemble-sheets/webhook test
 ```
 
 Expected: 3/3 PASS.
@@ -2409,7 +2409,7 @@ git commit -m "feat(webhook): signed-HTTP Identity/Permission/Event adapters"
 ## Task 15: FsStorage end-to-end sanity check inside server tests
 
 **Files:**
-- Modify: `packages/server/package.json` (add `@ensemble/storage-fs` as devDependency)
+- Modify: `packages/server/package.json` (add `@ensemble-sheets/storage-fs` as devDependency)
 - Modify: `packages/server/test/integration/snapshots.int.test.ts`
 
 - [ ] **Step 15.1: Add devDependency**
@@ -2417,7 +2417,7 @@ git commit -m "feat(webhook): signed-HTTP Identity/Permission/Event adapters"
 Edit `packages/server/package.json` — add to `devDependencies`:
 
 ```json
-"@ensemble/storage-fs": "workspace:*"
+"@ensemble-sheets/storage-fs": "workspace:*"
 ```
 
 Run `pnpm install`.
@@ -2427,7 +2427,7 @@ Run `pnpm install`.
 Append to `packages/server/test/integration/snapshots.int.test.ts`:
 
 ```ts
-import { FsStorage } from '@ensemble/storage-fs'
+import { FsStorage } from '@ensemble-sheets/storage-fs'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -2467,7 +2467,7 @@ it('snapshot round-trips through FsStorage', async () => {
 - [ ] **Step 15.3: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/snapshots.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/snapshots.int.test.ts
 ```
 
 Expected: 2/2 PASS (original + FsStorage round-trip).
@@ -2483,7 +2483,7 @@ git commit -m "test(server): FsStorage round-trip integration check"
 
 ---
 
-# Milestone 5 — `@ensemble/core` (frontend SDK)
+# Milestone 5 — `@ensemble-sheets/core` (frontend SDK)
 
 ## Task 16: Core package skeleton + REST `ApiClient`
 
@@ -2502,7 +2502,7 @@ Create `packages/core/package.json`:
 
 ```json
 {
-  "name": "@ensemble/core",
+  "name": "@ensemble-sheets/core",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -2736,7 +2736,7 @@ export * from './types'
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/core test
+pnpm --filter @ensemble-sheets/core test
 ```
 
 Expected: 3/3 PASS.
@@ -2876,7 +2876,7 @@ export { xlsxToUniverJson, univerJsonToXlsx } from './xlsx-converter'
 - [ ] **Step 17.4: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/core test
+pnpm --filter @ensemble-sheets/core test
 ```
 
 Expected: 5/5 PASS (3 ApiClient + 2 converter).
@@ -3012,7 +3012,7 @@ export { createEditor, type Editor, type EditorOpts } from './univer-wrapper'
 - [ ] **Step 18.4: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/core test
+pnpm --filter @ensemble-sheets/core test
 ```
 
 Expected: PASS for the shape test. (Full `load`/`getData` is exercised by the demo's Playwright test in Task 23.)
@@ -3162,7 +3162,7 @@ export { WsClient, type WelcomeFrame } from './ws-client'
 - [ ] **Step 19.4: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/core test
+pnpm --filter @ensemble-sheets/core test
 ```
 
 Expected: all core tests PASS.
@@ -3183,7 +3183,7 @@ git commit -m "feat(core): WsClient connect + welcome handler"
 - Create: `packages/core/src/mount.ts`
 - Create: `packages/core/test/mount.test.ts`
 
-> Single entry point used by both `@ensemble/react` and `@ensemble/vue`. The framework wrappers shouldn't know REST/WS/Univer details — only how to call `mountWorkbookEditor({ container, ... })`.
+> Single entry point used by both `@ensemble-sheets/react` and `@ensemble-sheets/vue`. The framework wrappers shouldn't know REST/WS/Univer details — only how to call `mountWorkbookEditor({ container, ... })`.
 
 - [ ] **Step 20.1: Failing test**
 
@@ -3295,7 +3295,7 @@ export { mountWorkbookEditor, type MountOpts, type MountHandle } from './mount'
 - [ ] **Step 20.4: Run — expect pass**
 
 ```bash
-pnpm --filter @ensemble/core test --coverage
+pnpm --filter @ensemble-sheets/core test --coverage
 ```
 
 Expected: PASS. Coverage ≥ 90% on `src/`.
@@ -3313,7 +3313,7 @@ git commit -m "feat(core): mountWorkbookEditor() top-level wiring"
 
 # Milestone 6 — Framework bindings + Demo + E2E
 
-## Task 21: `@ensemble/react` `<WorkbookEditor />`
+## Task 21: `@ensemble-sheets/react` `<WorkbookEditor />`
 
 **Files:**
 - Create: `packages/react/package.json`
@@ -3329,7 +3329,7 @@ Create `packages/react/package.json`:
 
 ```json
 {
-  "name": "@ensemble/react",
+  "name": "@ensemble-sheets/react",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -3344,10 +3344,10 @@ Create `packages/react/package.json`:
   "peerDependencies": {
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "@ensemble/core": "workspace:*"
+    "@ensemble-sheets/core": "workspace:*"
   },
   "devDependencies": {
-    "@ensemble/core": "workspace:*",
+    "@ensemble-sheets/core": "workspace:*",
     "@testing-library/react": "16.0.1",
     "@types/react": "18.3.11",
     "@types/react-dom": "18.3.0",
@@ -3384,7 +3384,7 @@ import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { WorkbookEditor } from '../src/WorkbookEditor'
 
-vi.mock('@ensemble/core', () => ({
+vi.mock('@ensemble-sheets/core', () => ({
   mountWorkbookEditor: vi.fn(async () => ({
     save: vi.fn(),
     exportXlsx: vi.fn(() => new Uint8Array()),
@@ -3402,7 +3402,7 @@ describe('<WorkbookEditor />', () => {
         token={async () => 't'}
       />
     )
-    const { mountWorkbookEditor } = await import('@ensemble/core')
+    const { mountWorkbookEditor } = await import('@ensemble-sheets/core')
     expect(mountWorkbookEditor as unknown as { mock: unknown }).toBeDefined()
     expect(mountWorkbookEditor).toHaveBeenCalledWith(
       expect.objectContaining({ workbookId: 'w1', apiBaseUrl: 'https://api' })
@@ -3419,7 +3419,7 @@ Run: expect FAIL.
 Create `packages/react/src/WorkbookEditor.tsx`:
 
 ```tsx
-import { mountWorkbookEditor, type MountHandle } from '@ensemble/core'
+import { mountWorkbookEditor, type MountHandle } from '@ensemble-sheets/core'
 import { useEffect, useRef } from 'react'
 
 export interface WorkbookEditorProps {
@@ -3474,7 +3474,7 @@ export { WorkbookEditor, type WorkbookEditorProps } from './WorkbookEditor'
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/react test
+pnpm --filter @ensemble-sheets/react test
 ```
 
 Expected: 1/1 PASS.
@@ -3488,7 +3488,7 @@ git commit -m "feat(react): <WorkbookEditor /> component"
 
 ---
 
-## Task 22: `@ensemble/vue` `<WorkbookEditor />`
+## Task 22: `@ensemble-sheets/vue` `<WorkbookEditor />`
 
 **Files:**
 - Create: `packages/vue/package.json`
@@ -3504,7 +3504,7 @@ Create `packages/vue/package.json`:
 
 ```json
 {
-  "name": "@ensemble/vue",
+  "name": "@ensemble-sheets/vue",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -3518,10 +3518,10 @@ Create `packages/vue/package.json`:
   },
   "peerDependencies": {
     "vue": "^3.5.0",
-    "@ensemble/core": "workspace:*"
+    "@ensemble-sheets/core": "workspace:*"
   },
   "devDependencies": {
-    "@ensemble/core": "workspace:*",
+    "@ensemble-sheets/core": "workspace:*",
     "@vitejs/plugin-vue": "5.1.4",
     "@vue/test-utils": "2.4.6",
     "jsdom": "25.0.1",
@@ -3559,7 +3559,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import WorkbookEditor from '../src/WorkbookEditor.vue'
 
-vi.mock('@ensemble/core', () => ({
+vi.mock('@ensemble-sheets/core', () => ({
   mountWorkbookEditor: vi.fn(async () => ({
     save: vi.fn(), exportXlsx: vi.fn(() => new Uint8Array()), destroy: vi.fn(),
   })),
@@ -3571,7 +3571,7 @@ describe('<WorkbookEditor /> (Vue)', () => {
       props: { workbookId: 'w', apiBaseUrl: 'a', wsBaseUrl: 'w', token: () => 't' },
     })
     await wrapper.vm.$nextTick()
-    const { mountWorkbookEditor } = await import('@ensemble/core')
+    const { mountWorkbookEditor } = await import('@ensemble-sheets/core')
     expect(mountWorkbookEditor).toHaveBeenCalled()
     expect(wrapper.element.classList.contains('ensemble-workbook-root')).toBe(true)
   })
@@ -3586,7 +3586,7 @@ Create `packages/vue/src/WorkbookEditor.vue`:
 
 ```vue
 <script setup lang="ts">
-import { mountWorkbookEditor, type MountHandle } from '@ensemble/core'
+import { mountWorkbookEditor, type MountHandle } from '@ensemble-sheets/core'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
@@ -3634,7 +3634,7 @@ export { WorkbookEditor }
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/vue test
+pnpm --filter @ensemble-sheets/vue test
 ```
 
 Expected: 1/1 PASS.
@@ -3660,7 +3660,7 @@ git commit -m "feat(vue): <WorkbookEditor /> SFC"
 - Create: `apps/demo/e2e/open-edit-save-reload.spec.ts`
 - Modify: `.github/workflows/ci.yml`
 
-> The demo runs the real `@ensemble/server` (FsStorage + a stub IdentityAdapter that accepts any "dev:" token → fake tenant), serves a React page with `<WorkbookEditor>`, and Playwright drives the browser.
+> The demo runs the real `@ensemble-sheets/server` (FsStorage + a stub IdentityAdapter that accepts any "dev:" token → fake tenant), serves a React page with `<WorkbookEditor>`, and Playwright drives the browser.
 
 - [ ] **Step 23.1: Demo package**
 
@@ -3668,7 +3668,7 @@ Create `apps/demo/package.json`:
 
 ```json
 {
-  "name": "@ensemble/demo",
+  "name": "@ensemble-sheets/demo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -3681,10 +3681,10 @@ Create `apps/demo/package.json`:
     "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@ensemble/core": "workspace:*",
-    "@ensemble/react": "workspace:*",
-    "@ensemble/server": "workspace:*",
-    "@ensemble/storage-fs": "workspace:*",
+    "@ensemble-sheets/core": "workspace:*",
+    "@ensemble-sheets/react": "workspace:*",
+    "@ensemble-sheets/server": "workspace:*",
+    "@ensemble-sheets/storage-fs": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -3744,7 +3744,7 @@ Create `apps/demo/index.html`:
 Create `apps/demo/src/main.tsx`:
 
 ```tsx
-import { WorkbookEditor } from '@ensemble/react'
+import { WorkbookEditor } from '@ensemble-sheets/react'
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
@@ -3789,8 +3789,8 @@ createRoot(document.getElementById('root')!).render(
 Create `apps/demo/src/server-runner.ts`:
 
 ```ts
-import { createServer, NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '@ensemble/server'
-import { FsStorage } from '@ensemble/storage-fs'
+import { createServer, NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '@ensemble-sheets/server'
+import { FsStorage } from '@ensemble-sheets/storage-fs'
 import { mkdir } from 'node:fs/promises'
 import postgres from 'postgres'
 
@@ -3901,12 +3901,12 @@ test('open → edit → save → reload preserves a cell value', async ({ page }
 
 ```bash
 export DATABASE_URL='postgres://postgres:postgres@localhost:5432/ensemble_dev'
-pnpm --filter @ensemble/server build
-pnpm --filter @ensemble/server exec node dist/db/migrate.js
+pnpm --filter @ensemble-sheets/server build
+pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 
 pnpm -r build
-pnpm --filter @ensemble/demo e2e:install
-pnpm --filter @ensemble/demo e2e
+pnpm --filter @ensemble-sheets/demo e2e:install
+pnpm --filter @ensemble-sheets/demo e2e
 ```
 
 Expected: e2e passes (1 spec). If the cell click misses (Univer's toolbar height varies), bump y-coord in Step 23.6. If timing is flaky, expand `waitForTimeout` before disabling.
@@ -3916,10 +3916,10 @@ Expected: e2e passes (1 spec). If the cell click misses (Univer's toolbar height
 Edit `.github/workflows/ci.yml` — append after the `pnpm test --coverage` step:
 
 ```yaml
-      - run: pnpm --filter @ensemble/server build
-      - run: pnpm --filter @ensemble/server exec node dist/db/migrate.js
-      - run: pnpm --filter @ensemble/demo e2e:install
-      - run: pnpm --filter @ensemble/demo e2e
+      - run: pnpm --filter @ensemble-sheets/server build
+      - run: pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
+      - run: pnpm --filter @ensemble-sheets/demo e2e:install
+      - run: pnpm --filter @ensemble-sheets/demo e2e
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/ensemble_test
           CI: 'true'
@@ -3941,17 +3941,17 @@ git commit -m "feat(demo): single-user open-edit-save-reload e2e green"
 **1. Spec coverage** — every Sprint 1 line item is mapped:
 
 - ✅ pnpm workspaces, TS strict, vitest, biome, Changesets — **Tasks 1-2**
-- ✅ `@ensemble/core` Univer wrapper — **Task 18**
-- ✅ `@ensemble/core` SheetJS ↔ Univer converter — **Task 17**
-- ✅ `@ensemble/core` REST client — **Task 16**
-- ✅ `@ensemble/core` WS client (connect + welcome, no collab) — **Task 19**
-- ✅ `@ensemble/vue` + `@ensemble/react` `<WorkbookEditor>` — **Tasks 21-22**
-- ✅ `@ensemble/server` Hono routing — **Task 6**
-- ✅ `@ensemble/server` Drizzle + Postgres — **Task 5**
-- ✅ `@ensemble/server` Workbook CRUD — **Task 9**
+- ✅ `@ensemble-sheets/core` Univer wrapper — **Task 18**
+- ✅ `@ensemble-sheets/core` SheetJS ↔ Univer converter — **Task 17**
+- ✅ `@ensemble-sheets/core` REST client — **Task 16**
+- ✅ `@ensemble-sheets/core` WS client (connect + welcome, no collab) — **Task 19**
+- ✅ `@ensemble-sheets/vue` + `@ensemble-sheets/react` `<WorkbookEditor>` — **Tasks 21-22**
+- ✅ `@ensemble-sheets/server` Hono routing — **Task 6**
+- ✅ `@ensemble-sheets/server` Drizzle + Postgres — **Task 5**
+- ✅ `@ensemble-sheets/server` Workbook CRUD — **Task 9**
 - ✅ All 4 adapter interfaces with stubs that throw — **Task 4**
-- ✅ `@ensemble/storage-s3`, `@ensemble/storage-fs` — **Tasks 12-13**
-- ✅ `@ensemble/webhook` — **Task 14**
+- ✅ `@ensemble-sheets/storage-s3`, `@ensemble-sheets/storage-fs` — **Tasks 12-13**
+- ✅ `@ensemble-sheets/webhook` — **Task 14**
 - ✅ No collab, no masking — **enforced by Task 11's welcome-only WS**
 - ✅ 90%+ coverage on core + server — **enforced by `vitest.config.ts` thresholds + Milestone 3 + 5 checkpoints**
 - ✅ Demo: open → edit → save snapshot → reload — **Task 23**

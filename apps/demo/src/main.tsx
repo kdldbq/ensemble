@@ -1,5 +1,5 @@
-import { WorkbookEditor } from '@ensemble/react'
-import { WsClient } from '@ensemble/core'
+import { WorkbookEditor } from '@ensemble-sheets/react'
+import { WsClient } from '@ensemble-sheets/core'
 import { StrictMode, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 

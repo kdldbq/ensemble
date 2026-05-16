@@ -13,3 +13,4 @@ playwright-report/
 test-results/
 .vite/
 apps/demo/data/
+.astro/

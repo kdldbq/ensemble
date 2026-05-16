@@ -8,7 +8,7 @@ import type {
   Capability,
   MaskRule,
   EnsembleEvent,
-} from '@ensemble/server'
+} from '@ensemble-sheets/server'
 
 export interface WebhookOpts {
   url: string

@@ -1,4 +1,4 @@
-import type { ApiClient, Version } from '@ensemble/core'
+import type { ApiClient, Version } from '@ensemble-sheets/core'
 import { useCallback, useEffect, useState } from 'react'
 
 export interface VersionHistoryPanelProps {

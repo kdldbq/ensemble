@@ -1,4 +1,4 @@
-import type { ApiClient, Folder } from '@ensemble/core'
+import type { ApiClient, Folder } from '@ensemble-sheets/core'
 import { useCallback, useEffect, useState } from 'react'
 
 export interface FolderNavigatorProps {

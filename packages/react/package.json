@@ -1,5 +1,5 @@
 {
-  "name": "@ensemble/react",
+  "name": "@ensemble-sheets/react",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "repository": {
@@ -20,10 +20,10 @@
   "peerDependencies": {
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "@ensemble/core": "workspace:*"
+    "@ensemble-sheets/core": "workspace:*"
   },
   "devDependencies": {
-    "@ensemble/core": "workspace:*",
+    "@ensemble-sheets/core": "workspace:*",
     "@testing-library/react": "16.0.1",
     "@types/react": "18.3.11",
     "@types/react-dom": "18.3.0",

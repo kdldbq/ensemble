@@ -19,11 +19,11 @@ pnpm install
 ## Start the demo
 
 ```bash
-pnpm --filter @ensemble/demo db:up     # Postgres on :54320, Redis on :63790
-pnpm --filter @ensemble/server build
+pnpm --filter @ensemble-sheets/demo db:up     # Postgres on :54320, Redis on :63790
+pnpm --filter @ensemble-sheets/server build
 DATABASE_URL=postgres://postgres:postgres@localhost:54320/ensemble_dev \
-  pnpm --filter @ensemble/server exec node dist/db/migrate.js
-pnpm --filter @ensemble/demo dev
+  pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
+pnpm --filter @ensemble-sheets/demo dev
 ```
 
 Open http://localhost:5173. You'll see a two-pane editor — left is `admin`,
@@ -33,11 +33,11 @@ column B shows `***` (mask rule defined in the demo's PermissionAdapter).
 ## Embed in your React app
 
 ```bash
-pnpm add @ensemble/react @ensemble/core
+pnpm add @ensemble-sheets/react @ensemble-sheets/core
 ```
 
 ```tsx
-import { WorkbookEditor } from '@ensemble/react'
+import { WorkbookEditor } from '@ensemble-sheets/react'
 
 <WorkbookEditor
   workbookId="<uuid>"

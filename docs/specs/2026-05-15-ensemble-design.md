@@ -28,9 +28,9 @@ ensemble server (Node + TS, Hono on Node/Bun/CF Workers)
           (TS class directly, OR Webhook endpoints in any language)
 
 ensemble frontend
-  ├── @ensemble/core    (vanilla TS — Univer wrap + WS + REST)
-  ├── @ensemble/react   (<WorkbookEditor /> for React hosts)
-  └── @ensemble/vue     (<WorkbookEditor /> for Vue hosts)
+  ├── @ensemble-sheets/core    (vanilla TS — Univer wrap + WS + REST)
+  ├── @ensemble-sheets/react   (<WorkbookEditor /> for React hosts)
+  └── @ensemble-sheets/vue     (<WorkbookEditor /> for Vue hosts)
 ```
 
 ## 2. Goals & Non-Goals
@@ -63,14 +63,14 @@ ensemble frontend
 ┌──────────────────────────────────────────────────────────────┐
 │  Browser  (host app: React / Vue / Vanilla / Solid…)         │
 │                                                              │
-│  @ensemble/core         vanilla TS                           │
+│  @ensemble-sheets/core         vanilla TS                           │
 │   ├─ Univer OSS wrap (sheets / formula / cf / etc.)          │
 │   ├─ SheetJS  ←→ Univer JSON converter                       │
 │   ├─ WSClient  cell-lock + mutation broadcast                │
 │   └─ ApiClient REST                                          │
 │                                                              │
-│  @ensemble/react   <WorkbookEditor workbookId="…" />         │
-│  @ensemble/vue     <WorkbookEditor :workbook-id="…" />       │
+│  @ensemble-sheets/react   <WorkbookEditor workbookId="…" />         │
+│  @ensemble-sheets/vue     <WorkbookEditor :workbook-id="…" />       │
 └────────────────────────┬─────────────────────────────────────┘
                          │ REST + WebSocket  (host-issued JWT)
 ┌────────────────────────▼─────────────────────────────────────┐
@@ -104,17 +104,17 @@ ensemble frontend
 ```
 ensemble/
   packages/
-    core/                # @ensemble/core         (TS, framework-agnostic)
-    react/               # @ensemble/react        (thin wrapper)
-    vue/                 # @ensemble/vue          (thin wrapper)
-    server/              # @ensemble/server       (Node backend)
-    sdk-node/            # @ensemble/sdk-node     (host backend SDK for Node hosts)
+    core/                # @ensemble-sheets/core         (TS, framework-agnostic)
+    react/               # @ensemble-sheets/react        (thin wrapper)
+    vue/                 # @ensemble-sheets/vue          (thin wrapper)
+    server/              # @ensemble-sheets/server       (Node backend)
+    sdk-node/            # @ensemble-sheets/sdk-node     (host backend SDK for Node hosts)
     adapters/
-      identity-jwks/     # @ensemble/identity-jwks (generic JWKS verifier)
-      storage-s3/        # @ensemble/storage-s3   (S3/R2/B2/MinIO)
-      storage-tos/       # @ensemble/storage-tos  (Volcengine TOS, EduCube reuse)
-      storage-fs/        # @ensemble/storage-fs   (local FS, dev only)
-      webhook/           # @ensemble/webhook      (Webhook* adapter wrappers)
+      identity-jwks/     # @ensemble-sheets/identity-jwks (generic JWKS verifier)
+      storage-s3/        # @ensemble-sheets/storage-s3   (S3/R2/B2/MinIO)
+      storage-tos/       # @ensemble-sheets/storage-tos  (Volcengine TOS, EduCube reuse)
+      storage-fs/        # @ensemble-sheets/storage-fs   (local FS, dev only)
+      webhook/           # @ensemble-sheets/webhook      (Webhook* adapter wrappers)
   apps/
     demo/                # public demo (Cloudflare Workers + R2 + Neon)
     docs/                # docs site (Astro Starlight or Nextra)
@@ -129,7 +129,7 @@ ensemble/
 
 ### Core decoupling principle
 
-`@ensemble/server` knows **nothing** about teachers / classes / campuses. All host business semantics flow through Adapter interfaces. EduCube integration = three adapter implementations + one `<WorkbookEditor>` mount.
+`@ensemble-sheets/server` knows **nothing** about teachers / classes / campuses. All host business semantics flow through Adapter interfaces. EduCube integration = three adapter implementations + one `<WorkbookEditor>` mount.
 
 ## 4. Data Model
 
@@ -298,7 +298,7 @@ interface EventAdapter {
 **Node host (direct TS implementation):**
 
 ```ts
-import { createServer } from '@ensemble/server'
+import { createServer } from '@ensemble-sheets/server'
 
 const server = createServer({
   identity:   new MyJwksIdentity({ jwksUrl: 'https://host/.well-known/jwks.json' }),
@@ -313,8 +313,8 @@ server.listen({ port: 3000 })
 **Non-Node host (WebhookAdapter):**
 
 ```ts
-import { WebhookAdapter, createServer } from '@ensemble/server'
-import { TosStorage } from '@ensemble/storage-tos'
+import { WebhookAdapter, createServer } from '@ensemble-sheets/server'
+import { TosStorage } from '@ensemble-sheets/storage-tos'
 
 const server = createServer({
   identity:   new WebhookAdapter({ url: 'https://educube/api/ensemble/identity',   secret: process.env.HOST_SECRET }),
@@ -497,27 +497,27 @@ Client sends `last_seq_num`. Server:
 ### Sprint 1 — "It opens" (3-4 weeks)
 
 - Repo scaffold: pnpm workspaces, TS strict, vitest, biome, Changesets
-- `@ensemble/core`:
+- `@ensemble-sheets/core`:
   - Univer wrapper API
   - SheetJS xlsx ↔ Univer JSON converter
   - REST client
   - WS client (just connect + welcome, no collab yet)
-- `@ensemble/vue` + `@ensemble/react`: `<WorkbookEditor workbookId="..." />`
-- `@ensemble/server`:
+- `@ensemble-sheets/vue` + `@ensemble-sheets/react`: `<WorkbookEditor workbookId="..." />`
+- `@ensemble-sheets/server`:
   - Hono routing
   - Drizzle + Postgres
   - Workbook CRUD REST endpoints
   - All 4 adapter interfaces defined (impl can throw "not implemented")
-  - `@ensemble/storage-s3`, `@ensemble/storage-fs` reference impls
-  - `@ensemble/webhook` (the `WebhookAdapter` for non-Node hosts)
+  - `@ensemble-sheets/storage-s3`, `@ensemble-sheets/storage-fs` reference impls
+  - `@ensemble-sheets/webhook` (the `WebhookAdapter` for non-Node hosts)
 - **No collab, no masking yet** — single-user only
-- 90%+ unit test coverage on `@ensemble/core` and `@ensemble/server`
+- 90%+ unit test coverage on `@ensemble-sheets/core` and `@ensemble-sheets/server`
 - Demo deploy: open a workbook, edit, save snapshot to S3, reload
 
 ### Sprint 2 — "Permission + Folder" (3-4 weeks)
 
 - Multi-tenant: every table has `tenant_id`, Postgres RLS policies, every query helper requires explicit tenant
-- `IdentityAdapter` first reference impl: `@ensemble/identity-jwks`
+- `IdentityAdapter` first reference impl: `@ensemble-sheets/identity-jwks`
 - `PermissionAdapter` contract enforced on every endpoint
 - Folder CRUD (create, rename, move, delete, list)
 - Share grants table + grant resolution logic (with ancestor walk)
@@ -577,7 +577,7 @@ Client sends `last_seq_num`. Server:
 
 ### Adapter conformance suite
 
-- Publish `@ensemble/adapter-conformance` test package
+- Publish `@ensemble-sheets/adapter-conformance` test package
 - Any host adapter implementation (Node TS class OR HTTP endpoints) runs this suite to verify contract correctness
 - EduCube's Python endpoints run it via pytest (HTTP harness)
 

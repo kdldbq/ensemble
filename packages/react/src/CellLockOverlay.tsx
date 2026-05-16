@@ -1,4 +1,4 @@
-import type { WsClient } from '@ensemble/core'
+import type { WsClient } from '@ensemble-sheets/core'
 import { useEffect, useState } from 'react'
 import { LockBadge } from './LockBadge'
 

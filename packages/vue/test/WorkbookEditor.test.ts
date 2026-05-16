@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import WorkbookEditor from '../src/WorkbookEditor.vue'
 
-vi.mock('@ensemble/core', () => ({
+vi.mock('@ensemble-sheets/core', () => ({
   mountWorkbookEditor: vi.fn(async () => ({
     save: vi.fn(), exportXlsx: vi.fn(() => new Uint8Array()), destroy: vi.fn(),
   })),
@@ -14,7 +14,7 @@ describe('<WorkbookEditor /> (Vue)', () => {
       props: { workbookId: 'w', apiBaseUrl: 'a', wsBaseUrl: 'w', token: () => 't' },
     })
     await wrapper.vm.$nextTick()
-    const { mountWorkbookEditor } = await import('@ensemble/core')
+    const { mountWorkbookEditor } = await import('@ensemble-sheets/core')
     expect(mountWorkbookEditor).toHaveBeenCalled()
     expect(wrapper.element.classList.contains('ensemble-workbook-root')).toBe(true)
   })

@@ -1,5 +1,5 @@
-import { createServer, NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '@ensemble/server'
-import { FsStorage } from '@ensemble/storage-fs'
+import { createServer, NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '@ensemble-sheets/server'
+import { FsStorage } from '@ensemble-sheets/storage-fs'
 import { mkdir } from 'node:fs/promises'
 import postgres from 'postgres'
 
@@ -15,7 +15,7 @@ await sql.end()
 // WARNING: DEV-ONLY STUB — Do NOT use in production.
 // This adapter accepts any token prefixed with "dev:" without verification.
 // Production hosts must implement IdentityAdapter with real JWT/JWKS verification
-// (see @ensemble/identity-jwks in Sprint 2).
+// (see @ensemble-sheets/identity-jwks in Sprint 2).
 const identity: IdentityAdapter = {
   resolveFromToken: async (token) => {
     if (!token.startsWith('dev:')) throw new Error('bad token')

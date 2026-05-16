@@ -1,4 +1,4 @@
-import type { Capability, IdentityContext, PermissionAdapter, ResourceRef } from '@ensemble/server'
+import type { Capability, IdentityContext, PermissionAdapter, ResourceRef } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export interface PermissionConformanceFixture {

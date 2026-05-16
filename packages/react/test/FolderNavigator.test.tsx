@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { FolderNavigator } from '../src/FolderNavigator'
-import type { Folder } from '@ensemble/core'
+import type { Folder } from '@ensemble-sheets/core'
 
 function makeApi(initial: Folder[]) {
   let items = initial

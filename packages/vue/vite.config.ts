@@ -10,7 +10,7 @@ export default defineConfig({
       fileName: 'index',
     },
     rollupOptions: {
-      external: ['vue', '@ensemble/core'],
+      external: ['vue', '@ensemble-sheets/core'],
     },
   },
 })

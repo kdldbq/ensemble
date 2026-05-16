@@ -26,16 +26,16 @@ importers:
 
   apps/demo:
     dependencies:
-      '@ensemble/core':
+      '@ensemble-sheets/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@ensemble/react':
+      '@ensemble-sheets/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@ensemble/server':
+      '@ensemble-sheets/server':
         specifier: workspace:*
         version: link:../../packages/server
-      '@ensemble/storage-fs':
+      '@ensemble-sheets/storage-fs':
         specifier: workspace:*
         version: link:../../packages/storage-fs
       postgres:
@@ -81,7 +81,7 @@ importers:
 
   packages/adapter-conformance:
     devDependencies:
-      '@ensemble/server':
+      '@ensemble-sheets/server':
         specifier: workspace:*
         version: link:../server
       vitest:
@@ -140,7 +140,7 @@ importers:
         specifier: 5.9.6
         version: 5.9.6
     devDependencies:
-      '@ensemble/server':
+      '@ensemble-sheets/server':
         specifier: workspace:*
         version: link:../server
       '@types/node':
@@ -149,7 +149,7 @@ importers:
 
   packages/react:
     devDependencies:
-      '@ensemble/core':
+      '@ensemble-sheets/core':
         specifier: workspace:*
         version: link:../core
       '@testing-library/react':
@@ -201,7 +201,7 @@ importers:
         specifier: 0.18.5
         version: 0.18.5
     devDependencies:
-      '@ensemble/storage-fs':
+      '@ensemble-sheets/storage-fs':
         specifier: workspace:*
         version: link:../storage-fs
       '@testcontainers/postgresql':
@@ -222,7 +222,7 @@ importers:
 
   packages/storage-fs:
     devDependencies:
-      '@ensemble/server':
+      '@ensemble-sheets/server':
         specifier: workspace:*
         version: link:../server
       '@types/node':
@@ -238,7 +238,7 @@ importers:
         specifier: 3.668.0
         version: 3.668.0
     devDependencies:
-      '@ensemble/server':
+      '@ensemble-sheets/server':
         specifier: workspace:*
         version: link:../server
       '@types/node':
@@ -250,7 +250,7 @@ importers:
 
   packages/vue:
     devDependencies:
-      '@ensemble/core':
+      '@ensemble-sheets/core':
         specifier: workspace:*
         version: link:../core
       '@vitejs/plugin-vue':
@@ -274,7 +274,7 @@ importers:
 
   packages/webhook:
     devDependencies:
-      '@ensemble/server':
+      '@ensemble-sheets/server':
         specifier: workspace:*
         version: link:../server
       '@types/node':

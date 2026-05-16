@@ -9,7 +9,7 @@
 - **Version history**: 3 REST endpoints (list named / create / restore). Restore creates a new `reason='manual'` snapshot pointing at the named version's `storage_key`.
 - **Server-side xlsx export**: Node SheetJS converts latest snapshot Univer JSON → xlsx bytes (mask-applied).
 - **MaskRuleCache pub/sub**: Redis channel `ensemble:mask-invalidate` broadcasts invalidations across instances.
-- **Conformance suite**: `@ensemble/adapter-conformance` test factories for the 4 adapter contracts.
+- **Conformance suite**: `@ensemble-sheets/adapter-conformance` test factories for the 4 adapter contracts.
 - **Docs site**: Astro Starlight under `apps/docs/`.
 - **EduCube dogfood**: `examples/integrate-fastapi/` Python + FastAPI 3 webhook endpoints + Vue UI.
 - **Release**: NOTICE, CHANGELOG, GitHub release workflow via Changesets. Public push/publish gated on spec §11 decisions.
@@ -38,7 +38,7 @@
 | **M1: Audit + EventAdapter + mask invalidation** | T1-T4 | 5 EnsembleEvent types fired + audit_log rows; mask cache pub/sub |
 | **M2: Sprint 3 polish carry-over** | T5-T8 | demo dedicated Redis container; CellLockOverlay React+Vue; real-WS Playwright |
 | **M3: Version history** | T9-T13 | 3 endpoints + React+Vue VersionHistoryPanel |
-| **M4: xlsx export + conformance** | T14-T17 | GET .xlsx; @ensemble/adapter-conformance |
+| **M4: xlsx export + conformance** | T14-T17 | GET .xlsx; @ensemble-sheets/adapter-conformance |
 | **M5: Docs site** | T18-T21 | Astro Starlight quickstart + API ref + integration guides |
 | **M6: Ship** | T22-T26 | NOTICE + CHANGELOG + EduCube example + release workflow + decision gates |
 
@@ -138,7 +138,7 @@ export const auditLog = pgTable(
 - [ ] **Step 1.2: Generate + RLS**
 
 ```bash
-pnpm --filter @ensemble/server exec drizzle-kit generate --name audit_log
+pnpm --filter @ensemble-sheets/server exec drizzle-kit generate --name audit_log
 ```
 
 Create `packages/server/drizzle/0008_rls_audit_log.sql`:
@@ -158,8 +158,8 @@ Append _journal entry.
 - [ ] **Step 1.3: Commit**
 
 ```bash
-pnpm --filter @ensemble/server build
-pnpm --filter @ensemble/server test test/integration/migration.int.test.ts
+pnpm --filter @ensemble-sheets/server build
+pnpm --filter @ensemble-sheets/server test test/integration/migration.int.test.ts
 git add packages/server
 git commit -m "feat(server): audit_log table + RLS"
 ```
@@ -336,7 +336,7 @@ describe('audit_log', () => {
 - [ ] **Step 2.6: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/event-emitter.test.ts test/integration/audit-log.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/event-emitter.test.ts test/integration/audit-log.int.test.ts
 git add packages/server
 git commit -m "feat(server): EventEmitter writes audit_log + fires EventAdapter for all five events"
 ```
@@ -454,7 +454,7 @@ Edit `packages/server/src/http/app.ts`:
 - [ ] **Step 3.4: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/mask-cache-pubsub.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/mask-cache-pubsub.test.ts
 git add packages/server
 git commit -m "feat(server): MaskRuleCache cross-instance invalidate via Redis pub/sub"
 ```
@@ -532,7 +532,7 @@ export default async function globalSetup(): Promise<void> {
   const cwd = __dirname.replace('/e2e', '')
   execSync('docker compose -f docker-compose.dev.yml up -d --wait', { cwd, stdio: 'inherit' })
   execSync(
-    'DATABASE_URL=postgres://postgres:postgres@localhost:54320/ensemble_dev pnpm --filter @ensemble/server exec node dist/db/migrate.js',
+    'DATABASE_URL=postgres://postgres:postgres@localhost:54320/ensemble_dev pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js',
     { stdio: 'inherit' }
   )
 }
@@ -583,7 +583,7 @@ Edit `apps/demo/e2e/two-clients-collab.spec.ts` — same.
 - [ ] **Step 5.5: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/demo e2e
+pnpm --filter @ensemble-sheets/demo e2e
 ```
 
 Expected: 3/4 pass (Sprint 1 Univer-keyboard fixme remains).
@@ -681,7 +681,7 @@ it('onLockEvent receives lock_acquired and lock_released', async () => {
 Create `packages/react/src/CellLockOverlay.tsx`:
 
 ```tsx
-import type { WsClient } from '@ensemble/core'
+import type { WsClient } from '@ensemble-sheets/core'
 import { useEffect, useState } from 'react'
 import { LockBadge } from './LockBadge'
 
@@ -725,8 +725,8 @@ Edit `packages/react/src/index.ts` to export.
 - [ ] **Step 6.4: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/core test
-pnpm --filter @ensemble/react test
+pnpm --filter @ensemble-sheets/core test
+pnpm --filter @ensemble-sheets/react test
 git add packages/core packages/react
 git commit -m "feat(react+core): CellLockOverlay + WsClient.onLockEvent"
 ```
@@ -788,7 +788,7 @@ Create `packages/vue/src/CellLockOverlay.vue`:
 
 ```vue
 <script setup lang="ts">
-import type { WsClient } from '@ensemble/core'
+import type { WsClient } from '@ensemble-sheets/core'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import LockBadge from './LockBadge.vue'
 
@@ -826,7 +826,7 @@ Edit `packages/vue/src/index.ts` to export.
 - [ ] **Step 7.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/vue test
+pnpm --filter @ensemble-sheets/vue test
 git add packages/vue
 git commit -m "feat(vue): <CellLockOverlay /> SFC"
 ```
@@ -910,8 +910,8 @@ test('two contexts: only one wins the same-cell lock', async ({ browser }) => {
 - [ ] **Step 8.4: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/core test
-pnpm --filter @ensemble/demo e2e
+pnpm --filter @ensemble-sheets/core test
+pnpm --filter @ensemble-sheets/demo e2e
 git add packages/core apps/demo
 git commit -m "feat(demo): real-WS multi-browser lock-race e2e"
 ```
@@ -1060,7 +1060,7 @@ export type VersionService = ReturnType<typeof createVersionService>
 - [ ] **Step 9.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/unit/version-service.test.ts
+pnpm --filter @ensemble-sheets/server test test/unit/version-service.test.ts
 git add packages/server
 git commit -m "feat(server): VersionService (listNamed / createNamed / restore)"
 ```
@@ -1206,7 +1206,7 @@ Wire into `app.ts`: services.versions + `app.route('/', versionsRoute)`.
 - [ ] **Step 10.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/versions.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/versions.int.test.ts
 git add packages/server
 git commit -m "feat(server): /api/v1/workbooks/:id/versions endpoints (list+create+restore)"
 ```
@@ -1285,7 +1285,7 @@ Add `Version` to `import type` line.
 - [ ] **Step 11.4: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/core test
+pnpm --filter @ensemble-sheets/core test
 git add packages/core
 git commit -m "feat(core): ApiClient version methods"
 ```
@@ -1307,7 +1307,7 @@ Create `packages/react/test/VersionHistoryPanel.test.tsx`:
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { VersionHistoryPanel } from '../src/VersionHistoryPanel'
-import type { Version } from '@ensemble/core'
+import type { Version } from '@ensemble-sheets/core'
 
 function makeApi(initial: Version[]) {
   let items = initial
@@ -1355,7 +1355,7 @@ describe('<VersionHistoryPanel />', () => {
 Create `packages/react/src/VersionHistoryPanel.tsx`:
 
 ```tsx
-import type { ApiClient, Version } from '@ensemble/core'
+import type { ApiClient, Version } from '@ensemble-sheets/core'
 import { useCallback, useEffect, useState } from 'react'
 
 export interface VersionHistoryPanelProps {
@@ -1414,7 +1414,7 @@ Edit `packages/react/src/index.ts` to export.
 - [ ] **Step 12.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/react test
+pnpm --filter @ensemble-sheets/react test
 git add packages/react
 git commit -m "feat(react): <VersionHistoryPanel /> component"
 ```
@@ -1477,7 +1477,7 @@ Create `packages/vue/src/VersionHistoryPanel.vue`:
 
 ```vue
 <script setup lang="ts">
-import type { ApiClient, Version } from '@ensemble/core'
+import type { ApiClient, Version } from '@ensemble-sheets/core'
 import { onMounted, ref } from 'vue'
 
 const props = defineProps<{
@@ -1531,7 +1531,7 @@ Edit `packages/vue/src/index.ts` to export.
 - [ ] **Step 13.3: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/vue test
+pnpm --filter @ensemble-sheets/vue test
 git add packages/vue
 git commit -m "feat(vue): <VersionHistoryPanel /> SFC"
 ```
@@ -1686,14 +1686,14 @@ describe('GET .xlsx', () => {
 - [ ] **Step 14.5: Run + commit**
 
 ```bash
-pnpm --filter @ensemble/server test test/integration/export-xlsx.int.test.ts
+pnpm --filter @ensemble-sheets/server test test/integration/export-xlsx.int.test.ts
 git add packages/server pnpm-lock.yaml
 git commit -m "feat(server): GET /workbooks/:id/export.xlsx with mask-applied SheetJS export"
 ```
 
 ---
 
-## Task 15-17: `@ensemble/adapter-conformance`
+## Task 15-17: `@ensemble-sheets/adapter-conformance`
 
 **Files:**
 - Create: `packages/adapter-conformance/package.json` + `tsconfig.json` + `vitest.config.ts`
@@ -1706,7 +1706,7 @@ Create `packages/adapter-conformance/package.json`:
 
 ```json
 {
-  "name": "@ensemble/adapter-conformance",
+  "name": "@ensemble-sheets/adapter-conformance",
   "version": "0.0.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -1720,8 +1720,8 @@ Create `packages/adapter-conformance/package.json`:
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble/server": "workspace:*", "vitest": "^2.1.0" },
-  "devDependencies": { "@ensemble/server": "workspace:*", "vitest": "2.1.4" }
+  "peerDependencies": { "@ensemble-sheets/server": "workspace:*", "vitest": "^2.1.0" },
+  "devDependencies": { "@ensemble-sheets/server": "workspace:*", "vitest": "2.1.4" }
 }
 ```
 
@@ -1739,7 +1739,7 @@ export default defineConfig({ test: { include: ['test/**/*.test.ts'] } })
 Create `packages/adapter-conformance/src/identity.ts`:
 
 ```ts
-import type { IdentityAdapter } from '@ensemble/server'
+import type { IdentityAdapter } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export interface IdentityConformanceFixture {
@@ -1776,7 +1776,7 @@ export function runIdentityConformance(
 Create `packages/adapter-conformance/src/permission.ts`:
 
 ```ts
-import type { Capability, IdentityContext, PermissionAdapter, ResourceRef } from '@ensemble/server'
+import type { Capability, IdentityContext, PermissionAdapter, ResourceRef } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export interface PermissionConformanceFixture {
@@ -1819,7 +1819,7 @@ export function runPermissionConformance(
 Create `packages/adapter-conformance/src/storage.ts`:
 
 ```ts
-import type { StorageAdapter } from '@ensemble/server'
+import type { StorageAdapter } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export function runStorageConformance(name: string, adapterFactory: () => StorageAdapter): void {
@@ -1848,7 +1848,7 @@ export function runStorageConformance(name: string, adapterFactory: () => Storag
 Create `packages/adapter-conformance/src/event.ts`:
 
 ```ts
-import type { EnsembleEvent, EventAdapter } from '@ensemble/server'
+import type { EnsembleEvent, EventAdapter } from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export function runEventConformance(name: string, adapterFactory: () => EventAdapter): void {
@@ -1882,7 +1882,7 @@ export * from './event'
 Create `packages/adapter-conformance/test/self-conformance.test.ts`:
 
 ```ts
-import { NoopEventAdapter } from '@ensemble/server'
+import { NoopEventAdapter } from '@ensemble-sheets/server'
 import {
   runEventConformance, runPermissionConformance, runStorageConformance,
 } from '../src/index'
@@ -1918,8 +1918,8 @@ runPermissionConformance(
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/server build  # for type-only peer dep
-pnpm --filter @ensemble/adapter-conformance test
+pnpm --filter @ensemble-sheets/server build  # for type-only peer dep
+pnpm --filter @ensemble-sheets/adapter-conformance test
 git add packages/adapter-conformance pnpm-lock.yaml
 git commit -m "feat(adapter-conformance): test factory package for 4 adapter contracts"
 ```
@@ -1944,7 +1944,7 @@ Create `apps/docs/package.json`:
 
 ```json
 {
-  "name": "@ensemble/docs",
+  "name": "@ensemble-sheets/docs",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -2023,7 +2023,7 @@ Apache 2.0.
 
 ```bash
 pnpm install
-pnpm --filter @ensemble/docs build
+pnpm --filter @ensemble-sheets/docs build
 git add apps/docs pnpm-lock.yaml
 git commit -m "feat(docs): Astro Starlight skeleton"
 ```
@@ -2061,11 +2061,11 @@ pnpm install
 ## Start the demo
 
 ```bash
-pnpm --filter @ensemble/demo db:up     # Postgres on :54320, Redis on :63790
-pnpm --filter @ensemble/server build
+pnpm --filter @ensemble-sheets/demo db:up     # Postgres on :54320, Redis on :63790
+pnpm --filter @ensemble-sheets/server build
 DATABASE_URL=postgres://postgres:postgres@localhost:54320/ensemble_dev \
-  pnpm --filter @ensemble/server exec node dist/db/migrate.js
-pnpm --filter @ensemble/demo dev
+  pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
+pnpm --filter @ensemble-sheets/demo dev
 ```
 
 Open http://localhost:5173. You'll see a two-pane editor — left is `admin`,
@@ -2075,11 +2075,11 @@ column B shows `***` (mask rule defined in the demo's PermissionAdapter).
 ## Embed in your React app
 
 ```bash
-pnpm add @ensemble/react @ensemble/core
+pnpm add @ensemble-sheets/react @ensemble-sheets/core
 ```
 
 ```tsx
-import { WorkbookEditor } from '@ensemble/react'
+import { WorkbookEditor } from '@ensemble-sheets/react'
 
 <WorkbookEditor
   workbookId="<uuid>"
@@ -2116,7 +2116,7 @@ Create `apps/docs/src/content/docs/api/rest.mdx`:
 ```mdx
 ---
 title: REST API
-description: HTTP endpoints exposed by @ensemble/server.
+description: HTTP endpoints exposed by @ensemble-sheets/server.
 ---
 
 All endpoints require `Authorization: Bearer <jwt>` (verified by the
@@ -2260,15 +2260,15 @@ description: Embed ensemble in your Node backend.
 ## Install
 
 ```bash
-pnpm add @ensemble/server @ensemble/identity-jwks @ensemble/storage-s3
+pnpm add @ensemble-sheets/server @ensemble-sheets/identity-jwks @ensemble-sheets/storage-s3
 ```
 
 ## Boot
 
 ```ts
-import { createServer } from '@ensemble/server'
-import { JwksIdentityAdapter } from '@ensemble/identity-jwks'
-import { S3Storage } from '@ensemble/storage-s3'
+import { createServer } from '@ensemble-sheets/server'
+import { JwksIdentityAdapter } from '@ensemble-sheets/identity-jwks'
+import { S3Storage } from '@ensemble-sheets/storage-s3'
 
 const server = createServer({
   databaseUrl: process.env.DATABASE_URL!,
@@ -2293,7 +2293,7 @@ await server.listen({ port: 3000 })
 ## React component
 
 ```tsx
-import { WorkbookEditor, VersionHistoryPanel, CellLockOverlay } from '@ensemble/react'
+import { WorkbookEditor, VersionHistoryPanel, CellLockOverlay } from '@ensemble-sheets/react'
 ```
 ```
 
@@ -2423,15 +2423,15 @@ Create `CHANGELOG.md`:
 ## [0.1.0] — 2026-MM-DD
 
 ### Added
-- Single-user workbook editor (`@ensemble/core` + `@ensemble/react` + `@ensemble/vue`)
+- Single-user workbook editor (`@ensemble-sheets/core` + `@ensemble-sheets/react` + `@ensemble-sheets/vue`)
 - xlsx ↔ Univer JSON conversion in the browser
-- `@ensemble/server` REST: workbooks, snapshots, folders, grants, versions, xlsx export
+- `@ensemble-sheets/server` REST: workbooks, snapshots, folders, grants, versions, xlsx export
 - WebSocket realtime: cell-lock + per-recipient masked broadcast
 - Multi-tenant Postgres RLS (6 tables + audit log)
-- `@ensemble/identity-jwks` (JWKS-based IdentityAdapter)
-- `@ensemble/storage-s3` + `@ensemble/storage-fs`
-- `@ensemble/webhook` for non-Node host integration
-- `@ensemble/adapter-conformance` test factory package
+- `@ensemble-sheets/identity-jwks` (JWKS-based IdentityAdapter)
+- `@ensemble-sheets/storage-s3` + `@ensemble-sheets/storage-fs`
+- `@ensemble-sheets/webhook` for non-Node host integration
+- `@ensemble-sheets/adapter-conformance` test factory package
 - Last_seq reconnect replay + 30 ops/sec backpressure
 - Snapshot masking with Redis pub/sub invalidation
 - Two-pane masked-view + multi-context Playwright e2e
@@ -2657,7 +2657,7 @@ Create `examples/integrate-fastapi/ui/main.ts`:
 
 ```ts
 import { createApp, h } from 'vue'
-import { WorkbookEditor } from '@ensemble/vue'
+import { WorkbookEditor } from '@ensemble-sheets/vue'
 
 async function getToken(): Promise<string> {
   const r = await fetch('http://localhost:8000/issue-token?user_id=alice&tenant_id=00000000-0000-0000-0000-000000000001', { method: 'POST' })
@@ -2779,15 +2779,15 @@ Create `.changeset/initial-v0.1.0.md`:
 
 ```markdown
 ---
-"@ensemble/core": minor
-"@ensemble/server": minor
-"@ensemble/react": minor
-"@ensemble/vue": minor
-"@ensemble/storage-fs": minor
-"@ensemble/storage-s3": minor
-"@ensemble/webhook": minor
-"@ensemble/identity-jwks": minor
-"@ensemble/adapter-conformance": minor
+"@ensemble-sheets/core": minor
+"@ensemble-sheets/server": minor
+"@ensemble-sheets/react": minor
+"@ensemble-sheets/vue": minor
+"@ensemble-sheets/storage-fs": minor
+"@ensemble-sheets/storage-s3": minor
+"@ensemble-sheets/webhook": minor
+"@ensemble-sheets/identity-jwks": minor
+"@ensemble-sheets/adapter-conformance": minor
 ---
 
 Initial v0.1.0 GA release. Single-user editing, multi-tenant RLS, realtime
