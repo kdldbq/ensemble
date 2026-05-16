@@ -11,15 +11,18 @@ import { createFolderService } from '../services/folder-service'
 import { MaskRuleCache } from '../services/mask-service'
 import { createEventEmitter } from '../events/event-emitter'
 import { createMaskCachePubSub } from '../realtime/mask-cache-pubsub'
+import { createVersionService } from '../services/version-service'
 import type { WorkbookService } from '../services/workbook-service'
 import type { SnapshotService } from '../services/snapshot-service'
 import type { FolderService } from '../services/folder-service'
 import type { EventEmitter } from '../events/event-emitter'
+import type { VersionService } from '../services/version-service'
 import { healthRoute } from './routes/health'
 import { workbooksRoute } from './routes/workbooks'
 import { snapshotsRoute } from './routes/snapshots'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
+import { versionsRoute } from './routes/versions'
 import type { GrantBody } from './routes/grants'
 import type { shareGrants } from '../db/schema'
 
@@ -39,6 +42,7 @@ export interface AppServices {
   folders: FolderService
   masks: MaskRuleCache
   events: EventEmitter
+  versions: VersionService
 }
 
 export type AppEnv = {
@@ -70,12 +74,14 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     maskCache.setPubSub(maskPubSub)
     void maskPubSub.start()
   }
+  const snapshots = createSnapshotService(deps.db, deps.storage)
   const services: AppServices = {
     workbooks: createWorkbookService(deps.db),
-    snapshots: createSnapshotService(deps.db, deps.storage),
+    snapshots,
     folders: createFolderService(deps.db),
     masks: maskCache,
     events: createEventEmitter({ db: deps.db, eventAdapter: deps.event }),
+    versions: createVersionService(deps.db, snapshots),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {
@@ -93,5 +99,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', snapshotsRoute)
   app.route('/', foldersRoute)
   app.route('/', grantsRoute)
+  app.route('/', versionsRoute)
   return app
 }
