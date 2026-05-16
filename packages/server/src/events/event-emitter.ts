@@ -1,6 +1,7 @@
 import type { Database } from '../db/client'
 import { auditLog } from '../db/schema'
-import type { EventAdapter, EnsembleEvent } from '../adapters/identity'
+import type { EnsembleEvent } from '../adapters/types'
+import type { EventAdapter } from '../adapters/identity'
 
 export interface EmitInput {
   tenantId: string

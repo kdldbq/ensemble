@@ -57,6 +57,7 @@ export function createVersionService(db: Database, snapSvc: SnapshotService) {
         reason: 'manual',
         name: null,
       }).returning()
+      if (!restored) throw new Error('restore insert returned no row')
       await db.update(workbooks)
         .set({ currentSnapshotId: restored.id, updatedAt: new Date() })
         .where(eq(workbooks.id, input.workbookId))

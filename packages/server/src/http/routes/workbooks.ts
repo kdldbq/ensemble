@@ -11,6 +11,7 @@ export const workbooksRoute = new Hono<AppEnv>()
     const body = (await c.req.json()) as { name?: string; folderId?: string }
     if (!body.name) return c.json({ error: 'name required' }, 400)
     const wb = await svc.create({ tenantId: id.tenantId, userId: id.userId, name: body.name, ...(body.folderId !== undefined ? { folderId: body.folderId } : {}) })
+    if (!wb) throw new Error('insert returned no row')
     void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'workbook.created', resourceId: wb.id })
     return c.json(wb, 201)
   })
