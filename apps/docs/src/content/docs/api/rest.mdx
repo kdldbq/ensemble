@@ -1,0 +1,58 @@
+---
+title: REST API
+description: HTTP endpoints exposed by @ensemble/server.
+---
+
+All endpoints require `Authorization: Bearer <jwt>` (verified by the
+configured `IdentityAdapter`). Tenant isolation is enforced by Postgres RLS.
+
+## Workbooks
+
+| Method | Path | Capability |
+|--------|------|------------|
+| POST   | `/api/v1/workbooks` | — |
+| GET    | `/api/v1/workbooks` | — (filterListVisibility) |
+| GET    | `/api/v1/workbooks/:id` | canView |
+| DELETE | `/api/v1/workbooks/:id` | canDelete |
+
+## Snapshots
+
+| Method | Path | Capability |
+|--------|------|------------|
+| POST   | `/api/v1/workbooks/:wbId/snapshots?reason=...&name=...` | canEdit |
+| GET    | `/api/v1/workbooks/:wbId/snapshot` | canView |
+| GET    | `/api/v1/workbooks/:wbId/snapshots/:id/blob` | canView |
+
+## Versions
+
+| Method | Path | Capability |
+|--------|------|------------|
+| GET    | `/api/v1/workbooks/:wbId/versions` | canView |
+| POST   | `/api/v1/workbooks/:wbId/versions` `{name}` | canEdit |
+| POST   | `/api/v1/workbooks/:wbId/restore/:versionId` | canEdit |
+
+## Folders
+
+| Method | Path | Capability |
+|--------|------|------------|
+| GET    | `/api/v1/folders` | — (filterListVisibility) |
+| POST   | `/api/v1/folders` `{name, parentId, spaceType}` | canEdit on parent (if non-null) |
+| PATCH  | `/api/v1/folders/:id` | canEdit |
+| DELETE | `/api/v1/folders/:id` | canDelete |
+
+## Grants
+
+| Method | Path | Capability |
+|--------|------|------------|
+| POST   | `/api/v1/grants` | canShare on resource |
+| DELETE | `/api/v1/grants/:id` | canShare on underlying resource |
+
+## Export
+
+| Method | Path | Capability |
+|--------|------|------------|
+| GET    | `/api/v1/workbooks/:wbId/export.xlsx` | canView |
+
+## Errors
+
+JSON: `{ "error": "<message>" }`. 400 / 401 / 403 / 404 / 500.

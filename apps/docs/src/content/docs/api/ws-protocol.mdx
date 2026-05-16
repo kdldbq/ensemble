@@ -1,0 +1,50 @@
+---
+title: WebSocket protocol
+description: Realtime collaboration frames over WSS.
+---
+
+## Connection
+
+```
+WSS /api/v1/ws/:workbookId?token=<jwt>&last_seq=<optional>
+```
+
+`last_seq` triggers replay if gap ≤200, else welcome is treated as cold start.
+
+## Welcome (server → client, once)
+
+```json
+{
+  "type": "welcome", "workbookId": "...", "seqNum": 42,
+  "snapshot": {...}, "presence": [...], "locks": [...]
+}
+```
+
+## Client → server
+
+| Frame | Fields |
+|-------|--------|
+| `acquire_lock` | `region` |
+| `release_lock` | `region` |
+| `submit_mutation` | `clientSeq, region, payload` |
+| `presence_heartbeat` | `cursor?, selection?` |
+
+## Server → client
+
+| Frame | When |
+|-------|------|
+| `lock_granted` | your acquire succeeded |
+| `lock_denied` | your acquire failed (ownerId is current holder) |
+| `lock_acquired` | room broadcast when any client locks |
+| `lock_released` | broadcast on release / TTL expiry |
+| `mutation_accepted` | your submit was persisted |
+| `apply_mutation` | room broadcast (per-recipient masked) |
+| `presence_update` | broadcast on heartbeat |
+| `user_left` | broadcast on disconnect / 15s no-heartbeat |
+| `replay_complete` | after last_seq replay |
+| `error` | `code: rate_limited \| lock_not_held \| ...` |
+
+## Backpressure
+
+30 ops/sec token bucket per connection on `submit_mutation`. Over-cap returns
+`{type:"error", code:"rate_limited"}` and frame is dropped.
