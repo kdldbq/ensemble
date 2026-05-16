@@ -1,0 +1,43 @@
+---
+title: TypeScript host
+description: Embed ensemble in your Node backend.
+---
+
+## Install
+
+```bash
+pnpm add @ensemble/server @ensemble/identity-jwks @ensemble/storage-s3
+```
+
+## Boot
+
+```ts
+import { createServer } from '@ensemble/server'
+import { JwksIdentityAdapter } from '@ensemble/identity-jwks'
+import { S3Storage } from '@ensemble/storage-s3'
+
+const server = createServer({
+  databaseUrl: process.env.DATABASE_URL!,
+  redisUrl: process.env.REDIS_URL!,
+  identity: new JwksIdentityAdapter({
+    jwksUrl: 'https://your-host.com/.well-known/jwks.json',
+    issuer: 'https://your-host.com',
+    audience: 'ensemble',
+  }),
+  permission: {
+    getCapabilities: async (id, resource) => ({
+      canView: true, canEdit: true, canShare: false, canDelete: false,
+    }),
+    getMaskRules: async () => [],
+  },
+  storage: new S3Storage({ bucket: 'ensemble-prod', region: 'us-east-1', credentials: { ... } }),
+  event: { publish: async (ev) => console.log('event:', ev.type) },
+})
+await server.listen({ port: 3000 })
+```
+
+## React component
+
+```tsx
+import { WorkbookEditor, VersionHistoryPanel, CellLockOverlay } from '@ensemble/react'
+```

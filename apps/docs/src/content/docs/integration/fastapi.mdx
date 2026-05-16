@@ -1,0 +1,33 @@
+---
+title: FastAPI host (Python)
+description: Reference Python integration.
+---
+
+Full example in `examples/integrate-fastapi/`. Matches what EduCube uses.
+
+```
+examples/integrate-fastapi/
+  app/
+    main.py        # FastAPI: JWT issuer + 3 webhook endpoints
+    identity.py
+    permission.py
+    event.py
+  ui/
+    index.html + main.ts   # Vue <WorkbookEditor>
+```
+
+## Run
+
+```bash
+cd examples/integrate-fastapi
+poetry install
+HOST_SECRET=dev-secret poetry run uvicorn app.main:app --reload
+```
+
+Point ensemble at it:
+
+```ts
+identity: new WebhookIdentityAdapter({ url: 'http://localhost:8000/api/ensemble/identity', secret: 'dev-secret' })
+```
+
+See the example's `README.md` for full setup.

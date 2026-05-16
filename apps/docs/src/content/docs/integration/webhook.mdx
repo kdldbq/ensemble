@@ -1,0 +1,29 @@
+---
+title: Webhook (any-language) host
+description: Integrate ensemble from a non-Node host via signed HTTP webhooks.
+---
+
+If your host is Python / Go / PHP / Rust / Ruby, implement adapter contracts
+as HTTP endpoints. ensemble's `WebhookAdapter` calls your endpoints over HTTP
+with HMAC-SHA256 signatures.
+
+## Endpoint contracts
+
+### POST /api/ensemble/identity
+Request: `{ token }` → Response: `IdentityContext`.
+
+### POST /api/ensemble/permission
+Request: `{ op: "capabilities" | "mask_rules", identity, resource }`.
+
+### POST /api/ensemble/event
+Request: `EnsembleEvent` → Response: 204. Errors swallowed.
+
+## Verify signatures
+
+```python
+import hmac, hashlib
+sig = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+assert hmac.compare_digest(sig, request.headers["X-Ensemble-Signature"])
+```
+
+See [FastAPI host](/integration/fastapi/) for a working example.
