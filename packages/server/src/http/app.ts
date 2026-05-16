@@ -4,11 +4,13 @@ import type { Database } from '../db/client'
 import type { IdentityAdapter, PermissionAdapter, EventAdapter } from '../adapters/identity'
 import type { StorageAdapter } from '../adapters/storage'
 import type { Capability } from '../adapters/types'
+import type { Redis } from '../redis/client'
 import { createWorkbookService } from '../services/workbook-service'
 import { createSnapshotService } from '../services/snapshot-service'
 import { createFolderService } from '../services/folder-service'
 import { MaskRuleCache } from '../services/mask-service'
 import { createEventEmitter } from '../events/event-emitter'
+import { createMaskCachePubSub } from '../realtime/mask-cache-pubsub'
 import type { WorkbookService } from '../services/workbook-service'
 import type { SnapshotService } from '../services/snapshot-service'
 import type { FolderService } from '../services/folder-service'
@@ -27,6 +29,8 @@ export interface AppDeps {
   permission: PermissionAdapter
   storage: StorageAdapter
   event: EventAdapter
+  /** Optional: when provided, MaskRuleCache pub/sub invalidation is activated. */
+  redis?: Redis
 }
 
 export interface AppServices {
@@ -54,14 +58,23 @@ export interface BuildAppOpts {
 }
 
 export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
+  const maskCache = new MaskRuleCache(
+    (identity, wbId) => deps.permission.getMaskRules(identity, { type: 'workbook', id: wbId, tenantId: identity.tenantId }),
+    60_000,
+  )
+  if (deps.redis) {
+    const maskPubSub = createMaskCachePubSub({
+      redis: deps.redis,
+      onInvalidate: (userId, workbookId) => maskCache._dropLocal(userId, workbookId),
+    })
+    maskCache.setPubSub(maskPubSub)
+    void maskPubSub.start()
+  }
   const services: AppServices = {
     workbooks: createWorkbookService(deps.db),
     snapshots: createSnapshotService(deps.db, deps.storage),
     folders: createFolderService(deps.db),
-    masks: new MaskRuleCache(
-      (identity, wbId) => deps.permission.getMaskRules(identity, { type: 'workbook', id: wbId, tenantId: identity.tenantId }),
-      60_000,
-    ),
+    masks: maskCache,
     events: createEventEmitter({ db: deps.db, eventAdapter: deps.event }),
   }
   const app = new Hono<AppEnv>()

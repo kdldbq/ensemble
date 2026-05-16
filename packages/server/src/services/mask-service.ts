@@ -109,14 +109,29 @@ interface CacheEntry {
   expiresAt: number
 }
 
+/** Minimal interface accepted by MaskRuleCache to avoid circular imports. */
+interface PubSubHandle {
+  invalidate(userId: string, workbookId: string): Promise<void>
+}
+
+export interface MaskRuleCacheOpts {
+  pubsub?: PubSubHandle
+}
+
 export class MaskRuleCache {
   private map = new Map<string, CacheEntry>()
   private readonly ttlMs: number
   private readonly fetcher: MaskFetcher
+  private pubsub: PubSubHandle | undefined
 
-  constructor(fetcher: MaskFetcher, ttlMs: number) {
+  constructor(fetcher: MaskFetcher, ttlMs: number, opts?: MaskRuleCacheOpts) {
     this.fetcher = fetcher
     this.ttlMs = ttlMs
+    this.pubsub = opts?.pubsub
+  }
+
+  setPubSub(pubsub: PubSubHandle): void {
+    this.pubsub = pubsub
   }
 
   async get(identity: IdentityContext, workbookId: string): Promise<MaskRule[]> {
@@ -128,7 +143,13 @@ export class MaskRuleCache {
     return rules
   }
 
-  invalidate(identity: IdentityContext, workbookId: string): void {
-    this.map.delete(`${identity.userId}::${workbookId}`)
+  async invalidate(identity: IdentityContext, workbookId: string): Promise<void> {
+    this._dropLocal(identity.userId, workbookId)
+    await this.pubsub?.invalidate(identity.userId, workbookId)
+  }
+
+  /** Drop only the local cache entry — used by pubsub callback to avoid recursive publish. */
+  _dropLocal(userId: string, workbookId: string): void {
+    this.map.delete(`${userId}::${workbookId}`)
   }
 }

@@ -25,16 +25,17 @@ export interface CreateServerOpts {
 
 export function createServer(opts: CreateServerOpts) {
   const db = createDb(opts.databaseUrl)
+  // Realtime infrastructure
+  const redis = createRedis(opts.redisUrl ?? process.env['REDIS_URL'] ?? 'redis://localhost:6379')
+
   const deps: AppDeps = {
     db,
     identity: opts.identity,
     permission: opts.permission,
     storage: opts.storage,
     event: opts.event,
+    redis,
   }
-
-  // Realtime infrastructure
-  const redis = createRedis(opts.redisUrl ?? process.env['REDIS_URL'] ?? 'redis://localhost:6379')
   const roomRegistry = createRoomRegistry()
   const cellLocks = createCellLockManager({ redis, ttlSec: 30 })
   const presence = createPresenceTracker({ evictAfterMs: 15000 })
