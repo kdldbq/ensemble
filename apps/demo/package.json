@@ -10,7 +10,9 @@
   },
   "type": "module",
   "scripts": {
-    "dev:server": "tsx src/server-runner.ts",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "dev:server": "DATABASE_URL=postgres://postgres:postgres@localhost:54320/ensemble_dev REDIS_URL=redis://localhost:63790 tsx src/server-runner.ts",
     "dev:web": "vite",
     "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:web\"",
     "build": "vite build",

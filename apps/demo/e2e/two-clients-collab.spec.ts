@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
 // proven by packages/server/test/integration/collab-two-clients.int.test.ts
 // using dedicated Testcontainers Redis. Sprint 4 should give the demo its own
 // redis container in playwright.config webServer and harden the connection.
-test.fixme('two contexts share state via REST reflection', async ({ browser }) => {
+test('two contexts share state via REST reflection', async ({ browser }) => {
   const ctxA = await browser.newContext()
   const ctxB = await browser.newContext()
   const pageA = await ctxA.newPage()

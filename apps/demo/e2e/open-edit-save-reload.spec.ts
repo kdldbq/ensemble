@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 // when sharing host Redis with other projects. Full save+reload path is covered
 // by integration tests (snapshots.int.test.ts) using dedicated Testcontainers
 // Postgres + Redis. Sprint 4 should give the demo its own redis container.
-test.fixme('open → REST save → reload preserves a cell value', async ({ page }) => {
+test('open → REST save → reload preserves a cell value', async ({ page }) => {
   // Wait for Univer to mount (React useEffect sets this class)
   await expect(page.locator('.ensemble-workbook-root').first()).toBeVisible({ timeout: 30_000 })
   await page.waitForTimeout(2000) // let Univer canvas finish painting
