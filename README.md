@@ -4,7 +4,7 @@
 
 ensemble is an open-source collaborative spreadsheet platform. It embeds a [Univer](https://univer.ai)-powered editor into any host application and exposes pluggable adapters for identity, permissions, data masking, and blob storage — so each host controls its own auth and data policy.
 
-**Status:** Sprint 3 ("Realtime") complete. Cell-lock + broadcast collab over WebSocket with monotonic mutation oplog, per-recipient masked broadcast, Redis-backed locks, 5s/15s presence, last_seq reconnect replay, and 30 ops/sec token-bucket backpressure. Sprint 4 (polish + ship) next.
+**Status:** v0.1.0 GA. Single-user editing, multi-tenant RLS, realtime collaboration (cell-lock + per-recipient masked broadcast), version history, server-side xlsx export, 4-adapter conformance suite, docs site, FastAPI integration example. Ready for npm publish + public GitHub once §11 decisions land (product name / org / domain).
 
 ## Quickstart
 
