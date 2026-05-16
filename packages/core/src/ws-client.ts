@@ -29,6 +29,7 @@ export class WsClient {
   private pendingLocks = new Map<string, Pending<{ acquired: boolean; ownerId: string; ttlSec: number }>>()
   private pendingMutations = new Map<number, Pending<{ clientSeq: number; seqNum: number }>>()
   private applyListeners: Array<(f: { seqNum: number; userId: string; payload: unknown }) => void> = []
+  private lockListeners: Array<(f: { type: string } & Record<string, unknown>) => void> = []
 
   constructor(opts: WsClientOpts) {
     this.opts = opts
@@ -98,6 +99,9 @@ export class WsClient {
             })
           }
         }
+        if (frame.type === 'lock_acquired' || frame.type === 'lock_released') {
+          for (const cb of this.lockListeners) cb(frame)
+        }
       } catch { /* ignore */ }
     })
   }
@@ -126,6 +130,11 @@ export class WsClient {
   onApplyMutation(cb: (f: { seqNum: number; userId: string; payload: unknown }) => void): () => void {
     this.applyListeners.push(cb)
     return () => { this.applyListeners = this.applyListeners.filter((x) => x !== cb) }
+  }
+
+  onLockEvent(cb: (f: { type: 'lock_acquired' | 'lock_released' } & Record<string, unknown>) => void): () => void {
+    this.lockListeners.push(cb as (f: { type: string } & Record<string, unknown>) => void)
+    return () => { this.lockListeners = this.lockListeners.filter((x) => x !== cb) }
   }
 
   sendHeartbeat(cursor?: { sheet: string; row: number; col: number }): void {

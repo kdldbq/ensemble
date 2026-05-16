@@ -149,4 +149,18 @@ describe('WsClient.acquireLock + submitMutation + onApplyMutation', () => {
     sockets[0].fire('message', JSON.stringify({ type: 'apply_mutation', seqNum: 5, userId: 'other', payload: {} }))
     expect(got).toEqual([{ seqNum: 5, userId: 'other', payload: {} }])
   })
+
+  it('onLockEvent receives lock_acquired and lock_released', async () => {
+    const { sockets, Ctor } = stubSocketFactory()
+    const client = new WsClient({ url: 'ws://x', workbookId: 'w', token: () => 't', WebSocketImpl: Ctor as never })
+    const p = client.connect()
+    sockets[0].fire('open', '')
+    sockets[0].fire('message', JSON.stringify({ type: 'welcome', workbookId: 'w', seqNum: 0, snapshot: null }))
+    await p
+    const events: Array<{ type: string }> = []
+    client.onLockEvent((f) => events.push(f))
+    sockets[0].fire('message', JSON.stringify({ type: 'lock_acquired', region: 'A1:A1', ownerId: 'me', ttlSec: 30 }))
+    sockets[0].fire('message', JSON.stringify({ type: 'lock_released', region: 'A1:A1' }))
+    expect(events.map((e) => e.type)).toEqual(['lock_acquired', 'lock_released'])
+  })
 })
