@@ -5,7 +5,7 @@
 #   5303  Postgres (host)     5304  Redis (host)
 
 .DEFAULT_GOAL := help
-.PHONY: help install dev dev-fg dev-down _kill-ports \
+.PHONY: help setup install migrate dev dev-fg dev-down _kill-ports \
         db-up db-down db-logs ps logs \
         build typecheck test e2e \
         docs-dev docs-build \
@@ -22,12 +22,29 @@ DEMO_LOG    := /tmp/ensemble-demo.log
 # ───── 主要命令 ─────────────────────────────────────────────────────
 
 help: ## 显示所有命令
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "  端口: server=$(SERVER_PORT)  web=$(WEB_PORT)  pg=$(PG_PORT)  redis=$(REDIS_PORT)"
 
 install:        ## 装依赖 (pnpm install)
 	pnpm install
+
+setup:          ## 首次安装一键化 (install + 起容器 + build server + migrate)
+	@echo "==> 1/4 pnpm install"
+	@pnpm install
+	@echo "==> 2/4 docker compose (pg+redis)"
+	@docker compose -f $(DEMO_DIR)/docker-compose.dev.yml up -d --wait
+	@echo "==> 3/4 build @ensemble-sheets/server (migrate.js 在 dist/)"
+	@pnpm --filter @ensemble-sheets/server build
+	@echo "==> 4/4 run db migrations"
+	@DATABASE_URL=postgres://postgres:postgres@localhost:$(PG_PORT)/ensemble_dev \
+	  pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
+	@echo ""
+	@echo "✓ setup done. 'make dev' 起 demo (浏览器开 http://localhost:$(WEB_PORT))。"
+
+migrate:        ## 跑 DB migrations (server 须先 build; 或直接用 'make setup')
+	@DATABASE_URL=postgres://postgres:postgres@localhost:$(PG_PORT)/ensemble_dev \
+	  pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 
 # ───── 开发 ─────────────────────────────────────────────────────────
 
