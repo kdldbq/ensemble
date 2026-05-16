@@ -43,6 +43,20 @@
       "when": 1778857600000,
       "tag": "0006_rls_mutations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778899559535,
+      "tag": "0006_audit_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778899560000,
+      "tag": "0007_rls_audit_log",
+      "breakpoints": true
     }
   ]
 }

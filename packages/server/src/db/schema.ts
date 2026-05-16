@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { bigint, bigserial, boolean, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 
 export const spaceType = pgEnum('space_type', ['personal', 'shared'])
@@ -74,5 +75,26 @@ export const mutations = pgTable(
   (t) => ({
     workbookSeqUnique: uniqueIndex('mutations_workbook_seq_unique').on(t.workbookId, t.seqNum),
     workbookSeqAsc: index('mutations_workbook_seq_idx').on(t.workbookId, t.seqNum),
+  })
+)
+
+export const auditEventType = pgEnum('audit_event_type', [
+  'workbook.created', 'workbook.opened', 'workbook.edited',
+  'folder.created', 'share.granted',
+])
+
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+    eventType: auditEventType('event_type').notNull(),
+    actorId: text('actor_id').notNull(),
+    resourceId: uuid('resource_id'),
+    payload: jsonb('payload').notNull().default(sql`'{}'::jsonb`),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    tenantOccurredIdx: index('audit_log_tenant_occurred_idx').on(t.tenantId, t.occurredAt),
   })
 )
