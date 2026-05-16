@@ -35,7 +35,7 @@ export class S3Storage implements StorageAdapter {
 
   async get(key: string): Promise<Uint8Array> {
     const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }))
-    return res.Body!.transformToByteArray()
+    return res.Body?.transformToByteArray()
   }
 
   async delete(key: string): Promise<void> {
@@ -52,10 +52,8 @@ export class S3Storage implements StorageAdapter {
   }
 
   async signedPutUrl(key: string, ttlSec = 600): Promise<string> {
-    return getSignedUrl(
-      this.client,
-      new PutObjectCommand({ Bucket: this.bucket, Key: key }),
-      { expiresIn: ttlSec },
-    )
+    return getSignedUrl(this.client, new PutObjectCommand({ Bucket: this.bucket, Key: key }), {
+      expiresIn: ttlSec,
+    })
   }
 }

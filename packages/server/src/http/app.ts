@@ -1,31 +1,31 @@
 import { Hono } from 'hono'
 import type { MiddlewareHandler } from 'hono'
-import type { Database } from '../db/client'
-import type { IdentityAdapter, PermissionAdapter, EventAdapter } from '../adapters/identity'
+import type { EventAdapter, IdentityAdapter, PermissionAdapter } from '../adapters/identity'
 import type { StorageAdapter } from '../adapters/storage'
 import type { Capability } from '../adapters/types'
-import type { Redis } from '../redis/client'
-import { createWorkbookService } from '../services/workbook-service'
-import { createSnapshotService } from '../services/snapshot-service'
-import { createFolderService } from '../services/folder-service'
-import { MaskRuleCache } from '../services/mask-service'
+import type { Database } from '../db/client'
+import type { shareGrants } from '../db/schema'
 import { createEventEmitter } from '../events/event-emitter'
-import { createMaskCachePubSub } from '../realtime/mask-cache-pubsub'
-import { createVersionService } from '../services/version-service'
-import type { WorkbookService } from '../services/workbook-service'
-import type { SnapshotService } from '../services/snapshot-service'
-import type { FolderService } from '../services/folder-service'
 import type { EventEmitter } from '../events/event-emitter'
+import { createMaskCachePubSub } from '../realtime/mask-cache-pubsub'
+import type { Redis } from '../redis/client'
+import { createFolderService } from '../services/folder-service'
+import type { FolderService } from '../services/folder-service'
+import { MaskRuleCache } from '../services/mask-service'
+import { createSnapshotService } from '../services/snapshot-service'
+import type { SnapshotService } from '../services/snapshot-service'
+import { createVersionService } from '../services/version-service'
 import type { VersionService } from '../services/version-service'
-import { healthRoute } from './routes/health'
-import { workbooksRoute } from './routes/workbooks'
-import { snapshotsRoute } from './routes/snapshots'
+import { createWorkbookService } from '../services/workbook-service'
+import type { WorkbookService } from '../services/workbook-service'
+import { exportXlsxRoute } from './routes/export-xlsx'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
-import { versionsRoute } from './routes/versions'
-import { exportXlsxRoute } from './routes/export-xlsx'
 import type { GrantBody } from './routes/grants'
-import type { shareGrants } from '../db/schema'
+import { healthRoute } from './routes/health'
+import { snapshotsRoute } from './routes/snapshots'
+import { versionsRoute } from './routes/versions'
+import { workbooksRoute } from './routes/workbooks'
 
 export interface AppDeps {
   db: Database
@@ -64,7 +64,12 @@ export interface BuildAppOpts {
 
 export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   const maskCache = new MaskRuleCache(
-    (identity, wbId) => deps.permission.getMaskRules(identity, { type: 'workbook', id: wbId, tenantId: identity.tenantId }),
+    (identity, wbId) =>
+      deps.permission.getMaskRules(identity, {
+        type: 'workbook',
+        id: wbId,
+        tenantId: identity.tenantId,
+      }),
     60_000,
   )
   if (deps.redis) {

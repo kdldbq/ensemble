@@ -19,7 +19,8 @@ async function refresh() {
 async function submit() {
   if (!draftName.value.trim()) return
   await props.api.createVersion(props.workbookId, draftName.value)
-  creating.value = false; draftName.value = ''
+  creating.value = false
+  draftName.value = ''
   await refresh()
 }
 async function restore(versionId: string) {

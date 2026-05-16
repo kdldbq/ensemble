@@ -73,7 +73,10 @@ test.fixme(
 
     // Univer 0.22: click cell A1 to give Univer focus, then type to enter edit mode,
     // then Enter to commit. Coordinates (80,140): toolbar ~80px + sidebar ~40px.
-    await page.locator('.ensemble-workbook-root').first().click({ position: { x: 80, y: 140 } })
+    await page
+      .locator('.ensemble-workbook-root')
+      .first()
+      .click({ position: { x: 80, y: 140 } })
     await page.waitForTimeout(300)
     await page.keyboard.type('hello-from-keyboard')
     await page.keyboard.press('Enter')
@@ -102,5 +105,5 @@ test.fixme(
       return firstSheet?.cellData['0']?.['0']?.v ?? null
     })
     expect(value).toBe('hello-from-keyboard')
-  }
+  },
 )

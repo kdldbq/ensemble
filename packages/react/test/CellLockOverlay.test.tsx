@@ -7,7 +7,9 @@ function makeWsClient() {
   return {
     onLockEvent: vi.fn((cb: (f: { type: string } & Record<string, unknown>) => void) => {
       listeners.push(cb)
-      return () => { /* unsubscribe */ }
+      return () => {
+        /* unsubscribe */
+      }
     }),
     _emit(f: { type: string } & Record<string, unknown>): void {
       for (const cb of listeners) cb(f)

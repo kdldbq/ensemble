@@ -1,5 +1,5 @@
-import * as XLSX from 'xlsx'
 import { describe, expect, it } from 'vitest'
+import * as XLSX from 'xlsx'
 import { univerJsonToXlsx, xlsxToUniverJson } from '../src/xlsx-converter'
 
 function makeXlsx(): Uint8Array {
@@ -43,10 +43,12 @@ describe('xlsx-converter', () => {
     const ws = XLSX.utils.aoa_to_sheet([[1234.5]])
     // Apply a number format so XLSX populates cell.w on re-read
     if (!wb.SSF) wb.SSF = {}
-    ws['A1'] = { t: 'n', v: 1234.5, z: '"$"#,##0.00', w: '$1,234.50' }
+    ws.A1 = { t: 'n', v: 1234.5, z: '"$"#,##0.00', w: '$1,234.50' }
     XLSX.utils.book_append_sheet(wb, ws, 'Formatted')
     // Write then read back so XLSX preserves the w field
-    const bytes = new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellStyles: true }))
+    const bytes = new Uint8Array(
+      XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellStyles: true }),
+    )
     const ujson = xlsxToUniverJson(bytes)
     const firstId = ujson.sheetOrder[0]
     // m should be set when cell.w is present

@@ -19,7 +19,9 @@ export function createMaskCachePubSub(opts: MaskCachePubSubOpts) {
         try {
           const { userId, workbookId } = JSON.parse(msg) as { userId: string; workbookId: string }
           opts.onInvalidate(userId, workbookId)
-        } catch { /* malformed */ }
+        } catch {
+          /* malformed */
+        }
       })
       started = true
     },

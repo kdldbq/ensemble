@@ -5,7 +5,7 @@ import { folders } from '../db/schema'
 export async function wouldCreateCycle(
   movingId: string,
   newParentId: string | null,
-  parentOf: (id: string) => Promise<string | null>
+  parentOf: (id: string) => Promise<string | null>,
 ): Promise<boolean> {
   if (newParentId === null) return false
   if (newParentId === movingId) return true

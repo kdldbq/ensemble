@@ -17,31 +17,46 @@ export function VersionHistoryPanel({ api, workbookId, onRestore }: VersionHisto
     setItems(items)
   }, [api, workbookId])
 
-  useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
 
   return (
     <div className="ensemble-version-history">
       <header style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <strong>Version history</strong>
-        <button aria-label="Save version" onClick={() => setCreating(true)}>+</button>
+        <button aria-label="Save version" onClick={() => setCreating(true)}>
+          +
+        </button>
       </header>
       {creating && (
-        <form onSubmit={async (e) => {
-          e.preventDefault()
-          if (!draftName.trim()) return
-          await api.createVersion(workbookId, draftName)
-          setCreating(false); setDraftName('')
-          await refresh()
-        }}>
-          <input aria-label="Version name" value={draftName}
-                 onChange={(e) => setDraftName(e.target.value)} autoFocus />
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault()
+            if (!draftName.trim()) return
+            await api.createVersion(workbookId, draftName)
+            setCreating(false)
+            setDraftName('')
+            await refresh()
+          }}
+        >
+          <input
+            aria-label="Version name"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+          />
         </form>
       )}
       <ul>
         {items.map((v) => (
           <li key={v.id} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <span>{v.name}</span>
-            <button onClick={async () => { await api.restoreVersion(workbookId, v.id); onRestore?.() }}>
+            <button
+              onClick={async () => {
+                await api.restoreVersion(workbookId, v.id)
+                onRestore?.()
+              }}
+            >
               Restore
             </button>
           </li>

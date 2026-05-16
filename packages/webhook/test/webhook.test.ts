@@ -1,10 +1,6 @@
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { type IncomingMessage, type ServerResponse, createServer } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import {
-  WebhookIdentityAdapter,
-  WebhookPermissionAdapter,
-  WebhookEventAdapter,
-} from '../src/index'
+import { WebhookEventAdapter, WebhookIdentityAdapter, WebhookPermissionAdapter } from '../src/index'
 
 let url: string
 let close: () => Promise<void>
@@ -22,14 +18,21 @@ beforeAll(async () => {
     })
     if (req.url === '/identity') {
       res.setHeader('content-type', 'application/json')
-      res.end(JSON.stringify({ tenantId: 't1', userId: 'u1' })); return
+      res.end(JSON.stringify({ tenantId: 't1', userId: 'u1' }))
+      return
     }
     if (req.url === '/permission') {
       res.setHeader('content-type', 'application/json')
-      res.end(JSON.stringify({ canView: true, canEdit: false, canShare: false, canDelete: false })); return
+      res.end(JSON.stringify({ canView: true, canEdit: false, canShare: false, canDelete: false }))
+      return
     }
-    if (req.url === '/event') { res.statusCode = 204; res.end(); return }
-    res.statusCode = 404; res.end()
+    if (req.url === '/event') {
+      res.statusCode = 204
+      res.end()
+      return
+    }
+    res.statusCode = 404
+    res.end()
   })
   await new Promise<void>((r) => server.listen(0, r))
   const addr = server.address()
@@ -41,7 +44,7 @@ afterAll(() => close())
 
 describe('Webhook adapters', () => {
   it('Identity sends signed POST to /identity with the token', async () => {
-    const a = new WebhookIdentityAdapter({ url: url + '/identity', secret: 's' })
+    const a = new WebhookIdentityAdapter({ url: `${url}/identity`, secret: 's' })
     const ctx = await a.resolveFromToken('jwt-here')
     expect(ctx).toEqual({ tenantId: 't1', userId: 'u1' })
     const r = requests.find((x) => x.path === '/identity')!
@@ -50,15 +53,23 @@ describe('Webhook adapters', () => {
   })
 
   it('Permission sends getCapabilities request', async () => {
-    const a = new WebhookPermissionAdapter({ url: url + '/permission', secret: 's' })
-    const cap = await a.getCapabilities({ tenantId: 't', userId: 'u' }, { type: 'workbook', id: 'w', tenantId: 't' })
+    const a = new WebhookPermissionAdapter({ url: `${url}/permission`, secret: 's' })
+    const cap = await a.getCapabilities(
+      { tenantId: 't', userId: 'u' },
+      { type: 'workbook', id: 'w', tenantId: 't' },
+    )
     expect(cap.canView).toBe(true)
   })
 
   it('Event swallows host errors (fire-and-forget)', async () => {
-    const a = new WebhookEventAdapter({ url: url + '/missing', secret: 's' })
+    const a = new WebhookEventAdapter({ url: `${url}/missing`, secret: 's' })
     await expect(
-      a.publish({ type: 'workbook.opened', workbookId: 'w', userId: 'u', at: new Date().toISOString() })
+      a.publish({
+        type: 'workbook.opened',
+        workbookId: 'w',
+        userId: 'u',
+        at: new Date().toISOString(),
+      }),
     ).resolves.toBeUndefined()
   })
 })

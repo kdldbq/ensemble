@@ -15,7 +15,7 @@ const dbStub = {
       values(v: Record<string, unknown>) {
         return {
           async returning() {
-            const row = { id: 'snap_' + (self._snapshots.length + 1), ...v }
+            const row = { id: `snap_${self._snapshots.length + 1}`, ...v }
             self._snapshots.push(row)
             return [row]
           },
@@ -23,14 +23,22 @@ const dbStub = {
       },
     }
   },
-  select() { return { from: () => ({ where: () => ({ limit: async () => this._snapshots }) }) } },
+  select() {
+    return { from: () => ({ where: () => ({ limit: async () => this._snapshots }) }) }
+  },
 }
 
 describe('SnapshotService', () => {
   it('puts blob and inserts row with size', async () => {
     const svc = createSnapshotService(dbStub as never, fakeStorage)
     const body = new TextEncoder().encode('{"a":1}')
-    const snap = await svc.create({ tenantId: 't', workbookId: 'wb', userId: 'u', body, reason: 'manual' })
+    const snap = await svc.create({
+      tenantId: 't',
+      workbookId: 'wb',
+      userId: 'u',
+      body,
+      reason: 'manual',
+    })
     expect(fakeStorage.put).toHaveBeenCalledTimes(1)
     expect(snap.sizeBytes).toBe(body.byteLength)
     expect(snap.workbookId).toBe('wb')

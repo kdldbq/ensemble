@@ -1,4 +1,9 @@
-import type { Capability, IdentityContext, PermissionAdapter, ResourceRef } from '@ensemble-sheets/server'
+import type {
+  Capability,
+  IdentityContext,
+  PermissionAdapter,
+  ResourceRef,
+} from '@ensemble-sheets/server'
 import { describe, expect, it } from 'vitest'
 
 export interface PermissionConformanceFixture {
@@ -10,7 +15,7 @@ export interface PermissionConformanceFixture {
 export function runPermissionConformance(
   name: string,
   adapterFactory: () => PermissionAdapter,
-  fixture: PermissionConformanceFixture
+  fixture: PermissionConformanceFixture,
 ): void {
   describe(`PermissionAdapter conformance: ${name}`, () => {
     it('capability shape has 4 booleans', async () => {

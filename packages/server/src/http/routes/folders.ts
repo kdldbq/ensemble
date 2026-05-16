@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
+import type { AppEnv } from '../app'
 import { requireIdentity } from '../auth'
 import { requireCapability } from '../permission'
-import type { AppEnv } from '../app'
 
 export const foldersRoute = new Hono<AppEnv>()
   .use('*', requireIdentity)
@@ -21,31 +21,44 @@ export const foldersRoute = new Hono<AppEnv>()
   .post('/api/v1/folders', async (c) => {
     const id = c.get('identity')!
     const body = (await c.req.json()) as {
-      name?: string; parentId?: string | null; spaceType?: 'personal' | 'shared'
+      name?: string
+      parentId?: string | null
+      spaceType?: 'personal' | 'shared'
     }
     if (!body.name) return c.json({ error: 'name required' }, 400)
     if (body.spaceType !== 'personal' && body.spaceType !== 'shared') {
       return c.json({ error: 'spaceType must be personal or shared' }, 400)
     }
     if (body.parentId) {
-      const cap = await c.get('deps').permission.getCapabilities(
-        id,
-        { type: 'folder', id: body.parentId, tenantId: id.tenantId }
-      )
+      const cap = await c.get('deps').permission.getCapabilities(id, {
+        type: 'folder',
+        id: body.parentId,
+        tenantId: id.tenantId,
+      })
       if (!cap.canEdit) return c.json({ error: 'cannot create folder under this parent' }, 403)
     }
     const created = await c.get('services').folders.create({
-      tenantId: id.tenantId, userId: id.userId,
-      name: body.name, parentId: body.parentId ?? null, spaceType: body.spaceType,
+      tenantId: id.tenantId,
+      userId: id.userId,
+      name: body.name,
+      parentId: body.parentId ?? null,
+      spaceType: body.spaceType,
     })
-    if (created) void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'folder.created', resourceId: created.id })
+    if (created)
+      void c.get('services').events.emit({
+        tenantId: id.tenantId,
+        actorId: id.userId,
+        type: 'folder.created',
+        resourceId: created.id,
+      })
     return c.json(created, 201)
   })
   .patch(
     '/api/v1/folders/:id',
     requireCapability('canEdit', (c) => ({
-      type: 'folder', id: c.req.param('id'),
-      tenantId: c.get('identity')!.tenantId,
+      type: 'folder',
+      id: c.req.param('id'),
+      tenantId: c.get('identity')?.tenantId,
     })),
     async (c) => {
       const id = c.get('identity')!
@@ -54,14 +67,18 @@ export const foldersRoute = new Hono<AppEnv>()
       try {
         if (body.parentId !== undefined) {
           const moved = await c.get('services').folders.move({
-            tenantId: id.tenantId, id: folderId, newParentId: body.parentId,
+            tenantId: id.tenantId,
+            id: folderId,
+            newParentId: body.parentId,
           })
           if (!moved) return c.json({ error: 'not found' }, 404)
           if (body.name === undefined) return c.json(moved)
         }
         if (body.name !== undefined) {
           const renamed = await c.get('services').folders.rename({
-            tenantId: id.tenantId, id: folderId, name: body.name,
+            tenantId: id.tenantId,
+            id: folderId,
+            name: body.name,
           })
           if (!renamed) return c.json({ error: 'not found' }, 404)
           return c.json(renamed)
@@ -73,17 +90,18 @@ export const foldersRoute = new Hono<AppEnv>()
         }
         throw err
       }
-    }
+    },
   )
   .delete(
     '/api/v1/folders/:id',
     requireCapability('canDelete', (c) => ({
-      type: 'folder', id: c.req.param('id'),
-      tenantId: c.get('identity')!.tenantId,
+      type: 'folder',
+      id: c.req.param('id'),
+      tenantId: c.get('identity')?.tenantId,
     })),
     async (c) => {
       const id = c.get('identity')!
       await c.get('services').folders.softDelete({ tenantId: id.tenantId, id: c.req.param('id') })
       return c.body(null, 204)
-    }
+    },
   )

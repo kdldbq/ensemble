@@ -2,15 +2,29 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import FolderNavigator from '../src/FolderNavigator.vue'
 
-const makeApi = (initial: { id: string; name: string; parentId: string | null; spaceType: string; isDeleted: boolean }[] = []) => {
+const makeApi = (
+  initial: {
+    id: string
+    name: string
+    parentId: string | null
+    spaceType: string
+    isDeleted: boolean
+  }[] = [],
+) => {
   let items = initial
   return {
     listFolders: vi.fn(async () => ({ items })),
-    createFolder: vi.fn(async (input: { name: string; parentId: string | null; spaceType: 'personal' | 'shared' }) => {
-      const f = { id: 'n' + items.length, ...input, ownerId: 'u', isDeleted: false }
-      items = [...items, f as never]
-      return f
-    }),
+    createFolder: vi.fn(
+      async (input: {
+        name: string
+        parentId: string | null
+        spaceType: 'personal' | 'shared'
+      }) => {
+        const f = { id: `n${items.length}`, ...input, ownerId: 'u', isDeleted: false }
+        items = [...items, f as never]
+        return f
+      },
+    ),
     renameFolder: vi.fn(),
     moveFolder: vi.fn(),
     deleteFolder: vi.fn(),

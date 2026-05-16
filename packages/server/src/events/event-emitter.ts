@@ -1,7 +1,7 @@
+import type { EventAdapter } from '../adapters/identity'
+import type { EnsembleEvent } from '../adapters/types'
 import type { Database } from '../db/client'
 import { auditLog } from '../db/schema'
-import type { EnsembleEvent } from '../adapters/types'
-import type { EventAdapter } from '../adapters/identity'
 
 export interface EmitInput {
   tenantId: string
@@ -24,7 +24,10 @@ function buildEvent(input: EmitInput, at: string): EnsembleEvent {
       return { type: input.type, workbookId: input.resourceId ?? '', userId: input.actorId, at }
     case 'workbook.edited':
       return {
-        type: input.type, workbookId: input.resourceId ?? '', userId: input.actorId, at,
+        type: input.type,
+        workbookId: input.resourceId ?? '',
+        userId: input.actorId,
+        at,
         batchedOpsCount: (input.extra?.batchedOpsCount as number) ?? 0,
       }
     case 'folder.created':

@@ -1,13 +1,13 @@
 import { createHmac } from 'node:crypto'
 import type {
-  IdentityAdapter,
-  PermissionAdapter,
-  EventAdapter,
-  IdentityContext,
-  ResourceRef,
   Capability,
-  MaskRule,
   EnsembleEvent,
+  EventAdapter,
+  IdentityAdapter,
+  IdentityContext,
+  MaskRule,
+  PermissionAdapter,
+  ResourceRef,
 } from '@ensemble-sheets/server'
 
 export interface WebhookOpts {
@@ -17,7 +17,7 @@ export interface WebhookOpts {
 }
 
 function sign(secret: string, body: string): string {
-  return 'sha256=' + createHmac('sha256', secret).update(body).digest('hex')
+  return `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`
 }
 
 async function post<T>(opts: WebhookOpts, payload: unknown, expect2xx: boolean): Promise<T | null> {
@@ -62,7 +62,11 @@ export class WebhookPermissionAdapter implements PermissionAdapter {
     return r
   }
   async getMaskRules(identity: IdentityContext, workbook: ResourceRef): Promise<MaskRule[]> {
-    const r = await post<MaskRule[]>(this.opts, { op: 'mask_rules', identity, resource: workbook }, true)
+    const r = await post<MaskRule[]>(
+      this.opts,
+      { op: 'mask_rules', identity, resource: workbook },
+      true,
+    )
     return r ?? []
   }
 }

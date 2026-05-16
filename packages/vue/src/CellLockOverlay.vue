@@ -18,7 +18,9 @@ onMounted(() => {
     }
   })
 })
-onBeforeUnmount(() => { unsub?.() })
+onBeforeUnmount(() => {
+  unsub?.()
+})
 </script>
 
 <template>

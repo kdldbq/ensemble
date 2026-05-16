@@ -13,7 +13,11 @@ function makeFakeEditor() {
   const loaded: unknown[] = []
   const editor = {
     load: (d: unknown) => loaded.push(d),
-    getData: () => ({ id: 'w', sheetOrder: ['s'], sheets: { s: { id: 's', name: 'S', cellData: {} } } }),
+    getData: () => ({
+      id: 'w',
+      sheetOrder: ['s'],
+      sheets: { s: { id: 's', name: 'S', cellData: {} } },
+    }),
     destroy: vi.fn(),
     _loaded: loaded,
   }
@@ -34,7 +38,9 @@ describe('mountWorkbookEditor', () => {
       token: async () => 't',
       fetch: vi.fn(async (url: string) => {
         if (url.endsWith('/snapshot'))
-          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), {
+            status: 200,
+          })
         return new Response('', { status: 200 })
       }) as never,
       _editorFactory: () => fakeEditor as never,
@@ -64,7 +70,11 @@ describe('mountWorkbookEditor', () => {
     })
 
     // load was called with the blank fallback (id = workbookId, sheetId derived from workbookId)
-    const loaded = fakeEditor._loaded[0] as { id: string; sheetOrder: string[]; sheets: Record<string, { id: string }> }
+    const loaded = fakeEditor._loaded[0] as {
+      id: string
+      sheetOrder: string[]
+      sheets: Record<string, { id: string }>
+    }
     expect(fakeEditor._loaded.length).toBe(1)
     expect(loaded.id).toBe('wb2')
     // B3: sheetId is derived from workbookId, not hardcoded 's1'
@@ -79,7 +89,9 @@ describe('mountWorkbookEditor', () => {
     const fakeEditor = makeFakeEditor()
     const fetchMock = vi.fn(async (url: string) => {
       if (url.endsWith('/snapshot'))
-        return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+        return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), {
+          status: 200,
+        })
       // POST snapshots → return a Snapshot object
       return new Response(
         JSON.stringify({
@@ -92,7 +104,7 @@ describe('mountWorkbookEditor', () => {
           reason: 'manual',
           name: null,
         }),
-        { status: 200 }
+        { status: 200 },
       )
     }) as never
 
@@ -124,7 +136,9 @@ describe('mountWorkbookEditor', () => {
       token: () => 't',
       fetch: vi.fn(async (url: string) => {
         if (url.endsWith('/snapshot'))
-          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), {
+            status: 200,
+          })
         return new Response('', { status: 200 })
       }) as never,
       _editorFactory: () => fakeEditor as never,
@@ -149,7 +163,9 @@ describe('mountWorkbookEditor', () => {
       token: () => 't',
       fetch: vi.fn(async (url: string) => {
         if (url.endsWith('/snapshot'))
-          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), {
+            status: 200,
+          })
         return new Response('', { status: 200 })
       }) as never,
       _editorFactory: () => fakeEditor as never,
@@ -173,7 +189,9 @@ describe('mountWorkbookEditor', () => {
       token: () => 't',
       fetch: vi.fn(async (url: string) => {
         if (url.endsWith('/snapshot'))
-          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), {
+            status: 200,
+          })
         return new Response('', { status: 200 })
       }) as never,
       _editorFactory: () => fakeEditor as never,
@@ -196,7 +214,9 @@ describe('mountWorkbookEditor', () => {
       token: () => 't',
       fetch: vi.fn(async (url: string) => {
         if (url.endsWith('/snapshot'))
-          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), {
+            status: 200,
+          })
         return new Response('', { status: 200 })
       }) as never,
       _editorFactory: () => fakeEditor as never,

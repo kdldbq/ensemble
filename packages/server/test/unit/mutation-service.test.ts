@@ -7,7 +7,7 @@ function fakeTx(initialMax: number | null = null) {
   return {
     execute: vi.fn(async (_q: unknown) => [{ max_seq: max }]),
     insert: () => ({
-      values: async (v: typeof inserted[number]) => {
+      values: async (v: (typeof inserted)[number]) => {
         inserted.push(v)
         max = v.seqNum
       },
@@ -19,14 +19,18 @@ function fakeTx(initialMax: number | null = null) {
 describe('MutationService.append', () => {
   it('seq_num starts at 1 for empty workbook', async () => {
     const tx = fakeTx(null)
-    const svc = createMutationService({ db: { transaction: async (fn: (tx: unknown) => unknown) => fn(tx) } } as never)
+    const svc = createMutationService({
+      db: { transaction: async (fn: (tx: unknown) => unknown) => fn(tx) },
+    } as never)
     const r = await svc.append({ workbookId: 'wb', userId: 'u', payload: { op: 'set' } })
     expect(r.seqNum).toBe(1)
   })
 
   it('increments past existing max', async () => {
     const tx = fakeTx(42)
-    const svc = createMutationService({ db: { transaction: async (fn: (tx: unknown) => unknown) => fn(tx) } } as never)
+    const svc = createMutationService({
+      db: { transaction: async (fn: (tx: unknown) => unknown) => fn(tx) },
+    } as never)
     const r = await svc.append({ workbookId: 'wb', userId: 'u', payload: {} })
     expect(r.seqNum).toBe(43)
   })

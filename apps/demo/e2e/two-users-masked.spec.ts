@@ -15,10 +15,12 @@ test('admin sees raw value, viewer sees mask', async ({ page }) => {
 
   await page.evaluate(async (wb) => {
     const payload = {
-      id: wb, sheetOrder: ['s1'],
+      id: wb,
+      sheetOrder: ['s1'],
       sheets: {
         s1: {
-          id: 's1', name: 'Grades',
+          id: 's1',
+          name: 'Grades',
           cellData: {
             '0': { '0': { v: 'name' }, '1': { v: 'score' } },
             '1': { '0': { v: 'Alice' }, '1': { v: 90 } },

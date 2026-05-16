@@ -1,20 +1,28 @@
-import { describe, expect, it } from 'vitest'
-import { buildApp } from '../../src/http/app'
-import { db } from './_dbHelpers'
-import { tenants, workbooks } from '../../src/db/schema'
-import { NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '../../src/adapters/identity'
-import { FsStorage } from '@ensemble-sheets/storage-fs'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { FsStorage } from '@ensemble-sheets/storage-fs'
+import { describe, expect, it } from 'vitest'
+import {
+  type IdentityAdapter,
+  NoopEventAdapter,
+  type PermissionAdapter,
+} from '../../src/adapters/identity'
+import { tenants, workbooks } from '../../src/db/schema'
+import { buildApp } from '../../src/http/app'
+import { db } from './_dbHelpers'
 
 function memStorage() {
   const blobs = new Map<string, Uint8Array>()
   return {
     storage: {
-      put: async (k: string, b: Uint8Array) => { blobs.set(k, b) },
+      put: async (k: string, b: Uint8Array) => {
+        blobs.set(k, b)
+      },
       get: async (k: string) => blobs.get(k) ?? new Uint8Array(),
-      delete: async (k: string) => { blobs.delete(k) },
+      delete: async (k: string) => {
+        blobs.delete(k)
+      },
     },
     blobs,
   }
@@ -33,10 +41,21 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: ms.storage,
+      event: new NoopEventAdapter(),
+    })
 
     const payload = new TextEncoder().encode('{"sheets":{}}')
     const post = await app.request(`/api/v1/workbooks/${wb.id}/snapshots`, {
@@ -67,10 +86,21 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: ms.storage,
+      event: new NoopEventAdapter(),
+    })
 
     const payload = new TextEncoder().encode('{"sheets":{"s1":{}}}')
     const post = await app.request(`/api/v1/workbooks/${wb.id}/snapshots`, {
@@ -100,10 +130,21 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: ms.storage,
+      event: new NoopEventAdapter(),
+    })
 
     const get = await app.request(`/api/v1/workbooks/${wb.id}/snapshot`, {
       headers: { Authorization: 'Bearer x' },
@@ -127,10 +168,21 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: ms.storage,
+      event: new NoopEventAdapter(),
+    })
 
     // Create a snapshot under wb1
     const payload = new TextEncoder().encode('{"wb":"1"}')
@@ -155,16 +207,30 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: memStorage().storage, event: new NoopEventAdapter() })
-
-    const res = await app.request('/api/v1/workbooks/00000000-0000-0000-0000-000000000000/snapshots', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
-      body: new TextEncoder().encode('{"x":1}'),
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: memStorage().storage,
+      event: new NoopEventAdapter(),
     })
+
+    const res = await app.request(
+      '/api/v1/workbooks/00000000-0000-0000-0000-000000000000/snapshots',
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+        body: new TextEncoder().encode('{"x":1}'),
+      },
+    )
     expect(res.status).toBe(404)
   })
 
@@ -178,10 +244,21 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: memStorage().storage, event: new NoopEventAdapter() })
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: memStorage().storage,
+      event: new NoopEventAdapter(),
+    })
 
     const res = await app.request(`/api/v1/workbooks/${wb.id}/snapshots`, {
       method: 'POST',
@@ -203,19 +280,27 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: ms.storage, event: new NoopEventAdapter() })
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: ms.storage,
+      event: new NoopEventAdapter(),
+    })
 
-    const res = await app.request(
-      `/api/v1/workbooks/${wb.id}/snapshots?reason=named&name=v1.0`,
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
-        body: new TextEncoder().encode('{"sheets":{}}'),
-      },
-    )
+    const res = await app.request(`/api/v1/workbooks/${wb.id}/snapshots?reason=named&name=v1.0`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+      body: new TextEncoder().encode('{"sheets":{}}'),
+    })
     expect(res.status).toBe(201)
     const snap = (await res.json()) as { name: string; reason: string }
     expect(snap.name).toBe('v1.0')
@@ -228,10 +313,21 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
-    const app = buildApp({ db, identity, permission, storage: memStorage().storage, event: new NoopEventAdapter() })
+    const app = buildApp({
+      db,
+      identity,
+      permission,
+      storage: memStorage().storage,
+      event: new NoopEventAdapter(),
+    })
 
     const res = await app.request(
       '/api/v1/workbooks/00000000-0000-0000-0000-000000000000/snapshot',
@@ -252,7 +348,12 @@ describe('snapshots REST', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [],
     }
     const app = buildApp({ db, identity, permission, storage, event: new NoopEventAdapter() })

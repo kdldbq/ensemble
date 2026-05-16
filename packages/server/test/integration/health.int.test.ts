@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { buildApp } from '../../src/http/app'
-import { db } from './_dbHelpers'
 import {
+  NoopEventAdapter,
   NotImplementedIdentityAdapter,
   NotImplementedPermissionAdapter,
-  NoopEventAdapter,
 } from '../../src/adapters/identity'
+import { buildApp } from '../../src/http/app'
+import { db } from './_dbHelpers'
 
 describe('GET /healthz', () => {
   it('returns ok json', async () => {

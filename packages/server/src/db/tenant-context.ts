@@ -9,7 +9,7 @@ export type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 function setTenantSql(tenantId: string) {
   const stmt = sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`
   // Override toString so that String(stmt) contains the SQL text — used by unit test stubs.
-  ;(stmt as unknown as Record<string, unknown>)['toString'] = () =>
+  ;(stmt as unknown as Record<string, unknown>).toString = () =>
     `SELECT set_config('app.tenant_id', '${tenantId}', true)`
   return stmt
 }

@@ -1,14 +1,18 @@
 import { Hono } from 'hono'
-import { requireIdentity } from '../auth'
-import { requireCapability } from '../permission'
 import { applyMaskRules } from '../../services/mask-service'
 import type { AppEnv } from '../app'
+import { requireIdentity } from '../auth'
+import { requireCapability } from '../permission'
 
 export const snapshotsRoute = new Hono<AppEnv>()
   .use('*', requireIdentity)
   .post(
     '/api/v1/workbooks/:wbId/snapshots',
-    requireCapability('canEdit', (c) => ({ type: 'workbook', id: c.req.param('wbId'), tenantId: c.get('identity')!.tenantId })),
+    requireCapability('canEdit', (c) => ({
+      type: 'workbook',
+      id: c.req.param('wbId'),
+      tenantId: c.get('identity')?.tenantId,
+    })),
     async (c) => {
       const id = c.get('identity')!
       const wbId = c.req.param('wbId')
@@ -29,13 +33,23 @@ export const snapshotsRoute = new Hono<AppEnv>()
       })
       if (!snap) return c.json({ error: 'snapshot creation failed' }, 500)
       await wbSvc.setCurrentSnapshot({ tenantId: id.tenantId, id: wbId, snapshotId: snap.id })
-      void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'workbook.edited', resourceId: wbId, extra: { batchedOpsCount: 0 } })
+      void c.get('services').events.emit({
+        tenantId: id.tenantId,
+        actorId: id.userId,
+        type: 'workbook.edited',
+        resourceId: wbId,
+        extra: { batchedOpsCount: 0 },
+      })
       return c.json(snap, 201)
     },
   )
   .get(
     '/api/v1/workbooks/:wbId/snapshots/:id/blob',
-    requireCapability('canView', (c) => ({ type: 'workbook', id: c.req.param('wbId'), tenantId: c.get('identity')!.tenantId })),
+    requireCapability('canView', (c) => ({
+      type: 'workbook',
+      id: c.req.param('wbId'),
+      tenantId: c.get('identity')?.tenantId,
+    })),
     async (c) => {
       const { storage } = c.get('deps')
       const idCtx = c.get('identity')!
@@ -48,13 +62,19 @@ export const snapshotsRoute = new Hono<AppEnv>()
       const bytes = await storage.get(snap.storageKey)
       const rules = await masks.get(idCtx, wb.id)
       if (rules.length === 0) return c.body(bytes, 200, { 'content-type': 'application/json' })
-      const data = JSON.parse(new TextDecoder().decode(bytes)) as Parameters<typeof applyMaskRules>[0]
+      const data = JSON.parse(new TextDecoder().decode(bytes)) as Parameters<
+        typeof applyMaskRules
+      >[0]
       return c.json(applyMaskRules(data, rules))
     },
   )
   .get(
     '/api/v1/workbooks/:wbId/snapshot',
-    requireCapability('canView', (c) => ({ type: 'workbook', id: c.req.param('wbId'), tenantId: c.get('identity')!.tenantId })),
+    requireCapability('canView', (c) => ({
+      type: 'workbook',
+      id: c.req.param('wbId'),
+      tenantId: c.get('identity')?.tenantId,
+    })),
     async (c) => {
       const { storage } = c.get('deps')
       const idCtx = c.get('identity')!
@@ -66,7 +86,9 @@ export const snapshotsRoute = new Hono<AppEnv>()
       const bytes = await storage.get(snap.storageKey)
       const rules = await masks.get(idCtx, wb.id)
       if (rules.length === 0) return c.body(bytes, 200, { 'content-type': 'application/json' })
-      const data = JSON.parse(new TextDecoder().decode(bytes)) as Parameters<typeof applyMaskRules>[0]
+      const data = JSON.parse(new TextDecoder().decode(bytes)) as Parameters<
+        typeof applyMaskRules
+      >[0]
       return c.json(applyMaskRules(data, rules))
     },
   )

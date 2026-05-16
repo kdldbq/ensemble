@@ -7,7 +7,7 @@ function stubDb() {
     insert: () => ({
       values: (v: Record<string, unknown>) => ({
         returning: async () => {
-          const row = { id: 'wb_' + (rows.length + 1), isDeleted: false, ...v }
+          const row = { id: `wb_${rows.length + 1}`, isDeleted: false, ...v }
           rows.push(row)
           return [row]
         },
@@ -15,10 +15,18 @@ function stubDb() {
     }),
     select: () => ({
       from: () => ({
-        where: () => ({ limit: async () => rows.filter((r) => !(r as { isDeleted: boolean }).isDeleted) }),
+        where: () => ({
+          limit: async () => rows.filter((r) => !(r as { isDeleted: boolean }).isDeleted),
+        }),
       }),
     }),
-    update: () => ({ set: (s: object) => ({ where: async () => { rows.forEach((r) => Object.assign(r, s)) } }) }),
+    update: () => ({
+      set: (s: object) => ({
+        where: async () => {
+          rows.forEach((r) => Object.assign(r, s))
+        },
+      }),
+    }),
     _rows: rows,
   }
 }

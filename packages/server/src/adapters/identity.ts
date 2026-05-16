@@ -1,4 +1,4 @@
-import type { EnsembleEvent, IdentityContext, ResourceRef, Capability, MaskRule } from './types'
+import type { Capability, EnsembleEvent, IdentityContext, MaskRule, ResourceRef } from './types'
 
 export interface IdentityAdapter {
   resolveFromToken(token: string): Promise<IdentityContext>
@@ -22,7 +22,7 @@ export interface PermissionAdapter {
    */
   filterListVisibility?(
     identity: IdentityContext,
-    scope: 'folders' | 'workbooks'
+    scope: 'folders' | 'workbooks',
   ): Promise<{ allowedIds?: string[] }>
 }
 

@@ -1,18 +1,18 @@
 import { serve } from '@hono/node-server'
 import { createNodeWebSocket } from '@hono/node-ws'
-import { buildApp, type AppDeps } from './http/app'
-import { createDb } from './db/client'
-import type { IdentityAdapter, PermissionAdapter, EventAdapter } from './adapters/identity'
+import type { EventAdapter, IdentityAdapter, PermissionAdapter } from './adapters/identity'
 import type { StorageAdapter } from './adapters/storage'
-import { sendWelcome } from './ws/welcome'
-import { createRedis } from './redis/client'
-import { createRoomRegistry } from './realtime/collab-room'
+import { createDb } from './db/client'
+import { type AppDeps, buildApp } from './http/app'
+import { createTokenBucket } from './realtime/backpressure'
 import { createCellLockManager } from './realtime/cell-lock-manager'
-import { createPresenceTracker } from './realtime/presence-tracker'
+import { createRoomRegistry } from './realtime/collab-room'
 import { createMutationBroadcaster } from './realtime/mutation-broadcaster'
+import { createPresenceTracker } from './realtime/presence-tracker'
+import { createRedis } from './redis/client'
 import { createMutationService } from './services/mutation-service'
 import { createSession } from './ws/session'
-import { createTokenBucket } from './realtime/backpressure'
+import { sendWelcome } from './ws/welcome'
 
 export interface CreateServerOpts {
   databaseUrl: string
@@ -26,7 +26,7 @@ export interface CreateServerOpts {
 export function createServer(opts: CreateServerOpts) {
   const db = createDb(opts.databaseUrl)
   // Realtime infrastructure
-  const redis = createRedis(opts.redisUrl ?? process.env['REDIS_URL'] ?? 'redis://localhost:6379')
+  const redis = createRedis(opts.redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379')
 
   const deps: AppDeps = {
     db,
@@ -48,7 +48,7 @@ export function createServer(opts: CreateServerOpts) {
       // that need the tenantId should look it up from userId internally.
       return opts.permission.getMaskRules(
         { userId, tenantId: '' },
-        { type: 'workbook', id: workbookId, tenantId: '' }
+        { type: 'workbook', id: workbookId, tenantId: '' },
       )
     },
   })
@@ -78,9 +78,7 @@ export function createServer(opts: CreateServerOpts) {
     },
   }
 
-  const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket(
-    nodeWsInit as never
-  )
+  const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket(nodeWsInit as never)
 
   // createEvents MUST be synchronous — any await before nodeUpgradeWebSocket
   // causes the connection waiter to miss wss.handleUpgrade's 'connection' event.
@@ -115,7 +113,13 @@ export function createServer(opts: CreateServerOpts) {
         }
 
         // Send welcome frame (with optional last_seq replay)
-        const welcomeDeps = { ...deps, mutations: mutationService, permission: opts.permission, presence, redis }
+        const welcomeDeps = {
+          ...deps,
+          mutations: mutationService,
+          permission: opts.permission,
+          presence,
+          redis,
+        }
         await sendWelcome(ws, welcomeDeps, {
           tenantId: identity.tenantId,
           userId: identity.userId,
@@ -141,15 +145,15 @@ export function createServer(opts: CreateServerOpts) {
             room,
             bucket: createTokenBucket({ capacity: 30, refillPerSec: 30 }),
           },
-          { cellLocks, presence, broadcaster }
+          { cellLocks, presence, broadcaster },
         )
 
         // Attach session to the raw WS so onMessage/onClose can reach it
-        ;(ws as unknown as Record<string, unknown>)['_session'] = session
+        ;(ws as unknown as Record<string, unknown>)._session = session
       },
 
       onMessage(e, ws) {
-        const session = (ws as unknown as Record<string, unknown>)['_session'] as
+        const session = (ws as unknown as Record<string, unknown>)._session as
           | ReturnType<typeof createSession>
           | undefined
         if (!session) return
@@ -158,7 +162,7 @@ export function createServer(opts: CreateServerOpts) {
       },
 
       onClose(_e, ws) {
-        const session = (ws as unknown as Record<string, unknown>)['_session'] as
+        const session = (ws as unknown as Record<string, unknown>)._session as
           | ReturnType<typeof createSession>
           | undefined
         session?.onClose()
@@ -173,15 +177,17 @@ export function createServer(opts: CreateServerOpts) {
   return {
     listen({ port }: { port: number }) {
       return new Promise<{ port: number; close(): Promise<void> }>((resolve) => {
-        const server = serve({ fetch: builtApp!.fetch, port }, (info) => {
+        const server = serve({ fetch: builtApp?.fetch, port }, (info) => {
           injectWebSocket(server)
           resolve({
             port: info.port,
             close: () =>
-              new Promise((r) => server.close(async () => {
-                await redis.quit()
-                r()
-              })),
+              new Promise((r) =>
+                server.close(async () => {
+                  await redis.quit()
+                  r()
+                }),
+              ),
           })
         })
       })

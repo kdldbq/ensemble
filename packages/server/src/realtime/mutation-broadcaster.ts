@@ -1,7 +1,7 @@
 import type { MaskRule } from '../adapters/types'
-import { applyMaskRules, type WorkbookData } from '../services/mask-service'
-import type { CollabRoom } from './collab-room'
+import { type WorkbookData, applyMaskRules } from '../services/mask-service'
 import type { MutationService } from '../services/mutation-service'
+import type { CollabRoom } from './collab-room'
 
 export interface MutationBroadcasterDeps {
   mutations: MutationService
@@ -44,7 +44,12 @@ export function createMutationBroadcaster(deps: MutationBroadcasterDeps) {
         if (rules.length > 0 && payloadLooksLikeWorkbookData(input.payload)) {
           outPayload = applyMaskRules(input.payload as WorkbookData, rules)
         }
-        client.send({ type: 'apply_mutation', seqNum, userId: input.senderUserId, payload: outPayload })
+        client.send({
+          type: 'apply_mutation',
+          seqNum,
+          userId: input.senderUserId,
+          payload: outPayload,
+        })
       }
 
       return { seqNum }

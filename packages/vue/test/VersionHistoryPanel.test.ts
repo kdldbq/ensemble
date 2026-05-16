@@ -7,7 +7,7 @@ function makeApi(initial: { id: string; name: string }[] = []) {
   return {
     listVersions: vi.fn(async () => ({ items })),
     createVersion: vi.fn(async (_wb: string, name: string) => {
-      const v = { id: 'n' + items.length, name }
+      const v = { id: `n${items.length}`, name }
       items = [...items, v as never]
       return v
     }),

@@ -44,7 +44,13 @@ export interface MaskRule {
  */
 export type EnsembleEvent =
   | { type: 'workbook.created'; workbookId: string; userId: string; at: string }
-  | { type: 'workbook.opened';  workbookId: string; userId: string; at: string }
-  | { type: 'workbook.edited';  workbookId: string; userId: string; batchedOpsCount: number; at: string }
-  | { type: 'folder.created';   folderId: string;   userId: string; at: string }
-  | { type: 'share.granted';    grantId: string;    grantedBy: string; at: string }
+  | { type: 'workbook.opened'; workbookId: string; userId: string; at: string }
+  | {
+      type: 'workbook.edited'
+      workbookId: string
+      userId: string
+      batchedOpsCount: number
+      at: string
+    }
+  | { type: 'folder.created'; folderId: string; userId: string; at: string }
+  | { type: 'share.granted'; grantId: string; grantedBy: string; at: string }

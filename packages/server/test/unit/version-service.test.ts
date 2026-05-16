@@ -20,7 +20,7 @@ function fakeDb() {
       return {
         values: (v: Record<string, unknown>) => ({
           returning: async () => {
-            const row = { id: 'snap_' + n++, ...v }
+            const row = { id: `snap_${n++}`, ...v }
             rows.push(row)
             return [row]
           },
@@ -37,8 +37,22 @@ describe('VersionService.listNamed', () => {
   it('returns only reason=named', async () => {
     const db = fakeDb()
     db._rows.push(
-      { id: 'a', reason: 'auto', name: null, workbookId: 'wb', createdBy: 'u', createdAt: new Date() },
-      { id: 'b', reason: 'named', name: 'V1', workbookId: 'wb', createdBy: 'u', createdAt: new Date() },
+      {
+        id: 'a',
+        reason: 'auto',
+        name: null,
+        workbookId: 'wb',
+        createdBy: 'u',
+        createdAt: new Date(),
+      },
+      {
+        id: 'b',
+        reason: 'named',
+        name: 'V1',
+        workbookId: 'wb',
+        createdBy: 'u',
+        createdAt: new Date(),
+      },
     )
     const svc = createVersionService(db as never, {} as never)
     const list = await svc.listNamed('wb')

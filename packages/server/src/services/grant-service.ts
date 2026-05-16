@@ -30,7 +30,9 @@ export interface GrantContext {
   workbookOwnerId: string
   workbookFolderId: string | null
   folderAncestors: () => Promise<string[]>
-  findGrants: (refs: Array<{ resourceType: 'folder' | 'workbook'; resourceId: string }>) => Promise<Grant[]>
+  findGrants: (
+    refs: Array<{ resourceType: 'folder' | 'workbook'; resourceId: string }>,
+  ) => Promise<Grant[]>
   publicLinkToken?: string | undefined
 }
 
@@ -38,17 +40,20 @@ const EMPTY: Capability = { canView: false, canEdit: false, canShare: false, can
 
 function levelToCapability(level: Grant['permission']): Capability {
   switch (level) {
-    case 'view':   return { canView: true, canEdit: false, canShare: false, canDelete: false }
-    case 'edit':   return { canView: true, canEdit: true,  canShare: false, canDelete: false }
-    case 'manage': return { canView: true, canEdit: true,  canShare: true,  canDelete: true  }
+    case 'view':
+      return { canView: true, canEdit: false, canShare: false, canDelete: false }
+    case 'edit':
+      return { canView: true, canEdit: true, canShare: false, canDelete: false }
+    case 'manage':
+      return { canView: true, canEdit: true, canShare: true, canDelete: true }
   }
 }
 
 function merge(a: Capability, b: Capability): Capability {
   return {
-    canView:   a.canView   || b.canView,
-    canEdit:   a.canEdit   || b.canEdit,
-    canShare:  a.canShare  || b.canShare,
+    canView: a.canView || b.canView,
+    canEdit: a.canEdit || b.canEdit,
+    canShare: a.canShare || b.canShare,
     canDelete: a.canDelete || b.canDelete,
   }
 }
@@ -56,8 +61,10 @@ function merge(a: Capability, b: Capability): Capability {
 function isApplicable(grant: Grant, identity: IdentityContext, presentedToken?: string): boolean {
   if (grant.expiresAt && grant.expiresAt.getTime() < Date.now()) return false
   switch (grant.granteeType) {
-    case 'user':          return grant.granteeId === identity.userId
-    case 'tenant_member': return true
+    case 'user':
+      return grant.granteeId === identity.userId
+    case 'tenant_member':
+      return true
     case 'public_link':
       return !!presentedToken && !!grant.granteeId && safeStringEq(grant.granteeId, presentedToken)
   }

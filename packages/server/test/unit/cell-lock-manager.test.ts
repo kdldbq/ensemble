@@ -29,7 +29,10 @@ function fakeRedis() {
       const cur = store.get(key)
       const owner = cur && cur.expiresAt > Date.now() ? cur.value : null
       if (script.includes('DEL')) {
-        if (owner === args[0]) { store.delete(key); return 1 }
+        if (owner === args[0]) {
+          store.delete(key)
+          return 1
+        }
         return 0
       }
       if (script.includes('EXPIRE')) {

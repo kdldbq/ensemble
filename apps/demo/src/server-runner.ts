@@ -1,6 +1,11 @@
-import { createServer, NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '@ensemble-sheets/server'
-import { FsStorage } from '@ensemble-sheets/storage-fs'
 import { mkdir } from 'node:fs/promises'
+import {
+  type IdentityAdapter,
+  NoopEventAdapter,
+  type PermissionAdapter,
+  createServer,
+} from '@ensemble-sheets/server'
+import { FsStorage } from '@ensemble-sheets/storage-fs'
 import postgres from 'postgres'
 
 const dataDir = process.env.ENSEMBLE_DATA ?? './data'
@@ -32,7 +37,12 @@ const permission: PermissionAdapter = {
   },
   getMaskRules: async (identity) => {
     if (identity.userId === 'viewer') {
-      return [{ match: { type: 'column', sheet: '*', column: 'B' }, action: { type: 'redact', replacement: '***' } }]
+      return [
+        {
+          match: { type: 'column', sheet: '*', column: 'B' },
+          action: { type: 'redact', replacement: '***' },
+        },
+      ]
     }
     return []
   },

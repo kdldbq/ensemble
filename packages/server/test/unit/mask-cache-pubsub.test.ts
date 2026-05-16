@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createMaskCachePubSub, INVALIDATE_CHANNEL } from '../../src/realtime/mask-cache-pubsub'
+import { INVALIDATE_CHANNEL, createMaskCachePubSub } from '../../src/realtime/mask-cache-pubsub'
 
 function fakeRedis() {
   const handlers = new Map<string, ((channel: string, msg: string) => void)[]>()
@@ -19,7 +19,9 @@ function fakeRedis() {
     }),
     unsubscribe: vi.fn(async () => undefined),
     quit: vi.fn(async () => undefined),
-    duplicate(): typeof self { return self },
+    duplicate(): typeof self {
+      return self
+    },
   }
   return self
 }

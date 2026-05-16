@@ -18,12 +18,12 @@ describe('<WorkbookEditor />', () => {
         apiBaseUrl="https://api"
         wsBaseUrl="wss://api"
         token={async () => 't'}
-      />
+      />,
     )
     const { mountWorkbookEditor } = await import('@ensemble-sheets/core')
     expect(mountWorkbookEditor as unknown as { mock: unknown }).toBeDefined()
     expect(mountWorkbookEditor).toHaveBeenCalledWith(
-      expect.objectContaining({ workbookId: 'w1', apiBaseUrl: 'https://api' })
+      expect.objectContaining({ workbookId: 'w1', apiBaseUrl: 'https://api' }),
     )
     expect(container.querySelector('.ensemble-workbook-root')).toBeTruthy()
   })

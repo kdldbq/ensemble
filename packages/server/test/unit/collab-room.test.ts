@@ -19,7 +19,8 @@ describe('CollabRoom', () => {
 
   it('broadcast invokes send on every client', () => {
     const room = createCollabRoom({ workbookId: 'wb' })
-    const a = vi.fn(); const b = vi.fn()
+    const a = vi.fn()
+    const b = vi.fn()
     room.addClient({ clientId: 'cA', userId: 'u1', send: a })
     room.addClient({ clientId: 'cB', userId: 'u2', send: b })
     room.broadcast({ type: 'demo' })
@@ -29,7 +30,8 @@ describe('CollabRoom', () => {
 
   it('broadcastExcept skips excluded client', () => {
     const room = createCollabRoom({ workbookId: 'wb' })
-    const a = vi.fn(); const b = vi.fn()
+    const a = vi.fn()
+    const b = vi.fn()
     room.addClient({ clientId: 'cA', userId: 'u1', send: a })
     room.addClient({ clientId: 'cB', userId: 'u2', send: b })
     room.broadcastExcept('cA', { type: 'demo' })

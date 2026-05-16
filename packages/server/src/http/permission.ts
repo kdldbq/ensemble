@@ -1,12 +1,12 @@
 import type { Context, MiddlewareHandler } from 'hono'
-import type { AppEnv } from './app'
 import type { Capability, ResourceRef } from '../adapters/types'
+import type { AppEnv } from './app'
 
 export type CapabilityName = keyof Capability
 
 export function requireCapability(
   cap: CapabilityName,
-  resourceOf: (c: Context<AppEnv>) => ResourceRef | Promise<ResourceRef>
+  resourceOf: (c: Context<AppEnv>) => ResourceRef | Promise<ResourceRef>,
 ): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const identity = c.get('identity')
@@ -16,7 +16,7 @@ export function requireCapability(
       const ref = await resourceOf(c)
       const capabilities = await deps.permission.getCapabilities(
         identity as Parameters<typeof deps.permission.getCapabilities>[0],
-        ref
+        ref,
       )
       if (!capabilities[cap]) return c.json({ error: 'forbidden' }, 403)
       c.set('capabilities', capabilities)

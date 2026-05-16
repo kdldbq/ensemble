@@ -1,4 +1,7 @@
-interface Pending<T> { resolve: (v: T) => void; reject: (e: Error) => void }
+interface Pending<T> {
+  resolve: (v: T) => void
+  reject: (e: Error) => void
+}
 
 export interface WelcomeFrame {
   type: 'welcome'
@@ -26,9 +29,13 @@ export class WsClient {
   private readonly opts: WsClientOpts
   private socket: WebSocket | null = null
   private clientSeq = 0
-  private pendingLocks = new Map<string, Pending<{ acquired: boolean; ownerId: string; ttlSec: number }>>()
+  private pendingLocks = new Map<
+    string,
+    Pending<{ acquired: boolean; ownerId: string; ttlSec: number }>
+  >()
   private pendingMutations = new Map<number, Pending<{ clientSeq: number; seqNum: number }>>()
-  private applyListeners: Array<(f: { seqNum: number; userId: string; payload: unknown }) => void> = []
+  private applyListeners: Array<(f: { seqNum: number; userId: string; payload: unknown }) => void> =
+    []
   private lockListeners: Array<(f: { type: string } & Record<string, unknown>) => void> = []
 
   constructor(opts: WsClientOpts) {
@@ -71,7 +78,10 @@ export class WsClient {
   private attachDemuxer(ws: WebSocket): void {
     ws.addEventListener('message', (ev) => {
       try {
-        const frame = JSON.parse((ev as MessageEvent).data as string) as { type: string } & Record<string, unknown>
+        const frame = JSON.parse((ev as MessageEvent).data as string) as { type: string } & Record<
+          string,
+          unknown
+        >
         if (frame.type === 'lock_granted' || frame.type === 'lock_denied') {
           const region = frame.region as string
           const p = this.pendingLocks.get(region)
@@ -102,15 +112,19 @@ export class WsClient {
         if (frame.type === 'lock_acquired' || frame.type === 'lock_released') {
           for (const cb of this.lockListeners) cb(frame)
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     })
   }
 
-  async acquireLock(region: string): Promise<{ acquired: boolean; ownerId: string; ttlSec: number }> {
+  async acquireLock(
+    region: string,
+  ): Promise<{ acquired: boolean; ownerId: string; ttlSec: number }> {
     if (!this.socket) throw new Error('not connected')
     return new Promise((resolve, reject) => {
       this.pendingLocks.set(region, { resolve, reject })
-      this.socket!.send(JSON.stringify({ type: 'acquire_lock', region }))
+      this.socket?.send(JSON.stringify({ type: 'acquire_lock', region }))
     })
   }
 
@@ -118,23 +132,41 @@ export class WsClient {
     this.socket?.send(JSON.stringify({ type: 'release_lock', region }))
   }
 
-  async submitMutation(input: { region: string; payload: unknown }): Promise<{ clientSeq: number; seqNum: number }> {
+  async submitMutation(input: { region: string; payload: unknown }): Promise<{
+    clientSeq: number
+    seqNum: number
+  }> {
     if (!this.socket) throw new Error('not connected')
     const cs = ++this.clientSeq
     return new Promise((resolve, reject) => {
       this.pendingMutations.set(cs, { resolve, reject })
-      this.socket!.send(JSON.stringify({ type: 'submit_mutation', clientSeq: cs, region: input.region, payload: input.payload }))
+      this.socket?.send(
+        JSON.stringify({
+          type: 'submit_mutation',
+          clientSeq: cs,
+          region: input.region,
+          payload: input.payload,
+        }),
+      )
     })
   }
 
-  onApplyMutation(cb: (f: { seqNum: number; userId: string; payload: unknown }) => void): () => void {
+  onApplyMutation(
+    cb: (f: { seqNum: number; userId: string; payload: unknown }) => void,
+  ): () => void {
     this.applyListeners.push(cb)
-    return () => { this.applyListeners = this.applyListeners.filter((x) => x !== cb) }
+    return () => {
+      this.applyListeners = this.applyListeners.filter((x) => x !== cb)
+    }
   }
 
-  onLockEvent(cb: (f: { type: 'lock_acquired' | 'lock_released' } & Record<string, unknown>) => void): () => void {
+  onLockEvent(
+    cb: (f: { type: 'lock_acquired' | 'lock_released' } & Record<string, unknown>) => void,
+  ): () => void {
     this.lockListeners.push(cb as (f: { type: string } & Record<string, unknown>) => void)
-    return () => { this.lockListeners = this.lockListeners.filter((x) => x !== cb) }
+    return () => {
+      this.lockListeners = this.lockListeners.filter((x) => x !== cb)
+    }
   }
 
   sendHeartbeat(cursor?: { sheet: string; row: number; col: number }): void {

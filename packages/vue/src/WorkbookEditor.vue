@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mountWorkbookEditor, type MountHandle } from '@ensemble-sheets/core'
+import { type MountHandle, mountWorkbookEditor } from '@ensemble-sheets/core'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{

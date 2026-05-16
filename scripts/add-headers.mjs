@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 
 const HEADER = `/**
  * Copyright 2026 kdldbq and ensemble contributors
@@ -13,8 +13,11 @@ const HEADER = `/**
 
 const files = execSync(
   'git ls-files "packages/*/src/**/*.ts" "packages/*/src/**/*.tsx" "packages/*/src/**/*.vue"',
-  { encoding: 'utf8' }
-).trim().split('\n').filter(Boolean)
+  { encoding: 'utf8' },
+)
+  .trim()
+  .split('\n')
+  .filter(Boolean)
 
 let added = 0
 for (const file of files) {

@@ -4,7 +4,9 @@ import WorkbookEditor from '../src/WorkbookEditor.vue'
 
 vi.mock('@ensemble-sheets/core', () => ({
   mountWorkbookEditor: vi.fn(async () => ({
-    save: vi.fn(), exportXlsx: vi.fn(() => new Uint8Array()), destroy: vi.fn(),
+    save: vi.fn(),
+    exportXlsx: vi.fn(() => new Uint8Array()),
+    destroy: vi.fn(),
   })),
 }))
 

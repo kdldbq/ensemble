@@ -1,19 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { db } from './_dbHelpers'
 import { shareGrants, tenants, workbooks } from '../../src/db/schema'
 import { createGrantRepository } from '../../src/services/grant-repository'
 import { resolveCapability } from '../../src/services/grant-service'
+import { db } from './_dbHelpers'
 
 describe('public_link grants', () => {
   it('grants view only when token matches', async () => {
     const [tenant] = await db.insert(tenants).values({ name: 'pl' }).returning()
-    const [wb] = await db.insert(workbooks).values({
-      tenantId: tenant.id, name: 'public', ownerId: 'owner',
-    }).returning()
-    const token = 'secret-link-token-' + crypto.randomUUID()
+    const [wb] = await db
+      .insert(workbooks)
+      .values({
+        tenantId: tenant.id,
+        name: 'public',
+        ownerId: 'owner',
+      })
+      .returning()
+    const token = `secret-link-token-${crypto.randomUUID()}`
     await db.insert(shareGrants).values({
-      tenantId: tenant.id, resourceType: 'workbook', resourceId: wb.id,
-      granteeType: 'public_link', granteeId: token, permission: 'view', grantedBy: 'owner',
+      tenantId: tenant.id,
+      resourceType: 'workbook',
+      resourceId: wb.id,
+      granteeType: 'public_link',
+      granteeId: token,
+      permission: 'view',
+      grantedBy: 'owner',
     })
 
     const repo = createGrantRepository(db)

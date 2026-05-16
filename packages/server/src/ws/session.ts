@@ -1,11 +1,11 @@
 import type { WSContext } from 'hono/ws'
 import type { IdentityContext } from '../adapters/types'
-import type { CellLockManager } from '../realtime/cell-lock-manager'
-import type { PresenceTracker } from '../realtime/presence-tracker'
-import type { MutationBroadcaster } from '../realtime/mutation-broadcaster'
-import type { CollabRoom } from '../realtime/collab-room'
 import type { TokenBucket } from '../realtime/backpressure'
+import type { CellLockManager } from '../realtime/cell-lock-manager'
+import type { CollabRoom } from '../realtime/collab-room'
 import { parseInboundFrame } from '../realtime/messages'
+import type { MutationBroadcaster } from '../realtime/mutation-broadcaster'
+import type { PresenceTracker } from '../realtime/presence-tracker'
 
 export interface SessionContext {
   ws: WSContext
@@ -43,7 +43,12 @@ export function createSession(ctx: SessionContext, deps: SessionDeps) {
           userId: identity.userId,
         })
         if (result.acquired) {
-          send({ type: 'lock_granted', region: frame.region, ownerId: result.ownerId, ttlSec: result.ttlSec })
+          send({
+            type: 'lock_granted',
+            region: frame.region,
+            ownerId: result.ownerId,
+            ttlSec: result.ttlSec,
+          })
           room.broadcastExcept(clientId, {
             type: 'lock_acquired',
             region: frame.region,

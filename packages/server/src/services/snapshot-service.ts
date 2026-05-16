@@ -1,6 +1,6 @@
 import { desc, eq } from 'drizzle-orm'
-import type { Database } from '../db/client'
 import type { StorageAdapter } from '../adapters/storage'
+import type { Database } from '../db/client'
 import { snapshots } from '../db/schema'
 
 export interface CreateSnapshotInput {

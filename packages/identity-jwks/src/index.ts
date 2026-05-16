@@ -1,6 +1,6 @@
-import { importJWK, jwtVerify } from 'jose'
 import type { IdentityAdapter, IdentityContext } from '@ensemble-sheets/server'
-import { JwksCache, type Jwk } from './jwks-cache'
+import { importJWK, jwtVerify } from 'jose'
+import { type Jwk, JwksCache } from './jwks-cache'
 
 export interface JwksIdentityOpts {
   jwksUrl: string
@@ -52,7 +52,8 @@ export class JwksIdentityAdapter implements IdentityAdapter {
     const ctx: IdentityContext = { tenantId, userId }
     if (typeof p.email === 'string') ctx.email = p.email
     if (typeof p.name === 'string') ctx.displayName = p.name
-    if (Array.isArray(p.roles)) ctx.roles = p.roles.filter((r): r is string => typeof r === 'string')
+    if (Array.isArray(p.roles))
+      ctx.roles = p.roles.filter((r): r is string => typeof r === 'string')
     return ctx
   }
 }

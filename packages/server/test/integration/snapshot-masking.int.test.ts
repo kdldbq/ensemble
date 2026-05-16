@@ -1,16 +1,24 @@
 import { describe, expect, it } from 'vitest'
+import {
+  type IdentityAdapter,
+  NoopEventAdapter,
+  type PermissionAdapter,
+} from '../../src/adapters/identity'
+import type { MaskRule } from '../../src/adapters/types'
+import { tenants, workbooks } from '../../src/db/schema'
 import { buildApp } from '../../src/http/app'
 import { db } from './_dbHelpers'
-import { tenants, workbooks } from '../../src/db/schema'
-import { NoopEventAdapter, type IdentityAdapter, type PermissionAdapter } from '../../src/adapters/identity'
-import type { MaskRule } from '../../src/adapters/types'
 
 function memStorage() {
   const blobs = new Map<string, Uint8Array>()
   return {
-    put: async (k: string, b: Uint8Array) => { blobs.set(k, b) },
+    put: async (k: string, b: Uint8Array) => {
+      blobs.set(k, b)
+    },
     get: async (k: string) => blobs.get(k) ?? new Uint8Array(),
-    delete: async (k: string) => { blobs.delete(k) },
+    delete: async (k: string) => {
+      blobs.delete(k)
+    },
   }
 }
 
@@ -31,7 +39,12 @@ describe('snapshot masking', () => {
       action: { type: 'redact', replacement: '***' },
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+      }),
       getMaskRules: async () => [maskRule],
     }
     const app = buildApp({ db, identity, permission, storage, event: new NoopEventAdapter() })
@@ -64,7 +77,9 @@ describe('snapshot masking', () => {
       headers: { Authorization: 'Bearer x' },
     })
     expect(get.status).toBe(200)
-    const body = await get.json() as { sheets: { s1: { cellData: Record<string, Record<string, { v: unknown }>> } } }
+    const body = (await get.json()) as {
+      sheets: { s1: { cellData: Record<string, Record<string, { v: unknown }>> } }
+    }
     expect(body.sheets.s1.cellData['1']['1'].v).toBe('***')
     // Column A should be untouched
     expect(body.sheets.s1.cellData['1']['0'].v).toBe('Alice')

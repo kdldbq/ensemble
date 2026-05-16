@@ -1,5 +1,5 @@
 import { mountWorkbookEditor } from '@ensemble-sheets/core'
-import { type MountHandle, type WsClient } from '@ensemble-sheets/core'
+import type { MountHandle, WsClient } from '@ensemble-sheets/core'
 import { useEffect, useRef } from 'react'
 
 export interface WorkbookEditorProps {
@@ -34,9 +34,14 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
       apiBaseUrl: props.apiBaseUrl,
       wsBaseUrl: props.wsBaseUrl,
       token: tokenRef.current,
-      onWsConnected: (ws) => { if (!cancelled) onWsConnectedRef.current?.(ws) },
+      onWsConnected: (ws) => {
+        if (!cancelled) onWsConnectedRef.current?.(ws)
+      },
     }).then((h) => {
-      if (cancelled) { void h.destroy(); return }
+      if (cancelled) {
+        void h.destroy()
+        return
+      }
       handleRef.current = h
       onReadyRef.current?.(h)
     })

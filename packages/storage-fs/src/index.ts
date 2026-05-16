@@ -2,7 +2,9 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, normalize, resolve, sep } from 'node:path'
 import type { StorageAdapter } from '@ensemble-sheets/server'
 
-export interface FsStorageOpts { root: string }
+export interface FsStorageOpts {
+  root: string
+}
 
 export class FsStorage implements StorageAdapter {
   private readonly root: string

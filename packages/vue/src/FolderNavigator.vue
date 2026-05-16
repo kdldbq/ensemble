@@ -3,7 +3,10 @@ import type { ApiClient, Folder } from '@ensemble-sheets/core'
 import { onMounted, ref } from 'vue'
 
 const props = defineProps<{
-  api: Pick<ApiClient, 'listFolders' | 'createFolder' | 'renameFolder' | 'moveFolder' | 'deleteFolder'>
+  api: Pick<
+    ApiClient,
+    'listFolders' | 'createFolder' | 'renameFolder' | 'moveFolder' | 'deleteFolder'
+  >
   onSelect: (folder: Folder) => void
 }>()
 

@@ -1,18 +1,22 @@
+import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import WebSocket from 'ws'
-import { sql } from 'drizzle-orm'
-import { db, dbUrl } from './_dbHelpers'
-import { tenants, workbooks } from '../../src/db/schema'
-import { createServer } from '../../src/server'
 import type { IdentityAdapter, PermissionAdapter } from '../../src/adapters/identity'
 import { NoopEventAdapter } from '../../src/adapters/identity'
+import { tenants, workbooks } from '../../src/db/schema'
+import { createServer } from '../../src/server'
+import { db, dbUrl } from './_dbHelpers'
 
 function memStorage() {
   const blobs = new Map<string, Uint8Array>()
   return {
-    put: async (k: string, b: Uint8Array) => { blobs.set(k, b) },
+    put: async (k: string, b: Uint8Array) => {
+      blobs.set(k, b)
+    },
     get: async (k: string) => blobs.get(k) ?? new Uint8Array(),
-    delete: async (k: string) => { blobs.delete(k) },
+    delete: async (k: string) => {
+      blobs.delete(k)
+    },
   }
 }
 
@@ -30,7 +34,9 @@ function wsFirstMessage(url: string): Promise<Record<string, unknown>> {
 }
 
 /** Connect a WS and wait for it to close, collecting the first message if any. */
-function wsFirstMessageAndClose(url: string): Promise<{ msg: Record<string, unknown> | null; closeCode: number }> {
+function wsFirstMessageAndClose(
+  url: string,
+): Promise<{ msg: Record<string, unknown> | null; closeCode: number }> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url)
     let msg: Record<string, unknown> | null = null
@@ -56,7 +62,12 @@ describe('WS welcome', () => {
       },
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [],
     }
     const handle = await createServer({
@@ -79,10 +90,17 @@ describe('WS welcome', () => {
       .values({ tenantId: tenant.id, ownerId: 'u1', name: 'WS-unauth' })
       .returning()
     const identity: IdentityAdapter = {
-      resolveFromToken: async () => { throw new Error('bad token') },
+      resolveFromToken: async () => {
+        throw new Error('bad token')
+      },
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [],
     }
     const handle = await createServer({
@@ -93,10 +111,12 @@ describe('WS welcome', () => {
       event: new NoopEventAdapter(),
     }).listen({ port: 0 })
 
-    const { msg } = await wsFirstMessageAndClose(`ws://127.0.0.1:${handle.port}/api/v1/ws/${wb.id}?token=bad`)
+    const { msg } = await wsFirstMessageAndClose(
+      `ws://127.0.0.1:${handle.port}/api/v1/ws/${wb.id}?token=bad`,
+    )
     expect(msg).not.toBeNull()
-    expect(msg!.type).toBe('error')
-    expect(msg!.code).toBe('unauthorized')
+    expect(msg?.type).toBe('error')
+    expect(msg?.code).toBe('unauthorized')
     await handle.close()
   })
 
@@ -110,7 +130,12 @@ describe('WS welcome', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: false, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: false,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [],
     }
     const handle = await createServer({
@@ -121,10 +146,12 @@ describe('WS welcome', () => {
       event: new NoopEventAdapter(),
     }).listen({ port: 0 })
 
-    const { msg } = await wsFirstMessageAndClose(`ws://127.0.0.1:${handle.port}/api/v1/ws/${wb.id}?token=ok`)
+    const { msg } = await wsFirstMessageAndClose(
+      `ws://127.0.0.1:${handle.port}/api/v1/ws/${wb.id}?token=ok`,
+    )
     expect(msg).not.toBeNull()
-    expect(msg!.type).toBe('error')
-    expect(msg!.code).toBe('forbidden')
+    expect(msg?.type).toBe('error')
+    expect(msg?.code).toBe('forbidden')
     await handle.close()
   })
 
@@ -142,7 +169,12 @@ describe('WS welcome', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: true, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: true,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [],
     }
 
@@ -177,7 +209,12 @@ describe('WS welcome', () => {
       resolveFromToken: async () => ({ tenantId: tenant.id, userId: 'u1' }),
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [],
     }
     const handle = await createServer({
@@ -189,7 +226,9 @@ describe('WS welcome', () => {
     }).listen({ port: 0 })
 
     const nonExistentId = '00000000-0000-0000-0000-000000000000'
-    const frame = await wsFirstMessage(`ws://127.0.0.1:${handle.port}/api/v1/ws/${nonExistentId}?token=ok`)
+    const frame = await wsFirstMessage(
+      `ws://127.0.0.1:${handle.port}/api/v1/ws/${nonExistentId}?token=ok`,
+    )
     expect(frame.type).toBe('error')
     expect(frame.code).toBe('not_found')
     await handle.close()
@@ -197,7 +236,10 @@ describe('WS welcome', () => {
 
   it('welcome snapshot is masked per recipient', async () => {
     const [tenant] = await db.insert(tenants).values({ name: 'ws-mask' }).returning()
-    const [wb] = await db.insert(workbooks).values({ tenantId: tenant.id, ownerId: 'owner', name: 'WB' }).returning()
+    const [wb] = await db
+      .insert(workbooks)
+      .values({ tenantId: tenant.id, ownerId: 'owner', name: 'WB' })
+      .returning()
     const identity: IdentityAdapter = {
       resolveFromToken: async (t) => {
         if (t !== 'ok') throw new Error('bad')
@@ -205,15 +247,30 @@ describe('WS welcome', () => {
       },
     }
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [
-        { match: { type: 'column', sheet: '*', column: 'A' }, action: { type: 'redact', replacement: '***' } },
+        {
+          match: { type: 'column', sheet: '*', column: 'A' },
+          action: { type: 'redact', replacement: '***' },
+        },
       ],
     }
     const memBlobs = new Map<string, Uint8Array>()
     const wbData = {
-      id: wb.id, sheetOrder: ['s1'],
-      sheets: { s1: { id: 's1', name: 's', cellData: { '0': { '0': { v: 'header' } }, '1': { '0': { v: 'secret' } } } } },
+      id: wb.id,
+      sheetOrder: ['s1'],
+      sheets: {
+        s1: {
+          id: 's1',
+          name: 's',
+          cellData: { '0': { '0': { v: 'header' } }, '1': { '0': { v: 'secret' } } },
+        },
+      },
     }
     const key = 'ws-mask-key'
     memBlobs.set(key, new TextEncoder().encode(JSON.stringify(wbData)))
@@ -223,19 +280,28 @@ describe('WS welcome', () => {
     `)
 
     const storage = {
-      put: async (k: string, b: Uint8Array) => { memBlobs.set(k, b) },
+      put: async (k: string, b: Uint8Array) => {
+        memBlobs.set(k, b)
+      },
       get: async (k: string) => memBlobs.get(k) ?? new Uint8Array(),
-      delete: async (k: string) => { memBlobs.delete(k) },
+      delete: async (k: string) => {
+        memBlobs.delete(k)
+      },
     }
     const handle = await createServer({
-      databaseUrl: dbUrl, identity, permission, storage, event: new NoopEventAdapter(),
+      databaseUrl: dbUrl,
+      identity,
+      permission,
+      storage,
+      event: new NoopEventAdapter(),
     }).listen({ port: 0 })
     const ws = new WebSocket(`ws://127.0.0.1:${handle.port}/api/v1/ws/${wb.id}?token=ok`)
-    const frame: { snapshot: { sheets: { s1: { cellData: Record<string, Record<string, { v?: unknown }>> } } } } =
-      await new Promise((resolve, reject) => {
-        ws.once('message', (data) => resolve(JSON.parse(data.toString())))
-        ws.once('error', reject)
-      })
+    const frame: {
+      snapshot: { sheets: { s1: { cellData: Record<string, Record<string, { v?: unknown }>> } } }
+    } = await new Promise((resolve, reject) => {
+      ws.once('message', (data) => resolve(JSON.parse(data.toString())))
+      ws.once('error', reject)
+    })
     expect(frame.snapshot.sheets.s1.cellData['1']['0'].v).toBe('***')
     ws.close()
     await handle.close()

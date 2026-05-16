@@ -26,7 +26,8 @@ test('two contexts share state via REST reflection', async ({ browser }) => {
 
   await pageA.evaluate(async (id) => {
     const payload = {
-      id, sheetOrder: ['s1'],
+      id,
+      sheetOrder: ['s1'],
       sheets: { s1: { id: 's1', name: 'S', cellData: { '0': { '0': { v: 42 } } } } },
     }
     const r = await fetch(`/api/v1/workbooks/${id}/snapshots?reason=manual`, {
@@ -48,5 +49,6 @@ test('two contexts share state via REST reflection', async ({ browser }) => {
   }, wbId)
   expect(v).toBe(42)
 
-  await ctxA.close(); await ctxB.close()
+  await ctxA.close()
+  await ctxB.close()
 })

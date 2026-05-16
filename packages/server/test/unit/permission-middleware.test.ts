@@ -1,9 +1,12 @@
 import { Hono } from 'hono'
 import { describe, expect, it } from 'vitest'
-import { requireCapability } from '../../src/http/permission'
 import type { PermissionAdapter } from '../../src/adapters/identity'
+import { requireCapability } from '../../src/http/permission'
 
-function appWith(permission: PermissionAdapter, capability: 'canView' | 'canEdit' | 'canShare' | 'canDelete') {
+function appWith(
+  permission: PermissionAdapter,
+  capability: 'canView' | 'canEdit' | 'canShare' | 'canDelete',
+) {
   const app = new Hono()
   app.use('*', async (c, next) => {
     c.set('deps' as never, { permission } as never)
@@ -13,10 +16,11 @@ function appWith(permission: PermissionAdapter, capability: 'canView' | 'canEdit
   app.get(
     '/wb/:id',
     requireCapability(capability, (c) => ({
-      type: 'workbook', id: c.req.param('id'),
+      type: 'workbook',
+      id: c.req.param('id'),
       tenantId: c.get('identity' as never).tenantId,
     })) as never,
-    (c) => c.json({ ok: true })
+    (c) => c.json({ ok: true }),
   )
   return app
 }
@@ -24,7 +28,12 @@ function appWith(permission: PermissionAdapter, capability: 'canView' | 'canEdit
 describe('requireCapability', () => {
   it('passes when capability is true', async () => {
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: true, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: true,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [],
     }
     const res = await appWith(permission, 'canView').request('/wb/abc')
@@ -33,7 +42,12 @@ describe('requireCapability', () => {
 
   it('403 when capability is false', async () => {
     const permission: PermissionAdapter = {
-      getCapabilities: async () => ({ canView: false, canEdit: false, canShare: false, canDelete: false }),
+      getCapabilities: async () => ({
+        canView: false,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+      }),
       getMaskRules: async () => [],
     }
     const res = await appWith(permission, 'canView').request('/wb/abc')
@@ -42,7 +56,9 @@ describe('requireCapability', () => {
 
   it('500 when adapter throws', async () => {
     const permission: PermissionAdapter = {
-      getCapabilities: async () => { throw new Error('exploded') },
+      getCapabilities: async () => {
+        throw new Error('exploded')
+      },
       getMaskRules: async () => [],
     }
     const res = await appWith(permission, 'canEdit').request('/wb/x')

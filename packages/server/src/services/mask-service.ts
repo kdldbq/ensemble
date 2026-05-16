@@ -18,15 +18,20 @@ function columnLetterToIndex(letter: string): number {
   return n - 1
 }
 
-function maskCell(cell: { v?: unknown; m?: string }, action: MaskRule['action']): { v: unknown; m?: string } {
+function maskCell(
+  cell: { v?: unknown; m?: string },
+  action: MaskRule['action'],
+): { v: unknown; m?: string } {
   if (cell.v === undefined || cell.v === null) return cell as { v: unknown }
   switch (action.type) {
-    case 'redact': return { v: action.replacement }
+    case 'redact':
+      return { v: action.replacement }
     case 'hash': {
       const h = createHash('sha256').update(String(cell.v)).digest('hex').slice(0, 8)
-      return { v: '#' + h }
+      return { v: `#${h}` }
     }
-    case 'remove': return { v: null }
+    case 'remove':
+      return { v: null }
   }
 }
 
@@ -80,9 +85,11 @@ function applyToSheet(sheet: SheetData, rule: MaskRule): void {
       if (!row) continue
       const predicateCell = row[String(predicateColIdx)]
       if (!predicateCell) continue
-      const ok = rule.match.where.op === 'eq'
-        ? predicateCell.v === rule.match.where.value
-        : Array.isArray(rule.match.where.value) && rule.match.where.value.includes(predicateCell.v)
+      const ok =
+        rule.match.where.op === 'eq'
+          ? predicateCell.v === rule.match.where.value
+          : Array.isArray(rule.match.where.value) &&
+            rule.match.where.value.includes(predicateCell.v)
       if (!ok) continue
       for (const colStr of Object.keys(row)) {
         const cell = row[colStr]

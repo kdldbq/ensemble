@@ -17,9 +17,9 @@ export async function setup() {
     new PostgreSqlContainer('postgres:16').start(),
     new RedisContainer('redis:7-alpine').start(),
   ])
-  process.env['REDIS_URL'] = redisContainer.getConnectionUrl()
+  process.env.REDIS_URL = redisContainer.getConnectionUrl()
   const url = container.getConnectionUri()
-  process.env['DATABASE_URL'] = url
+  process.env.DATABASE_URL = url
 
   const sql = postgres(url, { max: 1 })
   await migrate(drizzle(sql), { migrationsFolder: './drizzle' })
@@ -39,7 +39,7 @@ export async function setup() {
   const appUrl = new URL(url)
   appUrl.username = 'app_user'
   appUrl.password = 'app_user'
-  process.env['APP_DATABASE_URL'] = appUrl.toString()
+  process.env.APP_DATABASE_URL = appUrl.toString()
 }
 
 export async function teardown() {

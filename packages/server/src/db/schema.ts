@@ -1,5 +1,17 @@
 import { sql } from 'drizzle-orm'
-import { bigint, bigserial, boolean, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import {
+  bigint,
+  bigserial,
+  boolean,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
 
 export const spaceType = pgEnum('space_type', ['personal', 'shared'])
 export const snapshotReason = pgEnum('snapshot_reason', ['auto', 'manual', 'named'])
@@ -12,7 +24,9 @@ export const tenants = pgTable('tenants', {
 
 export const folders = pgTable('folders', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id),
   parentId: uuid('parent_id'),
   name: text('name').notNull(),
   ownerId: text('owner_id').notNull(),
@@ -24,7 +38,9 @@ export const folders = pgTable('folders', {
 
 export const workbooks = pgTable('workbooks', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id),
   folderId: uuid('folder_id').references(() => folders.id),
   name: text('name').notNull(),
   ownerId: text('owner_id').notNull(),
@@ -36,7 +52,9 @@ export const workbooks = pgTable('workbooks', {
 
 export const snapshots = pgTable('snapshots', {
   id: uuid('id').primaryKey().defaultRandom(),
-  workbookId: uuid('workbook_id').notNull().references(() => workbooks.id),
+  workbookId: uuid('workbook_id')
+    .notNull()
+    .references(() => workbooks.id),
   storageKey: text('storage_key').notNull(),
   sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
   createdBy: text('created_by').notNull(),
@@ -51,7 +69,9 @@ export const permissionLevel = pgEnum('permission_level', ['view', 'edit', 'mana
 
 export const shareGrants = pgTable('share_grants', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id),
   resourceType: grantResourceType('resource_type').notNull(),
   resourceId: uuid('resource_id').notNull(),
   granteeType: granteeType('grantee_type').notNull(),
@@ -66,7 +86,9 @@ export const mutations = pgTable(
   'mutations',
   {
     id: bigserial('id', { mode: 'bigint' }).primaryKey(),
-    workbookId: uuid('workbook_id').notNull().references(() => workbooks.id),
+    workbookId: uuid('workbook_id')
+      .notNull()
+      .references(() => workbooks.id),
     seqNum: bigint('seq_num', { mode: 'number' }).notNull(),
     userId: text('user_id').notNull(),
     appliedAt: timestamp('applied_at', { withTimezone: true }).notNull().defaultNow(),
@@ -75,19 +97,24 @@ export const mutations = pgTable(
   (t) => ({
     workbookSeqUnique: uniqueIndex('mutations_workbook_seq_unique').on(t.workbookId, t.seqNum),
     workbookSeqAsc: index('mutations_workbook_seq_idx').on(t.workbookId, t.seqNum),
-  })
+  }),
 )
 
 export const auditEventType = pgEnum('audit_event_type', [
-  'workbook.created', 'workbook.opened', 'workbook.edited',
-  'folder.created', 'share.granted',
+  'workbook.created',
+  'workbook.opened',
+  'workbook.edited',
+  'folder.created',
+  'share.granted',
 ])
 
 export const auditLog = pgTable(
   'audit_log',
   {
     id: bigserial('id', { mode: 'bigint' }).primaryKey(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
     eventType: auditEventType('event_type').notNull(),
     actorId: text('actor_id').notNull(),
     resourceId: uuid('resource_id'),
@@ -96,5 +123,5 @@ export const auditLog = pgTable(
   },
   (t) => ({
     tenantOccurredIdx: index('audit_log_tenant_occurred_idx').on(t.tenantId, t.occurredAt),
-  })
+  }),
 )

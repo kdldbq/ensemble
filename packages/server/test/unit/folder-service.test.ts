@@ -3,7 +3,10 @@ import { wouldCreateCycle } from '../../src/services/folder-service'
 
 describe('wouldCreateCycle', () => {
   const tree = new Map<string, string | null>([
-    ['root', null], ['a', 'root'], ['b', 'a'], ['c', 'b'],
+    ['root', null],
+    ['a', 'root'],
+    ['b', 'a'],
+    ['c', 'b'],
   ])
   const parentOf = async (id: string) => tree.get(id) ?? null
 

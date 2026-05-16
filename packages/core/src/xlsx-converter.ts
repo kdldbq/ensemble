@@ -31,7 +31,7 @@ export function xlsxToUniverJson(bytes: Uint8Array): UniverWorkbookData {
     }
     sheets[id] = { id, name, cellData }
   })
-  return { id: 'wb-' + crypto.randomUUID(), sheetOrder, sheets }
+  return { id: `wb-${crypto.randomUUID()}`, sheetOrder, sheets }
 }
 
 export function univerJsonToXlsx(data: UniverWorkbookData): Uint8Array {

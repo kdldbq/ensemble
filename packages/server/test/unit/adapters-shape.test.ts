@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  NoopEventAdapter,
   NotImplementedIdentityAdapter,
   NotImplementedPermissionAdapter,
-  NoopEventAdapter,
 } from '../../src/adapters/identity'
 import type {
+  EventAdapter,
   IdentityAdapter,
   PermissionAdapter,
   StorageAdapter,
-  EventAdapter,
 } from '../../src/index'
 
 describe('adapter contracts', () => {
@@ -20,14 +20,22 @@ describe('adapter contracts', () => {
   it('NotImplementedPermissionAdapter rejects on getCapabilities', async () => {
     const a: PermissionAdapter = new NotImplementedPermissionAdapter()
     await expect(
-      a.getCapabilities({ tenantId: 't', userId: 'u' }, { type: 'workbook', id: 'w', tenantId: 't' })
+      a.getCapabilities(
+        { tenantId: 't', userId: 'u' },
+        { type: 'workbook', id: 'w', tenantId: 't' },
+      ),
     ).rejects.toThrow(/not implemented/i)
   })
 
   it('NoopEventAdapter resolves silently', async () => {
     const a: EventAdapter = new NoopEventAdapter()
     await expect(
-      a.publish({ type: 'workbook.opened', workbookId: 'w', userId: 'u', at: new Date().toISOString() })
+      a.publish({
+        type: 'workbook.opened',
+        workbookId: 'w',
+        userId: 'u',
+        at: new Date().toISOString(),
+      }),
     ).resolves.toBeUndefined()
   })
 

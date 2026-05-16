@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { buildApp } from '../../src/http/app'
-import { db } from './_dbHelpers'
-import { tenants } from '../../src/db/schema'
 import { NoopEventAdapter } from '../../src/adapters/identity'
 import type { IdentityAdapter, PermissionAdapter } from '../../src/adapters/identity'
+import { tenants } from '../../src/db/schema'
+import { buildApp } from '../../src/http/app'
+import { db } from './_dbHelpers'
 
 function deps(identity: IdentityAdapter) {
   const permission: PermissionAdapter = {
-    getCapabilities: async () => ({ canView: true, canEdit: true, canShare: true, canDelete: true }),
+    getCapabilities: async () => ({
+      canView: true,
+      canEdit: true,
+      canShare: true,
+      canDelete: true,
+    }),
     getMaskRules: async () => [],
   }
   return {
@@ -36,7 +41,9 @@ describe('workbooks REST', () => {
     const wb = (await created.json()) as { id: string; name: string }
     expect(wb.name).toBe('Grades')
 
-    const got = await app.request(`/api/v1/workbooks/${wb.id}`, { headers: { Authorization: 'Bearer x' } })
+    const got = await app.request(`/api/v1/workbooks/${wb.id}`, {
+      headers: { Authorization: 'Bearer x' },
+    })
     expect(got.status).toBe(200)
     expect(((await got.json()) as { id: string }).id).toBe(wb.id)
   })
@@ -44,8 +51,12 @@ describe('workbooks REST', () => {
   it('LIST returns only my tenant', async () => {
     const [a] = await db.insert(tenants).values({ name: 't-a' }).returning()
     const [b] = await db.insert(tenants).values({ name: 't-b' }).returning()
-    const idA: IdentityAdapter = { resolveFromToken: async () => ({ tenantId: a.id, userId: 'u1' }) }
-    const idB: IdentityAdapter = { resolveFromToken: async () => ({ tenantId: b.id, userId: 'u2' }) }
+    const idA: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: a.id, userId: 'u1' }),
+    }
+    const idB: IdentityAdapter = {
+      resolveFromToken: async () => ({ tenantId: b.id, userId: 'u2' }),
+    }
     const appA = buildApp(deps(idA))
     const appB = buildApp(deps(idB))
     await appA.request('/api/v1/workbooks', {
@@ -92,7 +103,9 @@ describe('workbooks REST', () => {
       headers: { Authorization: 'Bearer x' },
     })
     expect(del.status).toBe(204)
-    const got = await app.request(`/api/v1/workbooks/${wb.id}`, { headers: { Authorization: 'Bearer x' } })
+    const got = await app.request(`/api/v1/workbooks/${wb.id}`, {
+      headers: { Authorization: 'Bearer x' },
+    })
     expect(got.status).toBe(404)
   })
 })

@@ -12,10 +12,14 @@ describe('withTenant', () => {
     const fakeDb = {
       transaction: async (fn: (tx: typeof fakeTx) => Promise<unknown>) => fn(fakeTx),
     }
-    const result = await withTenant(fakeDb as never, '11111111-1111-1111-1111-111111111111', async (tx) => {
-      await tx.execute('SELECT 1')
-      return 'ok'
-    })
+    const result = await withTenant(
+      fakeDb as never,
+      '11111111-1111-1111-1111-111111111111',
+      async (tx) => {
+        await tx.execute('SELECT 1')
+        return 'ok'
+      },
+    )
     expect(result).toBe('ok')
     expect(calls[0]).toMatch(/set_config/i)
     expect(calls[1]).toBe('SELECT 1')

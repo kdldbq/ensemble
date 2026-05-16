@@ -11,11 +11,21 @@ export interface RoomOpts {
 export function createCollabRoom(opts: RoomOpts) {
   const clients = new Map<string, Client>()
   return {
-    get workbookId() { return opts.workbookId },
-    addClient(c: Client): void { clients.set(c.clientId, c) },
-    removeClient(clientId: string): void { clients.delete(clientId) },
-    listClients(): Client[] { return Array.from(clients.values()) },
-    getClient(clientId: string): Client | undefined { return clients.get(clientId) },
+    get workbookId() {
+      return opts.workbookId
+    },
+    addClient(c: Client): void {
+      clients.set(c.clientId, c)
+    },
+    removeClient(clientId: string): void {
+      clients.delete(clientId)
+    },
+    listClients(): Client[] {
+      return Array.from(clients.values())
+    },
+    getClient(clientId: string): Client | undefined {
+      return clients.get(clientId)
+    },
     broadcast(frame: unknown): void {
       for (const c of clients.values()) c.send(frame)
     },
@@ -24,7 +34,9 @@ export function createCollabRoom(opts: RoomOpts) {
         if (c.clientId !== excludeClientId) c.send(frame)
       }
     },
-    size(): number { return clients.size },
+    size(): number {
+      return clients.size
+    },
   }
 }
 
@@ -41,9 +53,15 @@ export function createRoomRegistry() {
       }
       return room
     },
-    get(workbookId: string): CollabRoom | undefined { return rooms.get(workbookId) },
-    drop(workbookId: string): void { rooms.delete(workbookId) },
-    size(): number { return rooms.size },
+    get(workbookId: string): CollabRoom | undefined {
+      return rooms.get(workbookId)
+    },
+    drop(workbookId: string): void {
+      rooms.delete(workbookId)
+    },
+    size(): number {
+      return rooms.size
+    },
   }
 }
 

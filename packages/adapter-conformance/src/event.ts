@@ -8,7 +8,13 @@ export function runEventConformance(name: string, adapterFactory: () => EventAda
       const events: EnsembleEvent[] = [
         { type: 'workbook.created', workbookId: 'w', userId: 'u', at: new Date().toISOString() },
         { type: 'workbook.opened', workbookId: 'w', userId: 'u', at: new Date().toISOString() },
-        { type: 'workbook.edited', workbookId: 'w', userId: 'u', batchedOpsCount: 0, at: new Date().toISOString() },
+        {
+          type: 'workbook.edited',
+          workbookId: 'w',
+          userId: 'u',
+          batchedOpsCount: 0,
+          at: new Date().toISOString(),
+        },
         { type: 'folder.created', folderId: 'f', userId: 'u', at: new Date().toISOString() },
         { type: 'share.granted', grantId: 'g', grantedBy: 'u', at: new Date().toISOString() },
       ]

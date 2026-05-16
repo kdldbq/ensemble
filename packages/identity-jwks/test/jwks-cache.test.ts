@@ -25,7 +25,8 @@ describe('JwksCache', () => {
     let call = 0
     const fetch = makeFetch(() => {
       call += 1
-      if (call === 1) return new Response(JSON.stringify({ keys: [sampleJwks.keys[0]] }), { status: 200 })
+      if (call === 1)
+        return new Response(JSON.stringify({ keys: [sampleJwks.keys[0]] }), { status: 200 })
       return new Response(JSON.stringify(sampleJwks), { status: 200 })
     })
     const cache = new JwksCache({ jwksUrl: 'https://x/jwks', fetch })
@@ -36,7 +37,9 @@ describe('JwksCache', () => {
   })
 
   it('throws after refresh if kid still missing', async () => {
-    const fetch = makeFetch(() => new Response(JSON.stringify({ keys: [sampleJwks.keys[0]] }), { status: 200 }))
+    const fetch = makeFetch(
+      () => new Response(JSON.stringify({ keys: [sampleJwks.keys[0]] }), { status: 200 }),
+    )
     const cache = new JwksCache({ jwksUrl: 'https://x/jwks', fetch })
     await expect(cache.getKey('unknown-kid')).rejects.toThrow(/kid/i)
   })

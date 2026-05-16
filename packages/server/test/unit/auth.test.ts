@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { describe, expect, it } from 'vitest'
-import { requireIdentity } from '../../src/http/auth'
 import type { IdentityAdapter } from '../../src/adapters/identity'
+import { requireIdentity } from '../../src/http/auth'
 
 function appWith(identity: IdentityAdapter) {
   const app = new Hono()

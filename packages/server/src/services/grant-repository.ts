@@ -13,11 +13,11 @@ import type { Grant } from './grant-service'
 async function warnIfNoTenantContext(db: Database, op: string): Promise<void> {
   try {
     const rows = await db.execute<{ ctx: string | null }>(
-      sql`SELECT current_setting('app.tenant_id', true) AS ctx`
+      sql`SELECT current_setting('app.tenant_id', true) AS ctx`,
     )
     if (!rows[0]?.ctx) {
       console.warn(
-        `grant-repository: ${op} called without app.tenant_id — RLS will silently return 0 rows. Wrap in withTenant().`
+        `grant-repository: ${op} called without app.tenant_id — RLS will silently return 0 rows. Wrap in withTenant().`,
       )
     }
   } catch {
@@ -49,7 +49,7 @@ export function createGrantRepository(db: Database) {
     },
 
     async findGrants(
-      refs: Array<{ resourceType: 'folder' | 'workbook'; resourceId: string }>
+      refs: Array<{ resourceType: 'folder' | 'workbook'; resourceId: string }>,
     ): Promise<Grant[]> {
       await warnIfNoTenantContext(db, 'findGrants')
       if (refs.length === 0) return []
@@ -57,13 +57,23 @@ export function createGrantRepository(db: Database) {
       const workbookIds = refs.filter((r) => r.resourceType === 'workbook').map((r) => r.resourceId)
       const conditions = []
       if (folderIds.length) {
-        conditions.push(and(eq(shareGrants.resourceType, 'folder'), inArray(shareGrants.resourceId, folderIds)))
+        conditions.push(
+          and(eq(shareGrants.resourceType, 'folder'), inArray(shareGrants.resourceId, folderIds)),
+        )
       }
       if (workbookIds.length) {
-        conditions.push(and(eq(shareGrants.resourceType, 'workbook'), inArray(shareGrants.resourceId, workbookIds)))
+        conditions.push(
+          and(
+            eq(shareGrants.resourceType, 'workbook'),
+            inArray(shareGrants.resourceId, workbookIds),
+          ),
+        )
       }
       if (conditions.length === 0) return []
-      const rows = await db.select().from(shareGrants).where(or(...conditions))
+      const rows = await db
+        .select()
+        .from(shareGrants)
+        .where(or(...conditions))
       return rows.map((r) => ({
         resourceType: r.resourceType,
         resourceId: r.resourceId,

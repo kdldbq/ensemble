@@ -2,8 +2,16 @@ import { and, eq } from 'drizzle-orm'
 import type { Database } from '../db/client'
 import { workbooks } from '../db/schema'
 
-export interface CreateInput { tenantId: string; userId: string; name: string; folderId?: string }
-export interface RefInput { tenantId: string; id: string }
+export interface CreateInput {
+  tenantId: string
+  userId: string
+  name: string
+  folderId?: string
+}
+export interface RefInput {
+  tenantId: string
+  id: string
+}
 
 export function createWorkbookService(db: Database) {
   return {
@@ -23,7 +31,13 @@ export function createWorkbookService(db: Database) {
       const rows = await db
         .select()
         .from(workbooks)
-        .where(and(eq(workbooks.id, input.id), eq(workbooks.tenantId, input.tenantId), eq(workbooks.isDeleted, false)))
+        .where(
+          and(
+            eq(workbooks.id, input.id),
+            eq(workbooks.tenantId, input.tenantId),
+            eq(workbooks.isDeleted, false),
+          ),
+        )
         .limit(1)
       return rows[0] ?? null
     },

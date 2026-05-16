@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
+import type { AppEnv } from '../app'
 import { requireIdentity } from '../auth'
 import { requireCapability } from '../permission'
-import type { AppEnv } from '../app'
 
 export const workbooksRoute = new Hono<AppEnv>()
   .use('*', requireIdentity)
@@ -10,9 +10,19 @@ export const workbooksRoute = new Hono<AppEnv>()
     const svc = c.get('services').workbooks
     const body = (await c.req.json()) as { name?: string; folderId?: string }
     if (!body.name) return c.json({ error: 'name required' }, 400)
-    const wb = await svc.create({ tenantId: id.tenantId, userId: id.userId, name: body.name, ...(body.folderId !== undefined ? { folderId: body.folderId } : {}) })
+    const wb = await svc.create({
+      tenantId: id.tenantId,
+      userId: id.userId,
+      name: body.name,
+      ...(body.folderId !== undefined ? { folderId: body.folderId } : {}),
+    })
     if (!wb) throw new Error('insert returned no row')
-    void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'workbook.created', resourceId: wb.id })
+    void c.get('services').events.emit({
+      tenantId: id.tenantId,
+      actorId: id.userId,
+      type: 'workbook.created',
+      resourceId: wb.id,
+    })
     return c.json(wb, 201)
   })
   .get('/api/v1/workbooks', async (c) => {
@@ -30,18 +40,33 @@ export const workbooksRoute = new Hono<AppEnv>()
   })
   .get(
     '/api/v1/workbooks/:id',
-    requireCapability('canView', (c) => ({ type: 'workbook', id: c.req.param('id'), tenantId: c.get('identity')!.tenantId })),
+    requireCapability('canView', (c) => ({
+      type: 'workbook',
+      id: c.req.param('id'),
+      tenantId: c.get('identity')?.tenantId,
+    })),
     async (c) => {
       const id = c.get('identity')!
-      const wb = await c.get('services').workbooks.get({ tenantId: id.tenantId, id: c.req.param('id') })
+      const wb = await c
+        .get('services')
+        .workbooks.get({ tenantId: id.tenantId, id: c.req.param('id') })
       if (!wb) return c.json({ error: 'not found' }, 404)
-      void c.get('services').events.emit({ tenantId: id.tenantId, actorId: id.userId, type: 'workbook.opened', resourceId: wb.id })
+      void c.get('services').events.emit({
+        tenantId: id.tenantId,
+        actorId: id.userId,
+        type: 'workbook.opened',
+        resourceId: wb.id,
+      })
       return c.json(wb)
     },
   )
   .delete(
     '/api/v1/workbooks/:id',
-    requireCapability('canDelete', (c) => ({ type: 'workbook', id: c.req.param('id'), tenantId: c.get('identity')!.tenantId })),
+    requireCapability('canDelete', (c) => ({
+      type: 'workbook',
+      id: c.req.param('id'),
+      tenantId: c.get('identity')?.tenantId,
+    })),
     async (c) => {
       const id = c.get('identity')!
       await c.get('services').workbooks.softDelete({ tenantId: id.tenantId, id: c.req.param('id') })

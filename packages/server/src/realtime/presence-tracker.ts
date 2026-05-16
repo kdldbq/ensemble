@@ -39,7 +39,10 @@ export function createPresenceTracker(opts: { evictAfterMs: number }) {
   return {
     heartbeat(input: HeartbeatInput): void {
       let m = byWorkbook.get(input.workbookId)
-      if (!m) { m = new Map(); byWorkbook.set(input.workbookId, m) }
+      if (!m) {
+        m = new Map()
+        byWorkbook.set(input.workbookId, m)
+      }
       m.set(input.clientId, {
         clientId: input.clientId,
         userId: input.userId,

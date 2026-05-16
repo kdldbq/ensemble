@@ -2,7 +2,7 @@ import type { Redis } from '../redis/client'
 
 export async function scanLocks(
   redis: Redis,
-  workbookId: string
+  workbookId: string,
 ): Promise<Array<{ region: string; ownerId: string }>> {
   const prefix = `ensemble:lock:${workbookId}:`
   const out: Array<{ region: string; ownerId: string }> = []
@@ -14,15 +14,23 @@ export async function scanLocks(
       const values = await redis.mget(...keys)
       for (let i = 0; i < keys.length; i++) {
         const v = values[i]
-        if (v) out.push({ region: keys[i]!.slice(prefix.length), ownerId: v })
+        if (v) out.push({ region: keys[i]?.slice(prefix.length), ownerId: v })
       }
     }
   } while (cursor !== '0')
   return out
 }
 
-export interface AcquireInput { workbookId: string; region: string; userId: string }
-export interface AcquireResult { acquired: boolean; ownerId: string; ttlSec: number }
+export interface AcquireInput {
+  workbookId: string
+  region: string
+  userId: string
+}
+export interface AcquireResult {
+  acquired: boolean
+  ownerId: string
+  ttlSec: number
+}
 
 const RELEASE_SCRIPT = `
 if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -59,11 +67,22 @@ export function createCellLockManager(opts: { redis: Redis; ttlSec: number }) {
       return { acquired: false, ownerId, ttlSec }
     },
     async release(input: AcquireInput): Promise<boolean> {
-      const result = (await redis.eval(RELEASE_SCRIPT, 1, lockKey(input.workbookId, input.region), input.userId)) as number
+      const result = (await redis.eval(
+        RELEASE_SCRIPT,
+        1,
+        lockKey(input.workbookId, input.region),
+        input.userId,
+      )) as number
       return result === 1
     },
     async renew(input: AcquireInput): Promise<boolean> {
-      const result = (await redis.eval(RENEW_SCRIPT, 1, lockKey(input.workbookId, input.region), input.userId, String(ttlSec))) as number
+      const result = (await redis.eval(
+        RENEW_SCRIPT,
+        1,
+        lockKey(input.workbookId, input.region),
+        input.userId,
+        String(ttlSec),
+      )) as number
       return result === 1
     },
     async ownerOf(input: { workbookId: string; region: string }): Promise<string | null> {
