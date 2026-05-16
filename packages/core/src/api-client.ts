@@ -1,4 +1,4 @@
-import type { Folder, Grant, Snapshot, UniverWorkbookData, Workbook } from './types'
+import type { Folder, Grant, Snapshot, UniverWorkbookData, Version, Workbook } from './types'
 
 export interface ApiClientOpts {
   baseUrl: string
@@ -116,5 +116,21 @@ export class ApiClient {
   }
   async deleteGrant(id: string): Promise<void> {
     await this.req(`/api/v1/grants/${id}`, { method: 'DELETE' })
+  }
+
+  async listVersions(workbookId: string): Promise<{ items: Version[] }> {
+    return (await this.req(`/api/v1/workbooks/${workbookId}/versions`)).json() as Promise<{ items: Version[] }>
+  }
+  async createVersion(workbookId: string, name: string): Promise<Version> {
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/versions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    return res.json() as Promise<Version>
+  }
+  async restoreVersion(workbookId: string, versionId: string): Promise<{ id: string }> {
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/restore/${versionId}`, { method: 'POST' })
+    return res.json() as Promise<{ id: string }>
   }
 }

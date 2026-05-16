@@ -107,3 +107,21 @@ describe('ApiClient folders + grants', () => {
     await api.deleteGrant('g1')
   })
 })
+
+describe('ApiClient versions', () => {
+  it('listVersions / createVersion / restoreVersion', async () => {
+    const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST' && url.endsWith('/versions'))
+        return new Response(JSON.stringify({ id: 'v1', name: 'V1' }), { status: 201 })
+      if (init?.method === 'POST' && url.includes('/restore/'))
+        return new Response(JSON.stringify({ id: 'r1' }), { status: 201 })
+      return new Response(JSON.stringify({ items: [{ id: 'v1', name: 'V1' }] }), { status: 200 })
+    })
+    const api = new ApiClient({ baseUrl: 'https://x', token: async () => 't', fetch })
+    expect((await api.listVersions('wb1')).items).toEqual([{ id: 'v1', name: 'V1' }])
+    const v = await api.createVersion('wb1', 'V1')
+    expect(v.id).toBe('v1')
+    const r = await api.restoreVersion('wb1', 'v1')
+    expect(r.id).toBe('r1')
+  })
+})

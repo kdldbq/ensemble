@@ -56,3 +56,11 @@ export interface Grant {
   grantedBy: string
   grantedAt: string
 }
+
+export interface Version {
+  id: string
+  workbookId: string
+  name: string
+  createdBy: string
+  createdAt: string
+}
