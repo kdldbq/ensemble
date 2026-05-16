@@ -28,13 +28,34 @@ import {
   UniverInstanceType,
 } from '@univerjs/core'
 import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
+import { UniverDocsDrawingUIPlugin } from '@univerjs/docs-drawing-ui'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverFindReplacePlugin } from '@univerjs/find-replace'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsConditionalFormattingPlugin } from '@univerjs/sheets-conditional-formatting'
+import { UniverSheetsConditionalFormattingUIPlugin } from '@univerjs/sheets-conditional-formatting-ui'
+import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
+import { UniverSheetsDataValidationUIPlugin } from '@univerjs/sheets-data-validation-ui'
+import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
+import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverSheetsFilterUIPlugin } from '@univerjs/sheets-filter-ui'
+import { UniverSheetsFindReplacePlugin } from '@univerjs/sheets-find-replace'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
+import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
+import { UniverSheetsSortPlugin } from '@univerjs/sheets-sort'
+import { UniverSheetsSortUIPlugin } from '@univerjs/sheets-sort-ui'
+import { UniverSheetsThreadCommentPlugin } from '@univerjs/sheets-thread-comment'
+import { UniverSheetsThreadCommentUIPlugin } from '@univerjs/sheets-thread-comment-ui'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+import { UniverThreadCommentPlugin } from '@univerjs/thread-comment'
+import { UniverThreadCommentUIPlugin } from '@univerjs/thread-comment-ui'
 import { UniverUIPlugin } from '@univerjs/ui'
 import type { UniverWorkbookData } from './types'
 
@@ -97,19 +118,51 @@ export function createEditor(opts: EditorOpts): Editor {
   // any createUnit fires. This is the only order that gives the cell-editor doc
   // unit a chance to bootstrap properly — splitting sync vs async, or reordering
   // any of these, leaves you with a renderable grid that won't accept typing.
+  // Engines first
   univer.registerPlugin(UniverRenderEnginePlugin)
   univer.registerPlugin(UniverFormulaEnginePlugin)
+  // UI shell
   univer.registerPlugin(UniverUIPlugin, { container: opts.container })
+  // Drawing base (must come before docs/sheets drawing)
+  univer.registerPlugin(UniverDrawingPlugin)
+  // Docs stack
   univer.registerPlugin(UniverDocsPlugin)
   univer.registerPlugin(UniverDocsUIPlugin)
+  univer.registerPlugin(UniverDocsDrawingPlugin)
+  univer.registerPlugin(UniverDocsDrawingUIPlugin)
+  // Sheets core
   univer.registerPlugin(UniverSheetsPlugin)
   univer.registerPlugin(UniverSheetsUIPlugin)
+  // Number formatting (currency, %, date)
+  univer.registerPlugin(UniverSheetsNumfmtPlugin)
+  univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
+  // Formulas — sheets-formula-ui registers the FormulaEditor React component used
+  // as the actual cell <input>. Without it, typing in cells silently no-ops.
   univer.registerPlugin(UniverSheetsFormulaPlugin)
-  // Critical: in Univer 0.22 the FormulaEditor React component (the actual <input>
-  // that appears when you type in a cell) lives in @univerjs/sheets-formula-ui, split
-  // out from sheets-formula. Without this plugin, sheets-ui's EditorContainer renders
-  // an empty div over the cell, selection works but keystrokes silently no-op.
   univer.registerPlugin(UniverSheetsFormulaUIPlugin)
+  // Conditional formatting
+  univer.registerPlugin(UniverSheetsConditionalFormattingPlugin)
+  univer.registerPlugin(UniverSheetsConditionalFormattingUIPlugin)
+  // Data validation (dropdowns, etc.)
+  univer.registerPlugin(UniverSheetsDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsDataValidationUIPlugin)
+  // Filters
+  univer.registerPlugin(UniverSheetsFilterPlugin)
+  univer.registerPlugin(UniverSheetsFilterUIPlugin)
+  // Sort
+  univer.registerPlugin(UniverSheetsSortPlugin)
+  univer.registerPlugin(UniverSheetsSortUIPlugin)
+  // Find & replace
+  univer.registerPlugin(UniverFindReplacePlugin)
+  univer.registerPlugin(UniverSheetsFindReplacePlugin)
+  // Sheets drawing (images, shapes)
+  univer.registerPlugin(UniverSheetsDrawingPlugin)
+  univer.registerPlugin(UniverSheetsDrawingUIPlugin)
+  // Comments (Google-Sheets-style threads)
+  univer.registerPlugin(UniverThreadCommentPlugin)
+  univer.registerPlugin(UniverThreadCommentUIPlugin)
+  univer.registerPlugin(UniverSheetsThreadCommentPlugin)
+  univer.registerPlugin(UniverSheetsThreadCommentUIPlugin)
 
   const injector = univer.__getInjector()
 
