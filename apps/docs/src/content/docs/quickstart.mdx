@@ -1,0 +1,50 @@
+---
+title: Quickstart
+description: Run ensemble locally in under five minutes.
+---
+
+## Prerequisites
+
+- Node 20+, pnpm 9
+- Docker (for Postgres + Redis)
+
+## Clone + install
+
+```bash
+git clone https://github.com/kdldbq/ensemble.git
+cd ensemble
+pnpm install
+```
+
+## Start the demo
+
+```bash
+pnpm --filter @ensemble/demo db:up     # Postgres on :54320, Redis on :63790
+pnpm --filter @ensemble/server build
+DATABASE_URL=postgres://postgres:postgres@localhost:54320/ensemble_dev \
+  pnpm --filter @ensemble/server exec node dist/db/migrate.js
+pnpm --filter @ensemble/demo dev
+```
+
+Open http://localhost:5173. You'll see a two-pane editor — left is `admin`,
+right is `viewer`. Type any value in admin's column B and save — viewer's
+column B shows `***` (mask rule defined in the demo's PermissionAdapter).
+
+## Embed in your React app
+
+```bash
+pnpm add @ensemble/react @ensemble/core
+```
+
+```tsx
+import { WorkbookEditor } from '@ensemble/react'
+
+<WorkbookEditor
+  workbookId="<uuid>"
+  apiBaseUrl="https://api.your-host.com"
+  wsBaseUrl="wss://api.your-host.com"
+  token={async () => await getJwtFromYourHost()}
+/>
+```
+
+See [REST endpoints](/api/rest/) and [WebSocket protocol](/api/ws-protocol/).
