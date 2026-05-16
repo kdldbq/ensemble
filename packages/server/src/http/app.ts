@@ -23,6 +23,7 @@ import { snapshotsRoute } from './routes/snapshots'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
 import { versionsRoute } from './routes/versions'
+import { exportXlsxRoute } from './routes/export-xlsx'
 import type { GrantBody } from './routes/grants'
 import type { shareGrants } from '../db/schema'
 
@@ -100,5 +101,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', foldersRoute)
   app.route('/', grantsRoute)
   app.route('/', versionsRoute)
+  app.route('/', exportXlsxRoute)
   return app
 }
