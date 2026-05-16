@@ -11,6 +11,10 @@ export interface MountOpts {
   wsBaseUrl: string
   token: () => string | Promise<string>
   fetch?: typeof fetch
+  /** Called immediately after the WS welcome frame is received, before plugins load.
+   *  Use this to wire up WS-level helpers (e.g. acquireLock) without waiting for the
+   *  full editor mount cycle. */
+  onWsConnected?: (ws: WsClient) => void
   /** @internal — for tests */
   _editorFactory?: (container: HTMLElement) => Editor
   /** @internal — for tests */
@@ -21,6 +25,8 @@ export interface MountHandle {
   save(): Promise<{ id: string }>
   exportXlsx(): Uint8Array
   destroy(): Promise<void>
+  /** @internal — direct access to the WsClient; for tests and Playwright helpers */
+  _wsClient: WsClient
 }
 
 export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle> {
@@ -38,6 +44,7 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     /* v8 ignore next 2 — real WebSocket path; covered by T23 Playwright e2e */
     await ws.connect()
   }
+  opts.onWsConnected?.(ws)
 
   // In a real browser, load UI plugins (canvas, toolbar, formula bar) before
   // creating the workbook unit. In jsdom / Node _univer is present but the
@@ -72,6 +79,7 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
       editor.destroy()
       ws.close()
     },
+    _wsClient: ws,
   }
 }
 

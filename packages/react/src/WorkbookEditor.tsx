@@ -1,5 +1,5 @@
 import { mountWorkbookEditor } from '@ensemble/core'
-import { type MountHandle } from '@ensemble/core'
+import { type MountHandle, type WsClient } from '@ensemble/core'
 import { useEffect, useRef } from 'react'
 
 export interface WorkbookEditorProps {
@@ -10,6 +10,8 @@ export interface WorkbookEditorProps {
   className?: string
   style?: React.CSSProperties
   onReady?: (handle: MountHandle) => void
+  /** Called immediately after WS connects (before plugins load). Use for WS-level helpers. */
+  onWsConnected?: (ws: WsClient) => void
 }
 
 export function WorkbookEditor(props: WorkbookEditorProps) {
@@ -20,6 +22,8 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
   tokenRef.current = props.token
   const onReadyRef = useRef(props.onReady)
   onReadyRef.current = props.onReady
+  const onWsConnectedRef = useRef(props.onWsConnected)
+  onWsConnectedRef.current = props.onWsConnected
 
   useEffect(() => {
     if (!ref.current) return
@@ -30,6 +34,7 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
       apiBaseUrl: props.apiBaseUrl,
       wsBaseUrl: props.wsBaseUrl,
       token: tokenRef.current,
+      onWsConnected: (ws) => { if (!cancelled) onWsConnectedRef.current?.(ws) },
     }).then((h) => {
       if (cancelled) { void h.destroy(); return }
       handleRef.current = h

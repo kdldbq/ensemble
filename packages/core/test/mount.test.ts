@@ -160,6 +160,29 @@ describe('mountWorkbookEditor', () => {
     expect(fakeEditor.destroy).toHaveBeenCalledOnce()
   })
 
+  it('handle exposes _wsClient', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const fakeEditor = makeFakeEditor()
+
+    const handle = await mountWorkbookEditor({
+      container,
+      workbookId: 'w',
+      apiBaseUrl: 'https://api',
+      wsBaseUrl: 'wss://api',
+      token: () => 't',
+      fetch: vi.fn(async (url: string) => {
+        if (url.endsWith('/snapshot'))
+          return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), { status: 200 })
+        return new Response('', { status: 200 })
+      }) as never,
+      _editorFactory: () => fakeEditor as never,
+      _wsConnect: wsStub,
+    })
+
+    expect(handle._wsClient).toBeTruthy()
+  })
+
   it('await destroy() resolves without throwing (B1 async destroy)', async () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
