@@ -14,7 +14,9 @@ export class ApiClient {
   constructor(opts: ApiClientOpts) {
     this.baseUrl = opts.baseUrl.replace(/\/$/, '')
     this.tokenFn = opts.token
-    this.fetchImpl = opts.fetch ?? globalThis.fetch
+    // Bind fetch to globalThis so it works in browser (window.fetch requires
+    // its `this` to be Window; storing it as a method on `this` loses the binding).
+    this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis)
   }
 
   private async req(path: string, init?: RequestInit & { body?: BodyInit }): Promise<Response> {
@@ -23,7 +25,7 @@ export class ApiClient {
     // Seed from any existing init.headers, then stamp Authorization with original casing.
     const existingHeaders = init?.headers ?? {}
     const headers: Record<string, string> = { ...(existingHeaders as Record<string, string>) }
-    headers['Authorization'] = `Bearer ${token}`
+    headers.Authorization = `Bearer ${token}`
     const res = await this.fetchImpl(this.baseUrl + path, { ...init, headers })
     if (!res.ok) {
       const text = await res.text()
@@ -64,7 +66,7 @@ export class ApiClient {
   async uploadSnapshot(
     workbookId: string,
     bytes: Uint8Array,
-    opts: { reason?: 'auto' | 'manual' | 'named'; name?: string } = {}
+    opts: { reason?: 'auto' | 'manual' | 'named'; name?: string } = {},
   ): Promise<Snapshot> {
     const params = new URLSearchParams()
     params.set('reason', opts.reason ?? 'manual')
@@ -79,7 +81,11 @@ export class ApiClient {
   async listFolders(): Promise<{ items: Folder[] }> {
     return (await this.req('/api/v1/folders')).json() as Promise<{ items: Folder[] }>
   }
-  async createFolder(input: { name: string; parentId: string | null; spaceType: 'personal' | 'shared' }): Promise<Folder> {
+  async createFolder(input: {
+    name: string
+    parentId: string | null
+    spaceType: 'personal' | 'shared'
+  }): Promise<Folder> {
     const res = await this.req('/api/v1/folders', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -106,7 +112,9 @@ export class ApiClient {
   async deleteFolder(id: string): Promise<void> {
     await this.req(`/api/v1/folders/${id}`, { method: 'DELETE' })
   }
-  async createGrant(input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt'>): Promise<Grant> {
+  async createGrant(
+    input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt'>,
+  ): Promise<Grant> {
     const res = await this.req('/api/v1/grants', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -119,7 +127,9 @@ export class ApiClient {
   }
 
   async listVersions(workbookId: string): Promise<{ items: Version[] }> {
-    return (await this.req(`/api/v1/workbooks/${workbookId}/versions`)).json() as Promise<{ items: Version[] }>
+    return (await this.req(`/api/v1/workbooks/${workbookId}/versions`)).json() as Promise<{
+      items: Version[]
+    }>
   }
   async createVersion(workbookId: string, name: string): Promise<Version> {
     const res = await this.req(`/api/v1/workbooks/${workbookId}/versions`, {
@@ -130,7 +140,9 @@ export class ApiClient {
     return res.json() as Promise<Version>
   }
   async restoreVersion(workbookId: string, versionId: string): Promise<{ id: string }> {
-    const res = await this.req(`/api/v1/workbooks/${workbookId}/restore/${versionId}`, { method: 'POST' })
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/restore/${versionId}`, {
+      method: 'POST',
+    })
     return res.json() as Promise<{ id: string }>
   }
 }

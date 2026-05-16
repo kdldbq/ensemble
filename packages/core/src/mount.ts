@@ -1,8 +1,13 @@
 import { ApiClient } from './api-client'
-import { createEditor, loadBrowserPlugins, type Editor } from './univer-wrapper'
-import { WsClient, type WelcomeFrame } from './ws-client'
-import { univerJsonToXlsx, xlsxToUniverJson } from './xlsx-converter'
 import type { UniverWorkbookData } from './types'
+import {
+  type Editor,
+  createEditor,
+  loadBrowserLocales,
+  loadBrowserPlugins,
+} from './univer-wrapper'
+import { type WelcomeFrame, WsClient } from './ws-client'
+import { univerJsonToXlsx, xlsxToUniverJson } from './xlsx-converter'
 
 export interface MountOpts {
   container: HTMLElement
@@ -35,7 +40,14 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     token: opts.token,
     ...(opts.fetch ? { fetch: opts.fetch } : {}),
   })
-  const editor = (opts._editorFactory ?? ((c) => createEditor({ container: c })))(opts.container)
+  // Load Univer locale resources BEFORE constructing the editor — they must be
+  // passed to the Univer constructor or Ribbon and other UI components crash with
+  // "Locale not initialized" on first render. Headless tests skip this via _editorFactory.
+  const locales = opts._editorFactory ? undefined : await loadBrowserLocales()
+  const editor = (
+    opts._editorFactory ??
+    ((c) => createEditor({ container: c, ...(locales ? { locales } : {}) }))
+  )(opts.container)
   const ws = new WsClient({ url: opts.wsBaseUrl, workbookId: opts.workbookId, token: opts.token })
 
   if (opts._wsConnect) {
@@ -56,13 +68,11 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
 
   const snapshot = await api.getLatestSnapshot(opts.workbookId)
   const sheetId = `s1-${opts.workbookId}`
-  const data: UniverWorkbookData =
-    snapshot ??
-    {
-      id: opts.workbookId,
-      sheetOrder: [sheetId],
-      sheets: { [sheetId]: { id: sheetId, name: 'Sheet1', cellData: {} } },
-    }
+  const data: UniverWorkbookData = snapshot ?? {
+    id: opts.workbookId,
+    sheetOrder: [sheetId],
+    sheets: { [sheetId]: { id: sheetId, name: 'Sheet1', cellData: {} } },
+  }
   editor.load(data)
 
   return {

@@ -24,12 +24,14 @@
  */
 
 import {
+  type ILocales,
   IUniverInstanceService,
+  type IWorkbookData,
   LocaleType,
   Univer,
   UniverInstanceType,
-  type IWorkbookData,
 } from '@univerjs/core'
+import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
@@ -38,6 +40,8 @@ import type { UniverWorkbookData } from './types'
 export interface EditorOpts {
   container: HTMLElement
   locale?: LocaleType
+  /** Pre-loaded Univer locale resources. Use loadBrowserLocales() to fetch them. */
+  locales?: ILocales
 }
 
 export interface Editor {
@@ -87,11 +91,16 @@ function fromUniverWorkbook(snapshot: IWorkbookData): UniverWorkbookData {
 export function createEditor(opts: EditorOpts): Editor {
   const univer = new Univer({
     locale: opts.locale ?? LocaleType.EN_US,
+    ...(opts.locales ? { locales: opts.locales } : {}),
   })
 
-  // Always-safe plugins (no missing peer deps)
+  // Always-safe plugins (no missing peer deps).
+  // UniverDocsPlugin must be registered before UniverSheetsPlugin — sheets-ui's
+  // FormatPainterMenuItemFactory pulls in EditorBridgeService which depends on
+  // IEditorService (provided by docs core).
   univer.registerPlugin(UniverRenderEnginePlugin)
   univer.registerPlugin(UniverFormulaEnginePlugin)
+  univer.registerPlugin(UniverDocsPlugin)
   univer.registerPlugin(UniverSheetsPlugin)
 
   const injector = univer.__getInjector()
@@ -111,7 +120,8 @@ export function createEditor(opts: EditorOpts): Editor {
       // In 0.22.1, snapshot lives on the workbook instance, not on Univer directly.
       const svc = injector.get(IUniverInstanceService)
       const wb = svc.getUniverSheetInstance(currentId)
-      if (!wb) throw new Error(`ensemble: workbook ${currentId} not found in Univer instance service`)
+      if (!wb)
+        throw new Error(`ensemble: workbook ${currentId} not found in Univer instance service`)
       const snap = wb.getSnapshot() as IWorkbookData
       return fromUniverWorkbook(snap)
     },
@@ -119,6 +129,34 @@ export function createEditor(opts: EditorOpts): Editor {
     destroy(): void {
       univer.dispose()
     },
+  }
+}
+
+/**
+ * Load Univer locale resources for the browser via dynamic import.
+ *
+ * These must be passed to the Univer constructor — registering them later via
+ * plugin config has no effect on UI components like Ribbon that resolve
+ * locale strings at first render. Call this BEFORE createEditor() and pass
+ * the result into EditorOpts.locales.
+ *
+ * Failures are swallowed (returns undefined) so Node/jsdom tests still work.
+ */
+export async function loadBrowserLocales(): Promise<ILocales | undefined> {
+  try {
+    // Note: @univerjs/docs (core docs model) has no locale subpath — only docs-ui does.
+    const [ui, docsUi, sheets, sheetsUi, sheetsFormula] = await Promise.all([
+      import('@univerjs/ui/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
+      import('@univerjs/docs-ui/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
+      import('@univerjs/sheets/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
+      import('@univerjs/sheets-ui/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
+      import('@univerjs/sheets-formula/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
+    ])
+    const merged = Object.assign({}, ui, docsUi, sheets, sheetsUi, sheetsFormula) as ILocales[LocaleType]
+    return { [LocaleType.EN_US]: merged }
+  } catch (err) {
+    console.warn('ensemble: failed to load Univer locales (UI may be unlabeled)', err)
+    return undefined
   }
 }
 
@@ -137,13 +175,24 @@ export async function loadBrowserPlugins(
   container: HTMLElement,
   onError?: (plugin: string, error: unknown) => void,
 ): Promise<void> {
-  const warn = onError ?? ((plugin, err) => console.warn(`ensemble: failed to load browser plugin "${plugin}"`, err))
+  const warn =
+    onError ??
+    ((plugin, err) => console.warn(`ensemble: failed to load browser plugin "${plugin}"`, err))
 
   try {
     const { UniverUIPlugin } = await import('@univerjs/ui')
-    univer.registerPlugin(UniverUIPlugin as Parameters<typeof univer.registerPlugin>[0], { container })
+    univer.registerPlugin(UniverUIPlugin as Parameters<typeof univer.registerPlugin>[0], {
+      container,
+    })
   } catch (err) {
     warn('@univerjs/ui', err)
+  }
+
+  try {
+    const { UniverDocsUIPlugin } = await import('@univerjs/docs-ui')
+    univer.registerPlugin(UniverDocsUIPlugin as Parameters<typeof univer.registerPlugin>[0])
+  } catch (err) {
+    warn('@univerjs/docs-ui', err)
   }
 
   try {

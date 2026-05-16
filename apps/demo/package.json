@@ -24,6 +24,10 @@
     "@ensemble-sheets/react": "workspace:*",
     "@ensemble-sheets/server": "workspace:*",
     "@ensemble-sheets/storage-fs": "workspace:*",
+    "@univerjs/design": "0.22.1",
+    "@univerjs/docs-ui": "0.22.1",
+    "@univerjs/sheets-ui": "0.22.1",
+    "@univerjs/ui": "0.22.1",
     "postgres": "3.4.4",
     "react": "18.3.1",
     "react-dom": "18.3.1"
