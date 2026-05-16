@@ -1,9 +1,10 @@
 import { serve } from '@hono/node-server'
 import { createNodeWebSocket } from '@hono/node-ws'
+import type { Hono } from 'hono'
 import type { EventAdapter, IdentityAdapter, PermissionAdapter } from './adapters/identity'
 import type { StorageAdapter } from './adapters/storage'
 import { createDb } from './db/client'
-import { type AppDeps, buildApp } from './http/app'
+import { type AppDeps, type AppEnv, buildApp } from './http/app'
 import { createTokenBucket } from './realtime/backpressure'
 import { createCellLockManager } from './realtime/cell-lock-manager'
 import { createRoomRegistry } from './realtime/collab-room'
@@ -21,6 +22,12 @@ export interface CreateServerOpts {
   storage: StorageAdapter
   event: EventAdapter
   redisUrl?: string
+  /**
+   * Optional Hono sub-app mounted after the product routes — for deployment-specific
+   * helpers (e.g., the demo's whoami/reset endpoints) that share the same port without
+   * being part of the product API surface.
+   */
+  extraRoutes?: Hono<AppEnv>
 }
 
 export function createServer(opts: CreateServerOpts) {
@@ -172,6 +179,7 @@ export function createServer(opts: CreateServerOpts) {
 
   builtApp = buildApp(deps, {
     beforeRoutes: [{ path: '/api/v1/ws/:workbookId', handler: wsHandler }],
+    ...(opts.extraRoutes ? { extraRoutes: opts.extraRoutes } : {}),
   })
 
   return {

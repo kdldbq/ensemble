@@ -60,6 +60,12 @@ export type AppEnv = {
 export interface BuildAppOpts {
   /** Optional WS route handlers to register BEFORE sub-routers that have requireIdentity. */
   beforeRoutes?: Array<{ path: string; handler: MiddlewareHandler }>
+  /**
+   * Optional Hono sub-app mounted AFTER the standard product routes. Intended for
+   * deployment-specific helpers (e.g., the demo's whoami/reset endpoints) that should
+   * share the same port without leaking into the product package.
+   */
+  extraRoutes?: Hono<AppEnv>
 }
 
 export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
@@ -101,6 +107,14 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     app.get(path, handler)
   }
   app.route('/', healthRoute)
+  // Extra routes must mount BEFORE the auth'd sub-routers because Hono's
+  // `use('*', requireIdentity)` on a sub-app intercepts every request that passes
+  // through that sub-app (not just paths it has registered), regardless of mount
+  // path. Putting extra routes first means the demo/whoami etc. resolve before any
+  // catch-all middleware can grab them.
+  if (opts?.extraRoutes) {
+    app.route('/', opts.extraRoutes)
+  }
   app.route('/', workbooksRoute)
   app.route('/', snapshotsRoute)
   app.route('/', foldersRoute)

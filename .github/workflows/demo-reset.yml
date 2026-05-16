@@ -1,0 +1,39 @@
+name: demo-reset
+
+# Wipes the public demo daily so accumulating visitor cruft doesn't take it over.
+# The endpoint requires `X-Demo-Reset-Token` matching the server's `DEMO_RESET_TOKEN`
+# env var — store the same value in the `DEMO_RESET_TOKEN` repository secret.
+#
+# Two required repository secrets:
+#   DEMO_URL          base URL of the deployed demo (e.g., https://demo.ensemble.dev)
+#   DEMO_RESET_TOKEN  shared secret bearer for /api/demo/reset
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # daily 00:00 UTC
+  workflow_dispatch: # manual trigger from the Actions tab
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: hit /api/demo/reset
+        env:
+          DEMO_URL: ${{ secrets.DEMO_URL }}
+          DEMO_RESET_TOKEN: ${{ secrets.DEMO_RESET_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DEMO_URL:-}" || -z "${DEMO_RESET_TOKEN:-}" ]]; then
+            echo "DEMO_URL and DEMO_RESET_TOKEN secrets must be configured" >&2
+            exit 1
+          fi
+          response=$(curl -sS -o /tmp/body -w "%{http_code}" \
+            -X POST "${DEMO_URL%/}/api/demo/reset" \
+            -H "X-Demo-Reset-Token: ${DEMO_RESET_TOKEN}")
+          echo "HTTP ${response}"
+          cat /tmp/body
+          echo
+          if [[ "${response}" != "200" ]]; then
+            exit 1
+          fi

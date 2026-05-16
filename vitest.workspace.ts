@@ -7,4 +7,5 @@ export default [
   'packages/storage-s3',
   'packages/webhook',
   'packages/identity-jwks',
+  'apps/demo',
 ]
