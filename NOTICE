@@ -1,0 +1,13 @@
+ensemble
+Copyright 2026 kdldbq and ensemble contributors
+
+This product includes software developed by:
+- Univer (https://univer.ai) — Apache 2.0
+- Hono (https://hono.dev) — MIT
+- Drizzle ORM (https://orm.drizzle.team) — Apache 2.0
+- jose (https://github.com/panva/jose) — MIT
+- ioredis (https://github.com/redis/ioredis) — MIT
+- SheetJS Community Edition (https://sheetjs.com/) — Apache 2.0
+- Astro Starlight (https://starlight.astro.build/) — MIT
+
+See LICENSE for the full Apache 2.0 license text.
