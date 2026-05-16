@@ -45,6 +45,6 @@ const handle = await createServer({
   permission,
   storage: new FsStorage({ root: dataDir }),
   event: new NoopEventAdapter(),
-}).listen({ port: Number(process.env.PORT ?? 3000) })
+}).listen({ port: Number(process.env.PORT ?? 5301) })
 
 console.log(`ensemble demo server on :${handle.port}`)

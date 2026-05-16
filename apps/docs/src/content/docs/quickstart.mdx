@@ -19,14 +19,14 @@ pnpm install
 ## Start the demo
 
 ```bash
-pnpm --filter @ensemble-sheets/demo db:up     # Postgres on :54320, Redis on :63790
+pnpm --filter @ensemble-sheets/demo db:up     # Postgres on :5303, Redis on :5304
 pnpm --filter @ensemble-sheets/server build
-DATABASE_URL=postgres://postgres:postgres@localhost:54320/ensemble_dev \
+DATABASE_URL=postgres://postgres:postgres@localhost:5303/ensemble_dev \
   pnpm --filter @ensemble-sheets/server exec node dist/db/migrate.js
 pnpm --filter @ensemble-sheets/demo dev
 ```
 
-Open http://localhost:5173. You'll see a two-pane editor — left is `admin`,
+Open http://localhost:5302. You'll see a two-pane editor — left is `admin`,
 right is `viewer`. Type any value in admin's column B and save — viewer's
 column B shows `***` (mask rule defined in the demo's PermissionAdapter).
 

@@ -15,8 +15,8 @@ const App = {
     return () =>
       h(WorkbookEditor, {
         workbookId: '<paste-a-workbook-uuid>',
-        apiBaseUrl: 'http://localhost:3000',
-        wsBaseUrl: 'ws://localhost:3000',
+        apiBaseUrl: 'http://localhost:5301',
+        wsBaseUrl: 'ws://localhost:5301',
         token: getToken,
       })
   },

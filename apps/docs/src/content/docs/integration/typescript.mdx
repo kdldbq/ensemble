@@ -33,7 +33,7 @@ const server = createServer({
   storage: new S3Storage({ bucket: 'ensemble-prod', region: 'us-east-1', credentials: { ... } }),
   event: { publish: async (ev) => console.log('event:', ev.type) },
 })
-await server.listen({ port: 3000 })
+await server.listen({ port: 5301 })
 ```
 
 ## React component
