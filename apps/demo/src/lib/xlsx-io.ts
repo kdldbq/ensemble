@@ -15,8 +15,8 @@ export async function downloadXlsx(
   const res = await fetch(`${baseUrl}/api/v1/workbooks/${wbId}/export.xlsx`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  if (!res.ok) throw new Error(`download failed (${res.status})`)
-  if (res.status === 204) throw new Error('workbook has no snapshot yet')
+  if (!res.ok) throw new Error(`下载失败 (${res.status})`)
+  if (res.status === 204) throw new Error('工作簿尚无快照，先保存一次')
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -41,11 +41,11 @@ export async function uploadXlsx(
   name?: string,
 ): Promise<{ workbookId: string; name: string }> {
   if (file.size > UPLOAD_MAX_BYTES) {
-    throw new Error(`file too large (max ${UPLOAD_MAX_BYTES / 1024 / 1024} MB)`)
+    throw new Error(`文件过大（上限 ${UPLOAD_MAX_BYTES / 1024 / 1024} MB）`)
   }
   const buf = new Uint8Array(await file.arrayBuffer())
   const univer = xlsxToUniverJson(buf)
-  const wbName = (name ?? file.name.replace(/\.xlsx$/i, '')) || 'Imported workbook'
+  const wbName = (name ?? file.name.replace(/\.xlsx$/i, '')) || '已导入工作簿'
   const wb = await api.createWorkbook(wbName)
   const snapshotBytes = new TextEncoder().encode(JSON.stringify(univer))
   await api.uploadSnapshot(wb.id, snapshotBytes, { reason: 'manual' })

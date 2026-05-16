@@ -58,7 +58,7 @@ export function Drawer({
         <header style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
           <strong style={{ fontSize: 14 }}>{title}</strong>
           <div style={{ flex: 1 }} />
-          <button type="button" onClick={onClose} aria-label="Close drawer">
+          <button type="button" onClick={onClose} aria-label="关闭抽屉">
             ✕
           </button>
         </header>

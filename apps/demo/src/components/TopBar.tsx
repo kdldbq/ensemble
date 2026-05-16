@@ -16,13 +16,14 @@ export interface TopBarProps {
   onOpenFolders: () => void
   onOpenVersions: () => void
   onOpenShare: () => void
+  onSave: () => void | Promise<void>
   onUploaded: (workbookId: string) => void
 }
 
 const personaBadge: Record<Persona, { label: string; color: string }> = {
-  admin: { label: 'Admin', color: '#0d9488' },
-  editor: { label: 'Editor', color: '#2563eb' },
-  viewer: { label: 'Viewer', color: '#9333ea' },
+  admin: { label: '管理员', color: '#0d9488' },
+  editor: { label: '编辑者', color: '#2563eb' },
+  viewer: { label: '查看者', color: '#9333ea' },
 }
 
 export function TopBar(props: TopBarProps) {
@@ -35,14 +36,26 @@ export function TopBar(props: TopBarProps) {
     window.setTimeout(() => setToast(null), 3000)
   }
 
+  async function handleSave() {
+    setBusy('save')
+    try {
+      await props.onSave()
+      announce('✓ 已保存')
+    } catch (e) {
+      announce(`✗ 保存失败：${(e as Error).message}`)
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function handleUpload(file: File) {
     setBusy('upload')
     try {
       const { workbookId, name } = await uploadXlsx(props.api, file)
-      announce(`✓ uploaded "${name}"`)
+      announce(`✓ 已上传「${name}」`)
       props.onUploaded(workbookId)
     } catch (e) {
-      announce(`✗ upload failed: ${(e as Error).message}`)
+      announce(`✗ 上传失败：${(e as Error).message}`)
     } finally {
       setBusy(null)
     }
@@ -53,7 +66,7 @@ export function TopBar(props: TopBarProps) {
     try {
       await downloadXlsx('', props.token, props.workbookId, props.workbookLabel)
     } catch (e) {
-      announce(`✗ download failed: ${(e as Error).message}`)
+      announce(`✗ 下载失败：${(e as Error).message}`)
     } finally {
       setBusy(null)
     }
@@ -78,19 +91,22 @@ export function TopBar(props: TopBarProps) {
         position: 'relative',
       }}
     >
-      <strong style={{ fontSize: 14 }}>ensemble demo</strong>
+      <strong style={{ fontSize: 14 }}>ensemble 演示</strong>
       <span style={{ color: '#9ca3af', fontSize: 13 }}>· {props.workbookLabel}</span>
 
       <div style={{ flex: 1 }} />
 
+      <button type="button" onClick={handleSave} disabled={busy === 'save'}>
+        💾 保存
+      </button>
       <button type="button" onClick={props.onOpenFolders}>
-        📁 Folders
+        📁 文件夹
       </button>
       <button type="button" onClick={props.onOpenVersions}>
-        🕘 Versions
+        🕘 版本历史
       </button>
       <button type="button" onClick={() => fileRef.current?.click()} disabled={busy === 'upload'}>
-        ⬆ Upload .xlsx
+        ⬆ 上传 xlsx
       </button>
       <input
         ref={fileRef}
@@ -104,20 +120,20 @@ export function TopBar(props: TopBarProps) {
         }}
       />
       <button type="button" onClick={handleDownload} disabled={busy === 'download'}>
-        ⬇ Download .xlsx
+        ⬇ 下载 xlsx
       </button>
       <button type="button" onClick={props.onOpenShare}>
-        ↗ Share
+        ↗ 分享
       </button>
       <button type="button" onClick={props.onTogglePublicRoom}>
-        {props.inPublicRoom ? '← My sandbox' : '☁ Public room'}
+        {props.inPublicRoom ? '← 回沙盒' : '☁ 公共房间'}
       </button>
       <button type="button" onClick={handleOpenAnotherUser}>
-        + Open another user
+        + 另开一人
       </button>
 
       <span
-        title={`Your visitor id: ${props.userId}`}
+        title={`你的访客 ID：${props.userId}`}
         style={{
           background: badge.color,
           color: '#fff',

@@ -34,8 +34,8 @@ describe('<VersionHistoryPanel />', () => {
     const { getByLabelText, findByText } = render(
       <VersionHistoryPanel api={api as never} workbookId="wb" />,
     )
-    fireEvent.click(getByLabelText('Save version'))
-    const input = getByLabelText('Version name')
+    fireEvent.click(getByLabelText('保存版本'))
+    const input = getByLabelText('版本名称')
     fireEvent.change(input, { target: { value: 'My' } })
     fireEvent.submit(input.closest('form')!)
     await waitFor(() => expect(api.createVersion).toHaveBeenCalledWith('wb', 'My'))
@@ -48,7 +48,7 @@ describe('<VersionHistoryPanel />', () => {
       <VersionHistoryPanel api={api as never} workbookId="wb" />,
     )
     await findByText('V1')
-    fireEvent.click(getByText('Restore'))
+    fireEvent.click(getByText('恢复'))
     await waitFor(() => expect(api.restoreVersion).toHaveBeenCalledWith('wb', 'v1'))
   })
 })

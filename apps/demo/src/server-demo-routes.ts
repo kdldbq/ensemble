@@ -44,7 +44,10 @@ export function buildDemoRoutes(opts: DemoRoutesOpts): Hono<AppEnv> {
       if (fromCookie) {
         userId = fromCookie
       } else {
-        userId = `visitor-${crypto.randomUUID()}`
+        // New visitors get the admin persona so they can edit straight away. Visitors
+        // who want to feel the viewer (mask) side use the right preview panel or open
+        // a separate tab via the "+ Open another user" link.
+        userId = `admin-${crypto.randomUUID()}`
         issueCookie = true
       }
     }

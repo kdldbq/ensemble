@@ -38,11 +38,11 @@ describe('POST /api/demo/whoami', () => {
     const res = await app.request('/api/demo/whoami', { method: 'POST' })
     expect(res.status).toBe(200)
     const body = (await res.json()) as { userId: string; persona: string; sandboxWbId: string }
-    expect(body.userId).toMatch(/^visitor-/)
+    expect(body.userId).toMatch(/^admin-/)
     expect(body.sandboxWbId).toBe(SANDBOX_WB)
-    expect(['admin', 'editor', 'viewer']).toContain(body.persona)
+    expect(body.persona).toBe('admin')
     const setCookie = res.headers.get('set-cookie') ?? ''
-    expect(setCookie).toMatch(/ev_visitor=visitor-/)
+    expect(setCookie).toMatch(/ev_visitor=admin-/)
   })
 
   it('reuses the visitor id from the cookie', async () => {

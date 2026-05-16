@@ -31,10 +31,10 @@ export async function ensurePublicRoomWorkbook(opts: {
 
   await db.execute(sql`
     INSERT INTO workbooks (id, tenant_id, name, owner_id)
-    VALUES (${wbId}, ${tenantId}, ${'Public room'}, ${'demo-system'})
+    VALUES (${wbId}, ${tenantId}, ${'公共房间'}, ${'demo-system'})
     ON CONFLICT (id) DO NOTHING
   `)
-  await seedInitialSnapshot({ db, storage, wbId, title: 'Public room', createdBy: 'demo-system' })
+  await seedInitialSnapshot({ db, storage, wbId, title: '公共房间', createdBy: 'demo-system' })
 }
 
 /**
@@ -55,7 +55,7 @@ export async function ensureSandboxWorkbook(opts: {
       and(
         eq(schema.workbooks.tenantId, tenantId),
         eq(schema.workbooks.ownerId, userId),
-        eq(schema.workbooks.name, 'Sandbox'),
+        eq(schema.workbooks.name, '我的沙盒'),
         eq(schema.workbooks.isDeleted, false),
       ),
     )
@@ -64,10 +64,10 @@ export async function ensureSandboxWorkbook(opts: {
 
   const [row] = await db
     .insert(schema.workbooks)
-    .values({ tenantId, ownerId: userId, name: 'Sandbox' })
+    .values({ tenantId, ownerId: userId, name: '我的沙盒' })
     .returning({ id: schema.workbooks.id })
   if (!row) throw new Error('failed to create sandbox workbook')
-  await seedInitialSnapshot({ db, storage, wbId: row.id, title: 'Sandbox', createdBy: userId })
+  await seedInitialSnapshot({ db, storage, wbId: row.id, title: '我的沙盒', createdBy: userId })
   return row.id
 }
 

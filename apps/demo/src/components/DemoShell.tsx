@@ -1,23 +1,15 @@
-import { ApiClient } from '@ensemble-sheets/core'
-import { useMemo, useState } from 'react'
+import { ApiClient, type MountHandle } from '@ensemble-sheets/core'
+import { useMemo, useRef, useState } from 'react'
 import { useVisitor } from '../lib/visitor'
 import type { Persona } from '../persona'
-import { EditorPair } from './EditorPair'
 import { FolderDrawer } from './FolderDrawer'
 import { OnboardingCoach } from './OnboardingCoach'
 import { PublicRoomBanner } from './PublicRoomBanner'
 import { ShareDialog } from './ShareDialog'
+import { SingleEditor } from './SingleEditor'
 import { TopBar } from './TopBar'
 import { VersionDrawer } from './VersionDrawer'
-
-/**
- * Returns the persona that should sit in the right pane next to the visitor's left
- * persona — picked to maximize visible contrast (mask + capability diff).
- */
-function contrastingPersona(left: Persona): Persona {
-  if (left === 'admin' || left === 'editor') return 'viewer'
-  return 'admin'
-}
+import { ViewerPreview } from './ViewerPreview'
 
 export function DemoShell() {
   const state = useVisitor()
@@ -26,25 +18,22 @@ export function DemoShell() {
   const [versionOpen, setVersionOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [remountKey, setRemountKey] = useState(0)
+  const [previewKey, setPreviewKey] = useState(0)
   const [pinnedWbId, setPinnedWbId] = useState<string | null>(null)
 
-  if (state.status === 'loading') return <FullPageMessage>Connecting to demo…</FullPageMessage>
+  if (state.status === 'loading') return <FullPageMessage>正在连接演示…</FullPageMessage>
   if (state.status === 'error')
     return (
       <FullPageMessage>
-        Demo currently unreachable: <code>{state.message}</code>
+        演示当前不可用：<code>{state.message}</code>
         <br />
-        Try refreshing in a moment.
+        请稍后刷新重试。
       </FullPageMessage>
     )
 
   const { visitor } = state
   const activeWbId = pinnedWbId ?? (inPublicRoom ? visitor.publicRoomWbId : visitor.sandboxWbId)
-  const workbookLabel = inPublicRoom
-    ? 'Public room'
-    : pinnedWbId
-      ? 'Imported workbook'
-      : 'My sandbox'
+  const workbookLabel = inPublicRoom ? '公共房间' : pinnedWbId ? '已导入工作簿' : '我的沙盒'
 
   return (
     <Inner
@@ -53,6 +42,7 @@ export function DemoShell() {
       onTogglePublicRoom={() => {
         setPinnedWbId(null)
         setInPublicRoom((v) => !v)
+        setPreviewKey((k) => k + 1)
       }}
       folderOpen={folderOpen}
       versionOpen={versionOpen}
@@ -63,11 +53,17 @@ export function DemoShell() {
       activeWbId={activeWbId}
       workbookLabel={workbookLabel}
       remountKey={remountKey}
-      onRestored={() => setRemountKey((k) => k + 1)}
+      previewKey={previewKey}
+      onRestored={() => {
+        setRemountKey((k) => k + 1)
+        setPreviewKey((k) => k + 1)
+      }}
+      onSaved={() => setPreviewKey((k) => k + 1)}
       onUploaded={(wbId) => {
         setInPublicRoom(false)
         setPinnedWbId(wbId)
         setRemountKey((k) => k + 1)
+        setPreviewKey((k) => k + 1)
       }}
     />
   )
@@ -91,17 +87,26 @@ interface InnerProps {
   activeWbId: string
   workbookLabel: string
   remountKey: number
+  previewKey: number
   onRestored: () => void
+  onSaved: () => void
   onUploaded: (wbId: string) => void
 }
 
 function Inner(p: InnerProps) {
   const token = `dev:${p.visitor.userId}`
   const api = useMemo(() => new ApiClient({ baseUrl: '', token: () => token }), [token])
-  const rightPersona = contrastingPersona(p.visitor.persona)
-  // Stable contrasting partner id; the partner is just there to demonstrate the live
-  // multi-user + mask diff alongside the visitor's own pane.
-  const rightUserId = `${rightPersona}-pair`
+  const handleRef = useRef<MountHandle | null>(null)
+
+  async function onSave() {
+    if (!handleRef.current) return
+    try {
+      await handleRef.current.save()
+      p.onSaved()
+    } catch (e) {
+      console.error('save failed', e)
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -117,27 +122,27 @@ function Inner(p: InnerProps) {
         onOpenFolders={() => p.setFolderOpen(true)}
         onOpenVersions={() => p.setVersionOpen(true)}
         onOpenShare={() => p.setShareOpen(true)}
+        onSave={onSave}
         onUploaded={p.onUploaded}
       />
       <PublicRoomBanner inPublicRoom={p.inPublicRoom} onLeave={p.onTogglePublicRoom} />
       <main style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-        <EditorPair
+        <SingleEditor
           workbookId={p.activeWbId}
-          leftUserId={p.visitor.userId}
-          leftPersona={p.visitor.persona}
-          rightUserId={rightUserId}
-          rightPersona={rightPersona}
+          userId={p.visitor.userId}
+          persona={p.visitor.persona}
           remountKey={p.remountKey}
+          onReady={(h) => {
+            handleRef.current = h
+          }}
         />
+        <ViewerPreview workbookId={p.activeWbId} refreshKey={p.previewKey} />
       </main>
       <FolderDrawer
         api={api}
         open={p.folderOpen}
         onClose={() => p.setFolderOpen(false)}
         onSelect={(folder) => {
-          // Folder selection just acknowledges for now — a folder→workbook listing UI is
-          // out of scope for this showcase; the create/rename CRUD inside the panel is
-          // what visitors are meant to experience.
           console.log('selected folder', folder)
         }}
       />

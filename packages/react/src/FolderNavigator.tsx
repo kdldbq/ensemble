@@ -26,8 +26,8 @@ export function FolderNavigator({ api, onSelect }: FolderNavigatorProps) {
   return (
     <div className="ensemble-folder-navigator">
       <header style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <strong>Folders</strong>
-        <button aria-label="Create folder" onClick={() => setCreating(true)}>
+        <strong>文件夹</strong>
+        <button type="button" aria-label="新建文件夹" onClick={() => setCreating(true)}>
           +
         </button>
       </header>
@@ -43,7 +43,7 @@ export function FolderNavigator({ api, onSelect }: FolderNavigatorProps) {
           }}
         >
           <input
-            aria-label="Folder name"
+            aria-label="文件夹名称"
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
           />
@@ -54,9 +54,11 @@ export function FolderNavigator({ api, onSelect }: FolderNavigatorProps) {
           .filter((f) => f.parentId === null)
           .map((f) => (
             <li key={f.id}>
-              <button onClick={() => onSelect(f)}>{f.name}</button>
+              <button type="button" onClick={() => onSelect(f)}>
+                {f.name}
+              </button>
               <span style={{ marginLeft: 8, fontSize: '0.85em', color: '#888' }}>
-                {f.spaceType}
+                {f.spaceType === 'personal' ? '个人' : '共享'}
               </span>
             </li>
           ))}

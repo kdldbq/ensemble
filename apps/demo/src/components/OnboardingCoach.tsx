@@ -38,25 +38,25 @@ export function OnboardingCoach() {
         lineHeight: 1.5,
       }}
     >
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>👋 Welcome to the ensemble demo</div>
+      <div style={{ fontWeight: 600, marginBottom: 8 }}>👋 欢迎来到 ensemble 演示</div>
       <ol style={{ margin: 0, paddingLeft: 18 }}>
         <li>
-          Edit any cell in the <em>admin</em> pane on the left.
+          在左侧 <em>管理员</em> 编辑器里随便点一个单元格，输入内容。
         </li>
         <li>
-          Watch the change propagate to the <em>viewer</em> pane on the right — column B stays
-          masked as ***.
+          点顶部 <strong>💾 保存</strong>，右侧「查看者眼中」面板会自动刷新 —— B 列永远是{' '}
+          <code>***</code>。
         </li>
         <li>
-          Try <strong>📁 Folders</strong>, <strong>🕘 Versions</strong>,{' '}
-          <strong>⬆ Upload .xlsx</strong>, and <strong>↗ Share</strong> in the toolbar.
+          试试 <strong>📁 文件夹</strong>、<strong>🕘 版本历史</strong>、
+          <strong>⬆ 上传 xlsx</strong>、<strong>↗ 分享</strong>。
         </li>
         <li>
-          Click <strong>+ Open another user</strong> to spawn a fresh persona in a new tab.
+          点 <strong>+ 另开一人</strong>，会在新标签页里开一个全新身份。
         </li>
       </ol>
       <button type="button" onClick={dismiss} style={{ marginTop: 12 }}>
-        Got it
+        知道了
       </button>
     </div>
   )

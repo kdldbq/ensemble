@@ -1,26 +1,22 @@
 /**
- * Univer wrapper — createEditor factory
+ * Univer wrapper — createEditor factory + plugin orchestration.
  *
- * Implementation notes (Univer 0.22.1 vs plan 0.5.0 deviations):
+ * Implementation notes (Univer 0.22.1):
  *
- * 1. `Univer.getSnapshot(id)` does NOT exist in 0.22.1.
- *    The correct path is:
- *      univer.__getInjector().get(IUniverInstanceService).getUniverSheetInstance(id).getSnapshot()
+ * 1. Univer 0.22 has a STRICT plugin lifecycle. Plugins must be registered in the
+ *    order documented in the official quickstart:
+ *      RenderEngine → FormulaEngine → UI → Docs → DocsUI → Sheets → SheetsUI → SheetsFormula
+ *    Then createUnit(UNIVER_SHEET, ...) triggers init.
+ *    Registering them in any other order (or splitting sync/async across phases)
+ *    can leave the cell-editor doc unit uncreated — selection works but typing
+ *    silently no-ops.
  *
- * 2. `UniverInstanceType.UNIVER_SHEET` exists and is correct (value = 2).
- *    No name change needed.
+ * 2. UI plugins transitively import @univerjs/icons. We accept that — icons IS
+ *    installed in packages/core. There is no Node/jsdom-vs-browser split here:
+ *    real tests use _editorFactory to bypass createEditor entirely.
  *
- * 3. UI plugins (@univerjs/ui, @univerjs/sheets-ui, @univerjs/sheets-formula) depend
- *    on @univerjs/icons which is NOT installed in this package for Node/jsdom tests.
- *    They are loaded via `loadBrowserPlugins(univer, container)` (async, dynamic import)
- *    which is called by mountWorkbookEditor in a browser context before editor.load().
- *    Errors are swallowed so Node/jsdom unit tests continue to work headlessly.
- *
- * 4. `defaultTheme` from @univerjs/design also transitively requires @univerjs/icons.
- *    We pass `theme: undefined` when the import fails (graceful degradation).
- *
- * 5. `Univer` constructor `locale` param accepts a string like `'enUS'` (LocaleType enum
- *    value), not the enum key. `LocaleType.EN_US === 'enUS'` in 0.22.1.
+ * 3. `Univer.getSnapshot(id)` does NOT exist in 0.22.1; snapshots live on the
+ *    workbook instance reached via IUniverInstanceService.getUniverSheetInstance.
  */
 
 import {
@@ -32,9 +28,14 @@ import {
   UniverInstanceType,
 } from '@univerjs/core'
 import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
+import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+import { UniverUIPlugin } from '@univerjs/ui'
 import type { UniverWorkbookData } from './types'
 
 export interface EditorOpts {
@@ -48,11 +49,10 @@ export interface Editor {
   load(data: UniverWorkbookData): void
   getData(): UniverWorkbookData
   destroy(): void
-  /** @internal — used by mountWorkbookEditor to attach browser UI plugins before load() */
+  /** @internal — exposed for advanced consumers (e2e helpers, etc.) */
   _univer: Univer
 }
 
-/** Map our internal UniverWorkbookData → IWorkbookData for Univer's createUnit */
 function toUniverWorkbook(data: UniverWorkbookData): IWorkbookData {
   const sheets: IWorkbookData['sheets'] = {}
   for (const id of data.sheetOrder) {
@@ -72,7 +72,6 @@ function toUniverWorkbook(data: UniverWorkbookData): IWorkbookData {
   }
 }
 
-/** Map IWorkbookData → our UniverWorkbookData */
 function fromUniverWorkbook(snapshot: IWorkbookData): UniverWorkbookData {
   const sheets: UniverWorkbookData['sheets'] = {}
   for (const id of snapshot.sheetOrder) {
@@ -94,14 +93,23 @@ export function createEditor(opts: EditorOpts): Editor {
     ...(opts.locales ? { locales: opts.locales } : {}),
   })
 
-  // Always-safe plugins (no missing peer deps).
-  // UniverDocsPlugin must be registered before UniverSheetsPlugin — sheets-ui's
-  // FormatPainterMenuItemFactory pulls in EditorBridgeService which depends on
-  // IEditorService (provided by docs core).
+  // Register ALL plugins synchronously in the official Univer 0.22 order BEFORE
+  // any createUnit fires. This is the only order that gives the cell-editor doc
+  // unit a chance to bootstrap properly — splitting sync vs async, or reordering
+  // any of these, leaves you with a renderable grid that won't accept typing.
   univer.registerPlugin(UniverRenderEnginePlugin)
   univer.registerPlugin(UniverFormulaEnginePlugin)
+  univer.registerPlugin(UniverUIPlugin, { container: opts.container })
   univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsUIPlugin)
   univer.registerPlugin(UniverSheetsPlugin)
+  univer.registerPlugin(UniverSheetsUIPlugin)
+  univer.registerPlugin(UniverSheetsFormulaPlugin)
+  // Critical: in Univer 0.22 the FormulaEditor React component (the actual <input>
+  // that appears when you type in a cell) lives in @univerjs/sheets-formula-ui, split
+  // out from sheets-formula. Without this plugin, sheets-ui's EditorContainer renders
+  // an empty div over the cell, selection works but keystrokes silently no-op.
+  univer.registerPlugin(UniverSheetsFormulaUIPlugin)
 
   const injector = univer.__getInjector()
 
@@ -113,11 +121,19 @@ export function createEditor(opts: EditorOpts): Editor {
     load(data: UniverWorkbookData): void {
       currentId = data.id
       univer.createUnit(UniverInstanceType.UNIVER_SHEET, toUniverWorkbook(data))
+      // Belt-and-suspenders: ensure the new sheet is the focused unit even if the
+      // sheets-ui auto-focus race didn't catch the createUnit emission.
+      try {
+        const svc = injector.get(IUniverInstanceService)
+        const focusUnit = (svc as unknown as { focusUnit?: (id: string) => void }).focusUnit
+        focusUnit?.call(svc, data.id)
+      } catch {
+        /* non-critical */
+      }
     },
 
     getData(): UniverWorkbookData {
       if (!currentId) throw new Error('ensemble: no workbook loaded — call load() first')
-      // In 0.22.1, snapshot lives on the workbook instance, not on Univer directly.
       const svc = injector.get(IUniverInstanceService)
       const wb = svc.getUniverSheetInstance(currentId)
       if (!wb)
@@ -135,24 +151,40 @@ export function createEditor(opts: EditorOpts): Editor {
 /**
  * Load Univer locale resources for the browser via dynamic import.
  *
- * These must be passed to the Univer constructor — registering them later via
- * plugin config has no effect on UI components like Ribbon that resolve
- * locale strings at first render. Call this BEFORE createEditor() and pass
- * the result into EditorOpts.locales.
+ * Must be passed to the Univer constructor — registering them later via plugin
+ * config has no effect on UI components like Ribbon that resolve locale strings
+ * at first render. Call this BEFORE createEditor() and pass the result via
+ * EditorOpts.locales.
  *
  * Failures are swallowed (returns undefined) so Node/jsdom tests still work.
  */
 export async function loadBrowserLocales(): Promise<ILocales | undefined> {
   try {
-    // Note: @univerjs/docs (core docs model) has no locale subpath — only docs-ui does.
     const [ui, docsUi, sheets, sheetsUi, sheetsFormula] = await Promise.all([
-      import('@univerjs/ui/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
-      import('@univerjs/docs-ui/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
-      import('@univerjs/sheets/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
-      import('@univerjs/sheets-ui/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
-      import('@univerjs/sheets-formula/locale/en-US').then((m) => (m as { default: unknown }).default).catch(() => ({})),
+      import('@univerjs/ui/locale/en-US')
+        .then((m) => (m as { default: unknown }).default)
+        .catch(() => ({})),
+      import('@univerjs/docs-ui/locale/en-US')
+        .then((m) => (m as { default: unknown }).default)
+        .catch(() => ({})),
+      import('@univerjs/sheets/locale/en-US')
+        .then((m) => (m as { default: unknown }).default)
+        .catch(() => ({})),
+      import('@univerjs/sheets-ui/locale/en-US')
+        .then((m) => (m as { default: unknown }).default)
+        .catch(() => ({})),
+      import('@univerjs/sheets-formula/locale/en-US')
+        .then((m) => (m as { default: unknown }).default)
+        .catch(() => ({})),
     ])
-    const merged = Object.assign({}, ui, docsUi, sheets, sheetsUi, sheetsFormula) as ILocales[LocaleType]
+    const merged = Object.assign(
+      {},
+      ui,
+      docsUi,
+      sheets,
+      sheetsUi,
+      sheetsFormula,
+    ) as ILocales[LocaleType]
     return { [LocaleType.EN_US]: merged }
   } catch (err) {
     console.warn('ensemble: failed to load Univer locales (UI may be unlabeled)', err)
@@ -161,51 +193,11 @@ export async function loadBrowserLocales(): Promise<ILocales | undefined> {
 }
 
 /**
- * Load browser-only UI plugins via dynamic import (async).
- *
- * These modules transitively depend on @univerjs/icons which is not installed
- * for Node/jsdom unit tests. Dynamic import lets Vite tree-shake them properly
- * in the browser bundle and lets Node/jsdom silently skip them (errors are caught).
- *
- * Call this from a browser context (e.g. mountWorkbookEditor) BEFORE editor.load()
- * so the UI canvas is ready before workbook data is set.
+ * Backwards-compat shim. Previously this function loaded UI plugins asynchronously;
+ * we now register them synchronously inside createEditor() so the cell-editor
+ * pipeline works. This function is a no-op kept for API stability — existing callers
+ * (mount.ts, e2e helpers) can keep awaiting it.
  */
-export async function loadBrowserPlugins(
-  univer: Univer,
-  container: HTMLElement,
-  onError?: (plugin: string, error: unknown) => void,
-): Promise<void> {
-  const warn =
-    onError ??
-    ((plugin, err) => console.warn(`ensemble: failed to load browser plugin "${plugin}"`, err))
-
-  try {
-    const { UniverUIPlugin } = await import('@univerjs/ui')
-    univer.registerPlugin(UniverUIPlugin as Parameters<typeof univer.registerPlugin>[0], {
-      container,
-    })
-  } catch (err) {
-    warn('@univerjs/ui', err)
-  }
-
-  try {
-    const { UniverDocsUIPlugin } = await import('@univerjs/docs-ui')
-    univer.registerPlugin(UniverDocsUIPlugin as Parameters<typeof univer.registerPlugin>[0])
-  } catch (err) {
-    warn('@univerjs/docs-ui', err)
-  }
-
-  try {
-    const { UniverSheetsUIPlugin } = await import('@univerjs/sheets-ui')
-    univer.registerPlugin(UniverSheetsUIPlugin as Parameters<typeof univer.registerPlugin>[0])
-  } catch (err) {
-    warn('@univerjs/sheets-ui', err)
-  }
-
-  try {
-    const { UniverSheetsFormulaPlugin } = await import('@univerjs/sheets-formula')
-    univer.registerPlugin(UniverSheetsFormulaPlugin as Parameters<typeof univer.registerPlugin>[0])
-  } catch (err) {
-    warn('@univerjs/sheets-formula', err)
-  }
+export async function loadBrowserPlugins(_univer: Univer, _container: HTMLElement): Promise<void> {
+  // Intentionally empty: createEditor now registers all plugins eagerly.
 }

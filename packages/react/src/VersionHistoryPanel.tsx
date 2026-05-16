@@ -24,8 +24,8 @@ export function VersionHistoryPanel({ api, workbookId, onRestore }: VersionHisto
   return (
     <div className="ensemble-version-history">
       <header style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <strong>Version history</strong>
-        <button aria-label="Save version" onClick={() => setCreating(true)}>
+        <strong>版本历史</strong>
+        <button type="button" aria-label="保存版本" onClick={() => setCreating(true)}>
           +
         </button>
       </header>
@@ -41,7 +41,7 @@ export function VersionHistoryPanel({ api, workbookId, onRestore }: VersionHisto
           }}
         >
           <input
-            aria-label="Version name"
+            aria-label="版本名称"
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}
           />
@@ -52,12 +52,13 @@ export function VersionHistoryPanel({ api, workbookId, onRestore }: VersionHisto
           <li key={v.id} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <span>{v.name}</span>
             <button
+              type="button"
               onClick={async () => {
                 await api.restoreVersion(workbookId, v.id)
                 onRestore?.()
               }}
             >
-              Restore
+              恢复
             </button>
           </li>
         ))}

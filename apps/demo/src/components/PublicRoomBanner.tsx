@@ -19,12 +19,11 @@ export function PublicRoomBanner({ inPublicRoom, onLeave }: PublicRoomBannerProp
       }}
     >
       <span>
-        ☁ You are in the <strong>public room</strong>. Anything you type here is visible to every
-        other visitor right now.
+        ☁ 你正在 <strong>公共房间</strong>。你在这里写的内容当前对所有其他访客可见。
       </span>
       <div style={{ flex: 1 }} />
       <button type="button" onClick={onLeave}>
-        ← Back to my sandbox
+        ← 回我的沙盒
       </button>
     </div>
   )

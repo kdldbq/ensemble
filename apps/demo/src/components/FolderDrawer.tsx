@@ -11,7 +11,7 @@ export interface FolderDrawerProps {
 
 export function FolderDrawer({ api, open, onClose, onSelect }: FolderDrawerProps) {
   return (
-    <Drawer side="left" open={open} onClose={onClose} title="Folders">
+    <Drawer side="left" open={open} onClose={onClose} title="文件夹">
       <FolderNavigator
         api={api}
         onSelect={(folder) => {
@@ -20,8 +20,7 @@ export function FolderDrawer({ api, open, onClose, onSelect }: FolderDrawerProps
         }}
       />
       <p style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}>
-        Create a folder, rename it, then drop a workbook into it. Tree structure is per tenant; in
-        this demo every visitor shares the same tenant.
+        新建文件夹、重命名，把工作簿拖进去。目录结构按租户隔离；本演示所有访客共享同一租户。
       </p>
     </Drawer>
   )

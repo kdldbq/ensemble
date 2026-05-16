@@ -1,11 +1,6 @@
 import { ApiClient } from './api-client'
 import type { UniverWorkbookData } from './types'
-import {
-  type Editor,
-  createEditor,
-  loadBrowserLocales,
-  loadBrowserPlugins,
-} from './univer-wrapper'
+import { type Editor, createEditor, loadBrowserLocales, loadBrowserPlugins } from './univer-wrapper'
 import { type WelcomeFrame, WsClient } from './ws-client'
 import { univerJsonToXlsx, xlsxToUniverJson } from './xlsx-converter'
 
@@ -45,8 +40,7 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
   // "Locale not initialized" on first render. Headless tests skip this via _editorFactory.
   const locales = opts._editorFactory ? undefined : await loadBrowserLocales()
   const editor = (
-    opts._editorFactory ??
-    ((c) => createEditor({ container: c, ...(locales ? { locales } : {}) }))
+    opts._editorFactory ?? ((c) => createEditor({ container: c, ...(locales ? { locales } : {}) }))
   )(opts.container)
   const ws = new WsClient({ url: opts.wsBaseUrl, workbookId: opts.workbookId, token: opts.token })
 
@@ -74,6 +68,18 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     sheets: { [sheetId]: { id: sheetId, name: 'Sheet1', cellData: {} } },
   }
   editor.load(data)
+
+  // Univer 0.22 UI plugins (sheets-ui, docs-ui) wire keyboard / focus listeners during
+  // their onRendered phase, which runs AFTER createUnit kicks the renderer. Without a
+  // tick to let that phase complete, the canvas accepts selection events but typing
+  // never reaches the cell editor — EditorBridgeService has no listeners attached yet
+  // when the first key is pressed.
+  await new Promise((r) => setTimeout(r, 250))
+  if (!opts._editorFactory) {
+    const canvas = opts.container.querySelector('canvas') as HTMLCanvasElement | null
+    canvas?.setAttribute('tabindex', '0')
+    canvas?.focus({ preventScroll: true })
+  }
 
   return {
     async save() {

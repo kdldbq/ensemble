@@ -72,8 +72,8 @@ describe('<FolderNavigator />', () => {
     const { getByLabelText, findByText } = render(
       <FolderNavigator api={api as never} onSelect={() => {}} />,
     )
-    fireEvent.click(getByLabelText('Create folder'))
-    const input = getByLabelText('Folder name')
+    fireEvent.click(getByLabelText('新建文件夹'))
+    const input = getByLabelText('文件夹名称')
     fireEvent.change(input, { target: { value: 'New' } })
     fireEvent.submit(input.closest('form')!)
     await waitFor(() =>
