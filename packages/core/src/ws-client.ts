@@ -25,6 +25,14 @@ export interface WsClientOpts {
   WebSocketImpl?: typeof WebSocket
 }
 
+export interface PresenceEntry {
+  clientId: string
+  userId: string
+  lastSeen?: number
+  cursor?: { sheet: string; row: number; col: number }
+  selection?: unknown
+}
+
 export class WsClient {
   private readonly opts: WsClientOpts
   private socket: WebSocket | null = null
@@ -37,6 +45,7 @@ export class WsClient {
   private applyListeners: Array<(f: { seqNum: number; userId: string; payload: unknown }) => void> =
     []
   private lockListeners: Array<(f: { type: string } & Record<string, unknown>) => void> = []
+  private presenceListeners: Array<(entries: PresenceEntry[]) => void> = []
 
   constructor(opts: WsClientOpts) {
     this.opts = opts
@@ -111,11 +120,21 @@ export class WsClient {
         }
         if (frame.type === 'lock_acquired' || frame.type === 'lock_released') {
           for (const cb of this.lockListeners) cb(frame)
+        } else if (frame.type === 'presence_update') {
+          const entries = Array.isArray(frame.entries) ? (frame.entries as PresenceEntry[]) : []
+          for (const cb of this.presenceListeners) cb(entries)
         }
       } catch {
         /* ignore */
       }
     })
+  }
+
+  onPresence(cb: (entries: PresenceEntry[]) => void): () => void {
+    this.presenceListeners.push(cb)
+    return () => {
+      this.presenceListeners = this.presenceListeners.filter((x) => x !== cb)
+    }
   }
 
   async acquireLock(
@@ -176,5 +195,10 @@ export class WsClient {
   close(): void {
     this.socket?.close()
     this.socket = null
+  }
+
+  /** Whether a socket is currently attached and assumed OPEN. */
+  isConnected(): boolean {
+    return this.socket !== null
   }
 }

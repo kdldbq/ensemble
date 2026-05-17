@@ -1,8 +1,34 @@
+import { CustomCommandExecutionError } from '@univerjs/core'
 import { ApiClient } from './api-client'
 import type { UniverWorkbookData } from './types'
 import { type Editor, createEditor, loadBrowserLocales, loadBrowserPlugins } from './univer-wrapper'
-import { type WelcomeFrame, WsClient } from './ws-client'
+import { type PresenceEntry, type WelcomeFrame, WsClient } from './ws-client'
 import { univerJsonToXlsx, xlsxToUniverJson } from './xlsx-converter'
+
+/**
+ * Univer 0.22's CommandType.MUTATION value. Hard-coded to avoid importing the
+ * enum into Node-only test paths (the import would pull in render engine code
+ * that requires a browser). The value comes from
+ * `@univerjs/core/lib/types/shared/command-enum.d.ts`.
+ */
+const COMMAND_TYPE_MUTATION = 2
+
+/**
+ * Univer command id fired whenever the active cell selection moves. We listen
+ * to its before-execute hook to track which cell the user is "intending to
+ * edit", so we can acquire a lock for that specific region before any mutation
+ * goes out. (Documented in `@univerjs/sheets` SetSelectionsOperation.)
+ */
+const SET_SELECTIONS_OPERATION_ID = 'sheet.operation.set-selections'
+
+export interface CollabCapability {
+  /**
+   * When false, the editor enters viewer mode: outbound mutations are not sent
+   * via WebSocket and the session-level edit lock is not acquired. The server
+   * also enforces this independently (defense in depth).
+   */
+  canEdit: boolean
+}
 
 export interface MountOpts {
   container: HTMLElement
@@ -11,6 +37,19 @@ export interface MountOpts {
   wsBaseUrl: string
   token: () => string | Promise<string>
   fetch?: typeof fetch
+  /**
+   * Capability hints for UI gating. Server still validates every WS frame against
+   * its own PermissionAdapter — these flags only affect the local Univer behavior
+   * (toolbar enable/disable, outbound mutation pipeline, lock acquisition).
+   */
+  capabilities?: CollabCapability
+  /**
+   * When set to a positive number, the editor auto-saves a snapshot N ms after
+   * the last local mutation. Required by the demo's viewer-preview panel so the
+   * derived view stays in sync without the user hitting the Save button. Set
+   * to 0 / undefined for manual-save-only behavior (the original v0.1 contract).
+   */
+  autoSaveMs?: number
   /** Called immediately after the WS welcome frame is received, before plugins load.
    *  Use this to wire up WS-level helpers (e.g. acquireLock) without waiting for the
    *  full editor mount cycle. */
@@ -25,6 +64,24 @@ export interface MountHandle {
   save(): Promise<{ id: string }>
   exportXlsx(): Uint8Array
   destroy(): Promise<void>
+  /**
+   * Subscribe to remote mutations being applied to this editor. Fires AFTER the
+   * Univer command service has finished applying the change locally. Consumers
+   * like the side-panel preview use this to refresh derived views.
+   * Returns an unsubscribe function.
+   */
+  onMutationApplied(cb: (seqNum: number, userId: string) => void): () => void
+  /**
+   * Subscribe to presence_update frames. Fires every time the server broadcasts
+   * the room's roster (clientId → userId/cursor). Returns an unsubscribe function.
+   */
+  onPresence(cb: (entries: PresenceEntry[]) => void): () => void
+  /**
+   * Subscribe to save completions. Fires after any successful snapshot upload —
+   * the manual `save()` call, the debounced auto-save, AND after applying a
+   * remote mutation if `autoSaveMs` is on. Use this to refresh derived views.
+   */
+  onSaved(cb: (snapshotId: string) => void): () => void
   /** @internal — direct access to the WsClient; for tests and Playwright helpers */
   _wsClient: WsClient
 }
@@ -81,21 +138,336 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     canvas?.focus({ preventScroll: true })
   }
 
+  // ─── Realtime collaboration wiring ─────────────────────────────────────────
+  // Each editor instance acquires a unique per-session lock (fallback) AND a
+  // cell-region lock tied to the user's active cell selection. Mutations submit
+  // with the cell-region — server rejects if another user owns that cell, which
+  // is how we get true cell-level arbitration (not just last-write-wins).
+  // Univer's CommandType.MUTATION + IExecutionOptions.fromCollab flag break the
+  // echo loop between local capture and remote apply.
+  const canEdit = opts.capabilities?.canEdit ?? true
+  const sessionLockRegion = `auto-${cryptoRandomId()}`
+  const cleanups: Array<() => void> = []
+  const mutationAppliedListeners: Array<(seqNum: number, userId: string) => void> = []
+  const presenceListeners: Array<(entries: PresenceEntry[]) => void> = []
+  const savedListeners: Array<(snapshotId: string) => void> = []
+
+  /**
+   * The cell-region lock the user currently holds, derived from their active
+   * Univer selection. Null before they first click a cell or whenever they
+   * navigate away. Mutations prefer this region over the session-fallback so
+   * server-side cell-level arbitration kicks in.
+   */
+  let currentCellRegion: string | null = null
+  /**
+   * True when our most recent attempt to acquire `currentCellRegion` was
+   * denied by the server (another user owns it). beforeCommandExecuted reads
+   * this to cancel local mutations targeting the locked cell — keeps the UI
+   * from optimistically applying changes that the server will reject.
+   */
+  let cellLockBlocked = false
+  /**
+   * Owner of the cell the user currently has selected, when we don't own it
+   * ourselves. Surfaced via lock_acquired events so CellLockOverlay shows
+   * "X is editing here" without needing a separate broadcast.
+   */
+  let cellLockBlockedBy: string | null = null
+
+  function makeCellRegion(
+    unitId: string,
+    subUnitId: string,
+    row: number,
+    col: number,
+  ): string {
+    return `cell:${unitId}/${subUnitId}!R${row}C${col}`
+  }
+
+  async function updateCellLock(newRegion: string | null): Promise<void> {
+    if (newRegion === currentCellRegion) return
+    if (currentCellRegion && ws.isConnected()) {
+      // Fire-and-forget release; we don't care if it lands before the next
+      // acquire because the server uses Redis SET-NX semantics.
+      try {
+        ws.releaseLock(currentCellRegion)
+      } catch {
+        /* socket may have closed */
+      }
+    }
+    currentCellRegion = newRegion
+    cellLockBlocked = false
+    cellLockBlockedBy = null
+    if (newRegion && canEdit && ws.isConnected()) {
+      try {
+        const result = await ws.acquireLock(newRegion)
+        if (!result.acquired) {
+          cellLockBlocked = true
+          cellLockBlockedBy = result.ownerId
+        }
+      } catch (err) {
+        console.warn('ensemble: cell lock acquire failed', err)
+      }
+    }
+  }
+
+  let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+  let autoSavePending = false
+  async function performSave(): Promise<{ id: string }> {
+    const snapshot = editor.getData()
+    const bytes = new TextEncoder().encode(JSON.stringify(snapshot))
+    const snap = await api.uploadSnapshot(opts.workbookId, bytes, { reason: 'manual' })
+    for (const cb of savedListeners) {
+      try {
+        cb(snap.id)
+      } catch (err) {
+        console.warn('ensemble: onSaved listener threw', err)
+      }
+    }
+    return { id: snap.id }
+  }
+  function scheduleAutoSave(): void {
+    const ms = opts.autoSaveMs ?? 0
+    if (ms <= 0) return
+    if (autoSaveTimer) clearTimeout(autoSaveTimer)
+    autoSavePending = true
+    autoSaveTimer = setTimeout(() => {
+      autoSaveTimer = null
+      autoSavePending = false
+      performSave().catch((err) => console.warn('ensemble: auto-save failed', err))
+    }, ms)
+  }
+
+  // Bridge ws → external subscribers (must be set up regardless of canEdit, so
+  // viewers see live changes broadcast from editors).
+  cleanups.push(
+    ws.onApplyMutation((frame) => {
+      const payload = frame.payload as { id?: unknown; params?: unknown } | null
+      if (
+        editor.commandService &&
+        payload &&
+        typeof payload.id === 'string' &&
+        typeof payload.params === 'object' &&
+        payload.params !== null
+      ) {
+        editor.commandService
+          .executeCommand(payload.id, payload.params as object, { fromCollab: true })
+          .catch((err) => {
+            console.warn('ensemble: failed to apply remote mutation', payload.id, err)
+          })
+      }
+      for (const cb of mutationAppliedListeners) cb(frame.seqNum, frame.userId)
+      // Auto-save after applying a remote change too — so the side-panel viewer
+      // sees the merged state even though this client (often a non-author) isn't
+      // typing. canEdit is required: viewer-token clients can't upload snapshots.
+      if (canEdit) scheduleAutoSave()
+    }),
+  )
+
+  cleanups.push(
+    ws.onPresence((entries) => {
+      for (const cb of presenceListeners) cb(entries)
+    }),
+  )
+
+  if (canEdit && ws.isConnected()) {
+    // Acquire session lock as a fallback for any mutation that fires before
+    // the user has selected a specific cell (e.g., commands triggered from the
+    // toolbar). Failure is non-fatal: subsequent submit_mutation frames will
+    // be rejected by the server, surfaced as console warnings.
+    try {
+      await ws.acquireLock(sessionLockRegion)
+    } catch (err) {
+      console.warn('ensemble: session lock acquire failed', err)
+    }
+
+    if (editor.commandService) {
+      // Cell-level lock arbitration: watch selection changes BEFORE Univer
+      // applies them, so we acquire/release the cell lock in lockstep with
+      // user intent. We also cancel local mutations if the server told us the
+      // cell is owned by someone else — prevents the editor from drifting
+      // ahead of the persisted truth.
+      const beforeDispose = editor.commandService.beforeCommandExecuted((info) => {
+        if (info.id === SET_SELECTIONS_OPERATION_ID) {
+          const params = info.params as
+            | {
+                unitId?: unknown
+                subUnitId?: unknown
+                selections?: Array<{
+                  range?: { startRow?: unknown; startColumn?: unknown }
+                  primary?: { startRow?: unknown; startColumn?: unknown }
+                }>
+              }
+            | undefined
+          const unitId = typeof params?.unitId === 'string' ? params.unitId : null
+          const subUnitId = typeof params?.subUnitId === 'string' ? params.subUnitId : null
+          // Prefer primary cell (the anchored cell within a multi-cell range)
+          // because that's where the cell editor opens; fall back to the first
+          // cell of the first range.
+          const first = params?.selections?.[0]
+          const anchor = first?.primary ?? first?.range
+          const row = typeof anchor?.startRow === 'number' ? anchor.startRow : null
+          const col = typeof anchor?.startColumn === 'number' ? anchor.startColumn : null
+          if (unitId && subUnitId && row !== null && col !== null) {
+            void updateCellLock(makeCellRegion(unitId, subUnitId, row, col))
+          }
+          return
+        }
+        // Cancel local mutation if the server denied our cell lock. Throwing
+        // CustomCommandExecutionError causes CommandService to return false
+        // from executeCommand/syncExecuteCommand without firing the after-execute
+        // listeners (so we don't accidentally broadcast a doomed mutation).
+        if (info.type === COMMAND_TYPE_MUTATION && cellLockBlocked) {
+          throw new CustomCommandExecutionError(
+            `ensemble: cell locked by ${cellLockBlockedBy ?? 'another user'}`,
+          )
+        }
+      })
+      cleanups.push(() => beforeDispose.dispose())
+
+      // Outbound: capture Univer mutations and send to server.
+      const dispose = editor.commandService.onCommandExecuted((info, options) => {
+        if (info.type !== COMMAND_TYPE_MUTATION) return
+        if (options?.fromCollab) return
+        if (options?.onlyLocal) return
+        if (ws.isConnected()) {
+          ws.submitMutation({
+            // Use the cell-region we hold; fall back to the per-session lock
+            // for cases where the user hasn't selected a cell yet (e.g. a
+            // command fires synthetically right after mount).
+            region: currentCellRegion ?? sessionLockRegion,
+            payload: { id: info.id, params: info.params ?? {} },
+          }).catch((err) => console.warn('ensemble: outbound mutation failed', info.id, err))
+        }
+        // Schedule debounced auto-save so the derived viewer-preview snapshot
+        // catches up without the user hitting Save manually.
+        scheduleAutoSave()
+      })
+      cleanups.push(() => dispose.dispose())
+    }
+  }
+
+  // Keep our presence entry alive (server evicts after 15s idle). Fire once
+  // immediately so the room roster sees us right after WS welcome.
+  const heartbeatTimer = ws.isConnected()
+    ? safeInterval(() => {
+        try {
+          ws.sendHeartbeat()
+        } catch {
+          /* socket may have closed mid-tick */
+        }
+      }, 5_000)
+    : null
+  if (ws.isConnected()) {
+    try {
+      ws.sendHeartbeat()
+    } catch {
+      /* socket may have closed already */
+    }
+  }
+
   return {
     async save() {
-      const data = editor.getData()
-      const bytes = new TextEncoder().encode(JSON.stringify(data))
-      const snap = await api.uploadSnapshot(opts.workbookId, bytes, { reason: 'manual' })
-      return { id: snap.id }
+      // Manual save bypasses the auto-save debounce. Cancel any pending timer
+      // so we don't immediately re-save after the user just pressed the button.
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+        autoSaveTimer = null
+        autoSavePending = false
+      }
+      return performSave()
     },
     exportXlsx() {
       return univerJsonToXlsx(editor.getData())
     },
     async destroy() {
+      if (heartbeatTimer) heartbeatTimer.clear()
+      // Flush pending auto-save before tearing down so the user's last edits
+      // aren't silently dropped on unmount.
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+        autoSaveTimer = null
+      }
+      if (autoSavePending) {
+        autoSavePending = false
+        try {
+          await performSave()
+        } catch (err) {
+          console.warn('ensemble: final flush save failed', err)
+        }
+      }
+      for (const cleanup of cleanups.splice(0)) {
+        try {
+          cleanup()
+        } catch {
+          /* swallow; tearing down anyway */
+        }
+      }
+      if (canEdit && ws.isConnected()) {
+        try {
+          ws.releaseLock(sessionLockRegion)
+        } catch {
+          /* fire-and-forget */
+        }
+        if (currentCellRegion) {
+          try {
+            ws.releaseLock(currentCellRegion)
+          } catch {
+            /* fire-and-forget */
+          }
+          currentCellRegion = null
+        }
+      }
       editor.destroy()
       ws.close()
     },
+    onMutationApplied(cb) {
+      mutationAppliedListeners.push(cb)
+      return () => {
+        const i = mutationAppliedListeners.indexOf(cb)
+        if (i >= 0) mutationAppliedListeners.splice(i, 1)
+      }
+    },
+    onPresence(cb) {
+      presenceListeners.push(cb)
+      return () => {
+        const i = presenceListeners.indexOf(cb)
+        if (i >= 0) presenceListeners.splice(i, 1)
+      }
+    },
+    onSaved(cb) {
+      savedListeners.push(cb)
+      return () => {
+        const i = savedListeners.indexOf(cb)
+        if (i >= 0) savedListeners.splice(i, 1)
+      }
+    },
     _wsClient: ws,
+  }
+}
+
+function cryptoRandomId(): string {
+  // crypto.randomUUID exists in modern browsers and Node ≥ 19. Fallback for
+  // jsdom / older Node test environments uses Math.random — only used to build
+  // a per-session lock region, never security-sensitive.
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+  } catch {
+    /* fallthrough */
+  }
+  return `r${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+interface IntervalHandle {
+  clear(): void
+}
+
+function safeInterval(fn: () => void, ms: number): IntervalHandle {
+  const id = setInterval(fn, ms)
+  return {
+    clear() {
+      clearInterval(id)
+    },
   }
 }
 

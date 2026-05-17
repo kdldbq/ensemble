@@ -225,4 +225,76 @@ describe('mountWorkbookEditor', () => {
 
     await expect(handle.destroy()).resolves.toBeUndefined()
   })
+
+  it('exposes onMutationApplied / onPresence / onSaved subscriptions returning unsubscribe', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const fakeEditor = makeFakeEditor()
+
+    const handle = await mountWorkbookEditor({
+      container,
+      workbookId: 'w',
+      apiBaseUrl: 'https://api',
+      wsBaseUrl: 'wss://api',
+      token: () => 't',
+      fetch: vi.fn(async () => new Response(null, { status: 204 })) as never,
+      _editorFactory: () => fakeEditor as never,
+      _wsConnect: wsStub,
+    })
+
+    expect(typeof handle.onMutationApplied).toBe('function')
+    expect(typeof handle.onPresence).toBe('function')
+    expect(typeof handle.onSaved).toBe('function')
+
+    const unsubM = handle.onMutationApplied(() => {})
+    const unsubP = handle.onPresence(() => {})
+    const unsubS = handle.onSaved(() => {})
+    expect(typeof unsubM).toBe('function')
+    expect(typeof unsubP).toBe('function')
+    expect(typeof unsubS).toBe('function')
+    unsubM()
+    unsubP()
+    unsubS()
+  })
+
+  it('save() fires onSaved listeners with the new snapshot id', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const fakeEditor = makeFakeEditor()
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.endsWith('/snapshot'))
+        return new Response(JSON.stringify({ id: 'w', sheetOrder: [], sheets: {} }), {
+          status: 200,
+        })
+      return new Response(
+        JSON.stringify({
+          id: 'snap-xyz',
+          workbookId: 'w',
+          storageKey: 'k',
+          sizeBytes: 1,
+          createdBy: 'u',
+          createdAt: '2026-01-01',
+          reason: 'manual',
+          name: null,
+        }),
+        { status: 200 },
+      )
+    }) as never
+
+    const handle = await mountWorkbookEditor({
+      container,
+      workbookId: 'w',
+      apiBaseUrl: 'https://api',
+      wsBaseUrl: 'wss://api',
+      token: () => 't',
+      fetch: fetchMock,
+      _editorFactory: () => fakeEditor as never,
+      _wsConnect: wsStub,
+    })
+
+    const seenSnapshotIds: string[] = []
+    handle.onSaved((id) => seenSnapshotIds.push(id))
+    await handle.save()
+    expect(seenSnapshotIds).toEqual(['snap-xyz'])
+  })
 })

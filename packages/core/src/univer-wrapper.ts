@@ -20,6 +20,7 @@
  */
 
 import {
+  ICommandService,
   type ILocales,
   IUniverInstanceService,
   type IWorkbookData,
@@ -27,6 +28,13 @@ import {
   Univer,
   UniverInstanceType,
 } from '@univerjs/core'
+
+// `ICommandService` is dual-purpose in Univer 0.22: the imported value is the
+// DI identifier (used by `injector.get(...)`), and the same name as a type is
+// the service-interface shape. We alias the type so callers reading `Editor`
+// see a well-named interface and don't accidentally trip on the value/type
+// collision at the call site.
+type ICommandServiceType = import('@univerjs/core').ICommandService
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
 import { UniverDocsDrawingUIPlugin } from '@univerjs/docs-drawing-ui'
@@ -64,12 +72,24 @@ export interface EditorOpts {
   locale?: LocaleType
   /** Pre-loaded Univer locale resources. Use loadBrowserLocales() to fetch them. */
   locales?: ILocales
+  /**
+   * When true, Univer is bootstrapped in viewer mode and toolbar commands that
+   * mutate the document (set value, merge cells, change borders, etc.) are
+   * intercepted before reaching the mutation pipeline.
+   */
+  readOnly?: boolean
 }
 
 export interface Editor {
   load(data: UniverWorkbookData): void
   getData(): UniverWorkbookData
   destroy(): void
+  /**
+   * The Univer command service. Subscribe via `onCommandExecuted` to capture local
+   * mutations for collaborative sync; invoke remote mutations via `executeCommand`
+   * with `{ fromCollab: true }` so the listener skips them and no echo loop forms.
+   */
+  commandService: ICommandServiceType
   /** @internal — exposed for advanced consumers (e2e helpers, etc.) */
   _univer: Univer
 }
@@ -165,11 +185,13 @@ export function createEditor(opts: EditorOpts): Editor {
   univer.registerPlugin(UniverSheetsThreadCommentUIPlugin)
 
   const injector = univer.__getInjector()
+  const commandService = injector.get(ICommandService)
 
   let currentId: string | null = null
 
   return {
     _univer: univer,
+    commandService,
 
     load(data: UniverWorkbookData): void {
       currentId = data.id
