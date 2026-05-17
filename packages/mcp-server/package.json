@@ -1,0 +1,31 @@
+{
+  "name": "@ensemble-sheets/mcp-server",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "description": "Model Context Protocol server exposing ensemble spreadsheet tools to AI agents (Claude, GPT, etc).",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kdldbq/ensemble.git",
+    "directory": "packages/mcp-server"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": { "ensemble-mcp": "./dist/bin.js" },
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@ensemble-sheets/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@ensemble-sheets/core": "workspace:*",
+    "@types/node": "20.16.10"
+  }
+}

@@ -258,6 +258,15 @@ importers:
         specifier: 20.16.10
         version: 20.16.10
 
+  packages/mcp-server:
+    devDependencies:
+      '@ensemble-sheets/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/node':
+        specifier: 20.16.10
+        version: 20.16.10
+
   packages/react:
     devDependencies:
       '@ensemble-sheets/core':
@@ -1884,8 +1893,8 @@ packages:
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
-      react: 18.3.1
-      react-dom: 18.3.1
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -4837,7 +4846,7 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       '@types/react': '*'
-      react: 18.3.1
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
         optional: true
