@@ -268,6 +268,41 @@ export class ApiClient {
       method: 'DELETE',
     })
   }
+  async diffVersions(
+    workbookId: string,
+    input: { fromVersionId: string; toVersionId: string },
+  ): Promise<{
+    cells: Array<{
+      sheetId: string
+      row: number
+      col: number
+      op: 'added' | 'removed' | 'changed'
+      from: unknown
+      to: unknown
+    }>
+    totals: { added: number; removed: number; changed: number }
+    sheetsAdded: string[]
+    sheetsRemoved: string[]
+  }> {
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/versions/diff`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return res.json() as Promise<{
+      cells: Array<{
+        sheetId: string
+        row: number
+        col: number
+        op: 'added' | 'removed' | 'changed'
+        from: unknown
+        to: unknown
+      }>
+      totals: { added: number; removed: number; changed: number }
+      sheetsAdded: string[]
+      sheetsRemoved: string[]
+    }>
+  }
   async readRange(
     workbookId: string,
     input: { sheetId: string; rangeRef: string },

@@ -1,4 +1,7 @@
+import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { snapshots as snapshotsTable } from '../../db/schema'
+import { diffSnapshots } from '../../services/version-diff'
 import type { AppEnv } from '../app'
 import { requireIdentity } from '../auth'
 import { requireCapability } from '../permission'
@@ -37,6 +40,52 @@ export const versionsRoute = new Hono<AppEnv>()
           return c.json({ error: 'cannot create version: workbook has no snapshots' }, 400)
         }
         throw err
+      }
+    },
+  )
+  .post(
+    '/api/v1/workbooks/:wbId/versions/diff',
+    requireCapability('canView', (c) => ({
+      type: 'workbook',
+      id: c.req.param('wbId'),
+      tenantId: c.get('identity')!.tenantId,
+    })),
+    async (c) => {
+      const wbId = c.req.param('wbId')
+      const body = (await c.req.json()) as { fromVersionId?: string; toVersionId?: string }
+      if (!body.fromVersionId || !body.toVersionId) {
+        return c.json({ error: 'fromVersionId and toVersionId required' }, 400)
+      }
+      const [vA] = await c
+        .get('deps')
+        .db.select()
+        .from(snapshotsTable)
+        .where(eq(snapshotsTable.id, body.fromVersionId))
+        .limit(1)
+      const [vB] = await c
+        .get('deps')
+        .db.select()
+        .from(snapshotsTable)
+        .where(eq(snapshotsTable.id, body.toVersionId))
+        .limit(1)
+      if (!vA || !vB) return c.json({ error: 'one or both versions not found' }, 404)
+      if (vA.workbookId !== wbId || vB.workbookId !== wbId) {
+        return c.json({ error: 'version does not belong to this workbook' }, 400)
+      }
+      try {
+        const [bytesA, bytesB] = await Promise.all([
+          c.get('deps').storage.get(vA.storageKey),
+          c.get('deps').storage.get(vB.storageKey),
+        ])
+        const a = JSON.parse(new TextDecoder().decode(bytesA))
+        const b = JSON.parse(new TextDecoder().decode(bytesB))
+        const diff = diffSnapshots(a, b)
+        return c.json(diff)
+      } catch (err) {
+        return c.json(
+          { error: err instanceof Error ? err.message : 'diff failed' },
+          500,
+        )
       }
     },
   )
