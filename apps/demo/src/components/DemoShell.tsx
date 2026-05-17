@@ -214,7 +214,9 @@ function Inner(p: InnerProps) {
             setHandle(h)
           }}
         />
-        <ViewerPreview workbookId={p.activeWbId} refreshKey={p.previewKey} />
+        <div className="ensemble-narrow-hide" style={{ display: 'flex', minWidth: 0, flex: 1 }}>
+          <ViewerPreview workbookId={p.activeWbId} refreshKey={p.previewKey} />
+        </div>
       </main>
       <FolderDrawer
         api={api}
