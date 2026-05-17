@@ -59,6 +59,8 @@ export {
   UnrestrictedAgentPolicyAdapter,
   InMemoryAgentPolicyAdapter,
 } from './adapters/agent-policy'
+export type { OcrAdapter, OcrInput, OcrTable, OcrCell } from './adapters/ocr'
+export { NotImplementedOcrAdapter } from './adapters/ocr'
 export { createServer, type CreateServerOpts } from './server'
 export { buildApp, type AppDeps, type AppEnv } from './http/app'
 export { createDb, type Database } from './db/client'
