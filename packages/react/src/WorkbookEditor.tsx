@@ -2,6 +2,13 @@ import { type CollabCapability, mountWorkbookEditor } from '@ensemble-sheets/cor
 import type { MountHandle, WsClient } from '@ensemble-sheets/core'
 import { useEffect, useRef } from 'react'
 
+export interface WorkbookWatermark {
+  text: string
+  opacity?: number
+  color?: string
+  rotateDeg?: number
+}
+
 export interface WorkbookEditorProps {
   workbookId: string
   apiBaseUrl: string
@@ -24,6 +31,8 @@ export interface WorkbookEditorProps {
   onReady?: (handle: MountHandle) => void
   /** Called immediately after WS connects (before plugins load). Use for WS-level helpers. */
   onWsConnected?: (ws: WsClient) => void
+  /** Overlay watermark on canvas (best-effort; pointer-events:none). */
+  watermark?: WorkbookWatermark
 }
 
 export function WorkbookEditor(props: WorkbookEditorProps) {
@@ -53,6 +62,7 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
       token: tokenRef.current,
       ...(props.capabilities ? { capabilities: props.capabilities } : {}),
       ...(props.autoSaveMs !== undefined ? { autoSaveMs: props.autoSaveMs } : {}),
+      ...(props.watermark ? { watermark: props.watermark } : {}),
       onWsConnected: (ws) => {
         if (!cancelled) onWsConnectedRef.current?.(ws)
       },

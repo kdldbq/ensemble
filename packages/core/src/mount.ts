@@ -54,6 +54,21 @@ export interface MountOpts {
    *  Use this to wire up WS-level helpers (e.g. acquireLock) without waiting for the
    *  full editor mount cycle. */
   onWsConnected?: (ws: WsClient) => void
+  /**
+   * Overlay watermark rendered on top of the canvas. Best-effort leak deterrence:
+   * the overlay is `pointer-events: none` so it doesn't intercept clicks but does
+   * appear in screenshots/screen recordings. NOT anti-screenshot (browsers cannot
+   * truly prevent that).
+   */
+  watermark?: {
+    text: string
+    /** 0..1, default 0.08 */
+    opacity?: number
+    /** CSS color string, default #1f2937 */
+    color?: string
+    /** Rotation in degrees, default -22 */
+    rotateDeg?: number
+  }
   /** @internal — for tests */
   _editorFactory?: (container: HTMLElement) => Editor
   /** @internal — for tests */
@@ -148,6 +163,54 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
   const canEdit = opts.capabilities?.canEdit ?? true
   const sessionLockRegion = `auto-${cryptoRandomId()}`
   const cleanups: Array<() => void> = []
+
+  // ─── Watermark overlay (best-effort leak deterrence) ──────────────────────
+  // pointer-events:none, sits above canvas at z=5, removed by destroy() via cleanups.
+  if (opts.watermark && !opts._editorFactory) {
+    const wm = opts.watermark
+    const opacity = wm.opacity ?? 0.08
+    const color = wm.color ?? '#1f2937'
+    const rotate = wm.rotateDeg ?? -22
+    const watermarkEl = opts.container.ownerDocument.createElement('div')
+    watermarkEl.setAttribute('aria-hidden', 'true')
+    watermarkEl.dataset.ensembleWatermark = 'true'
+    Object.assign(watermarkEl.style, {
+      position: 'absolute',
+      inset: '0',
+      pointerEvents: 'none',
+      overflow: 'hidden',
+      zIndex: '5',
+      opacity: String(opacity),
+      color,
+      fontSize: '13px',
+      fontFamily: 'system-ui, sans-serif',
+      whiteSpace: 'nowrap',
+      userSelect: 'none',
+    } satisfies Partial<CSSStyleDeclaration>)
+    // Build a repeating grid via 24 spans (6 rows x 4 cols).
+    for (let r = 0; r < 6; r++) {
+      for (let c = 0; c < 4; c++) {
+        const span = opts.container.ownerDocument.createElement('span')
+        span.textContent = wm.text
+        Object.assign(span.style, {
+          position: 'absolute',
+          top: `${r * 18}%`,
+          left: `${c * 28}%`,
+          transform: `rotate(${rotate}deg)`,
+          transformOrigin: 'left top',
+        } satisfies Partial<CSSStyleDeclaration>)
+        watermarkEl.appendChild(span)
+      }
+    }
+    const containerStyle = opts.container.style
+    if (containerStyle.position === '' || containerStyle.position === 'static') {
+      containerStyle.position = 'relative'
+    }
+    opts.container.appendChild(watermarkEl)
+    cleanups.push(() => {
+      watermarkEl.remove()
+    })
+  }
   const mutationAppliedListeners: Array<(seqNum: number, userId: string) => void> = []
   const presenceListeners: Array<(entries: PresenceEntry[]) => void> = []
   const savedListeners: Array<(snapshotId: string) => void> = []
