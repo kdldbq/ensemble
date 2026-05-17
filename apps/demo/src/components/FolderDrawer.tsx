@@ -1,5 +1,5 @@
 import type { ApiClient, Folder } from '@ensemble-sheets/core'
-import { FolderNavigator } from '@ensemble-sheets/react'
+import { FolderTree } from '@ensemble-sheets/react'
 import { Drawer } from './Drawer'
 
 export interface FolderDrawerProps {
@@ -8,22 +8,35 @@ export interface FolderDrawerProps {
   canEdit?: boolean
   onClose: () => void
   onSelect: (folder: Folder) => void
+  /** Used to scope localStorage expand state per tenant. */
+  storageKey?: string
+  selectedId?: string | null
 }
 
-export function FolderDrawer({ api, open, canEdit = true, onClose, onSelect }: FolderDrawerProps) {
+export function FolderDrawer({
+  api,
+  open,
+  canEdit = true,
+  onClose,
+  onSelect,
+  storageKey,
+  selectedId,
+}: FolderDrawerProps) {
   return (
     <Drawer side="left" open={open} onClose={onClose} title="文件夹">
-      <FolderNavigator
+      <FolderTree
         api={api}
         canEdit={canEdit}
+        {...(storageKey !== undefined ? { storageKey } : {})}
+        {...(selectedId !== undefined ? { selectedId } : {})}
         onSelect={(folder) => {
           onSelect(folder)
-          onClose()
+          if (folder.id) onClose()
         }}
       />
       <p style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}>
-        鼠标悬停文件夹行可见 ✎ 重命名 / ⇨ 移动 / 🗑 删除 按钮；查看者角色下这些按钮隐藏。
-        目录结构按租户隔离；本演示所有访客共享同一租户。
+        点击 ▶ 展开子项；F2 重命名，Delete 删除（可在回收站恢复）；搜索框过滤 / 顶部切换活跃 ↔
+        回收站。 目录结构按租户隔离；本演示所有访客共享同一租户。
       </p>
     </Drawer>
   )

@@ -18,6 +18,16 @@ describe('GET /healthz', () => {
     })
     const res = await app.request('/healthz')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ok: true })
+    const body = (await res.json()) as {
+      ok: boolean
+      version: string
+      uptimeSec: number
+      checks: { db: string; redis: string }
+    }
+    expect(body.ok).toBe(true)
+    expect(body.checks.db).toBe('ok')
+    expect(body.checks.redis).toBe('skip')
+    expect(typeof body.version).toBe('string')
+    expect(typeof body.uptimeSec).toBe('number')
   })
 })

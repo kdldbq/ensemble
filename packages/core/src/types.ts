@@ -39,9 +39,39 @@ export interface Folder {
   name: string
   ownerId: string
   spaceType: 'personal' | 'shared'
+  position: number
   isDeleted: boolean
+  deletedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface FolderTreeNode extends Folder {
+  children: FolderTreeNode[]
+  depth: number
+}
+
+export function buildFolderTree(flat: Folder[]): FolderTreeNode[] {
+  const byParent = new Map<string | null, Folder[]>()
+  for (const f of flat) {
+    const key = f.parentId
+    const list = byParent.get(key) ?? []
+    list.push(f)
+    byParent.set(key, list)
+  }
+  for (const list of byParent.values()) {
+    list.sort((a, b) => a.position - b.position || a.createdAt.localeCompare(b.createdAt))
+  }
+
+  function build(parentId: string | null, depth: number): FolderTreeNode[] {
+    const children = byParent.get(parentId) ?? []
+    return children.map((f) => ({
+      ...f,
+      depth,
+      children: build(f.id, depth + 1),
+    }))
+  }
+  return build(null, 0)
 }
 
 export interface Grant {

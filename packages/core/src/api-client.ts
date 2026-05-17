@@ -112,6 +112,38 @@ export class ApiClient {
   async deleteFolder(id: string): Promise<void> {
     await this.req(`/api/v1/folders/${id}`, { method: 'DELETE' })
   }
+  async restoreFolder(id: string): Promise<Folder> {
+    const res = await this.req(`/api/v1/folders/${id}/restore`, { method: 'POST' })
+    return res.json() as Promise<Folder>
+  }
+  async reorderFolder(
+    id: string,
+    newPosition: number,
+    newParentId?: string | null,
+  ): Promise<Folder> {
+    const body: { newPosition: number; newParentId?: string | null } = { newPosition }
+    if (newParentId !== undefined) body.newParentId = newParentId
+    const res = await this.req(`/api/v1/folders/${id}/reorder`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    return res.json() as Promise<Folder>
+  }
+  async listTrashedFolders(): Promise<{ items: Folder[] }> {
+    return (await this.req('/api/v1/folders/trash')).json() as Promise<{ items: Folder[] }>
+  }
+  async updateWorkbook(
+    id: string,
+    patch: { name?: string; folderId?: string | null },
+  ): Promise<{ id: string; name: string; folderId: string | null }> {
+    const res = await this.req(`/api/v1/workbooks/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    return res.json() as Promise<{ id: string; name: string; folderId: string | null }>
+  }
   async createGrant(
     input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt'>,
   ): Promise<Grant> {

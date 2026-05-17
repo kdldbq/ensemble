@@ -1,5 +1,6 @@
 export { WorkbookEditor, type WorkbookEditorProps } from './WorkbookEditor'
 export { FolderNavigator, type FolderNavigatorProps } from './FolderNavigator'
+export { FolderTree, type FolderTreeProps } from './FolderTree'
 export { LockBadge, type LockBadgeProps } from './LockBadge'
 export { CellLockOverlay, type CellLockOverlayProps } from './CellLockOverlay'
 export { VersionHistoryPanel, type VersionHistoryPanelProps } from './VersionHistoryPanel'
