@@ -18,6 +18,22 @@ export interface Capability {
   canEdit: boolean
   canShare: boolean
   canDelete: boolean
+  /**
+   * Whether the user may post comments on this workbook. Optional — when
+   * undefined, defaults to canEdit. Hosts implementing a "view + comment"
+   * tier should set canComment=true with canEdit=false.
+   */
+  canComment?: boolean
+  /**
+   * Whether the user may download/export the workbook (xlsx, PDF). Optional —
+   * defaults to canView. Set false for "view but no copy out" compliance.
+   */
+  canDownload?: boolean
+  /**
+   * Whether the user may print. Optional — defaults to canView. Frontend-only
+   * enforcement (browsers cannot truly prevent print).
+   */
+  canPrint?: boolean
 }
 
 export type MaskMatch =

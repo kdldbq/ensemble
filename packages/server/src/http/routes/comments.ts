@@ -37,6 +37,12 @@ export const commentsRoute = new Hono<AppEnv>()
     async (c) => {
       const id = c.get('identity')!
       const wbId = c.req.param('id')
+      // Comment write requires canComment (defaults to canEdit when undefined).
+      const caps = c.get('capabilities')!
+      const allowed = caps.canComment ?? caps.canEdit
+      if (!allowed) {
+        return c.json({ error: 'comment capability required' }, 403)
+      }
       const body = (await c.req.json()) as {
         threadId?: string
         cellRef?: string | null

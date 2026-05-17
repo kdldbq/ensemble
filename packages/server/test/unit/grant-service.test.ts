@@ -16,7 +16,12 @@ function ctx(overrides: Partial<GrantContext> = {}): GrantContext {
 describe('resolveCapability', () => {
   it('owner always has full capability', async () => {
     const c = await resolveCapability(ctx({ workbookOwnerId: 'u1' }))
-    expect(c).toEqual({ canView: true, canEdit: true, canShare: true, canDelete: true })
+    expect(c).toMatchObject({
+      canView: true,
+      canEdit: true,
+      canShare: true,
+      canDelete: true,
+    })
   })
 
   it('user grant view → only canView', async () => {
@@ -34,7 +39,12 @@ describe('resolveCapability', () => {
         ],
       }),
     )
-    expect(c).toEqual({ canView: true, canEdit: false, canShare: false, canDelete: false })
+    expect(c).toMatchObject({
+      canView: true,
+      canEdit: false,
+      canShare: false,
+      canDelete: false,
+    })
   })
 
   it('user grant edit → canView + canEdit', async () => {
@@ -52,7 +62,12 @@ describe('resolveCapability', () => {
         ],
       }),
     )
-    expect(c).toEqual({ canView: true, canEdit: true, canShare: false, canDelete: false })
+    expect(c).toMatchObject({
+      canView: true,
+      canEdit: true,
+      canShare: false,
+      canDelete: false,
+    })
   })
 
   it('tenant_member grant applies to anyone in tenant', async () => {
@@ -131,6 +146,11 @@ describe('resolveCapability', () => {
         ],
       }),
     )
-    expect(c).toEqual({ canView: true, canEdit: true, canShare: true, canDelete: true })
+    expect(c).toMatchObject({
+      canView: true,
+      canEdit: true,
+      canShare: true,
+      canDelete: true,
+    })
   })
 })

@@ -15,6 +15,12 @@ export const exportXlsxRoute = new Hono<AppEnv>().use('*', requireIdentity).get(
   async (c) => {
     const idCtx = c.get('identity')!
     const wbId = c.req.param('wbId')
+    // Honour canDownload capability (defaults to canView when undefined).
+    const caps = c.get('capabilities')!
+    const allowed = caps.canDownload ?? caps.canView
+    if (!allowed) {
+      return c.json({ error: 'download capability denied' }, 403)
+    }
     const wb = await c.get('services').workbooks.get({ tenantId: idCtx.tenantId, id: wbId })
     if (!wb) return c.json({ error: 'not found' }, 404)
     const snap = await c.get('services').snapshots.getLatest(wb.id)

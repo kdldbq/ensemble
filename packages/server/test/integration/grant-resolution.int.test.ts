@@ -55,6 +55,11 @@ describe('grant resolution', () => {
       folderAncestors: () => repo.folderAncestors(child.id),
       findGrants: (refs) => repo.findGrants(refs),
     })
-    expect(cap).toEqual({ canView: true, canEdit: true, canShare: false, canDelete: false })
+    expect(cap).toMatchObject({
+      canView: true,
+      canEdit: true,
+      canShare: false,
+      canDelete: false,
+    })
   })
 })
