@@ -101,6 +101,11 @@ export const shareGrants = pgTable('share_grants', {
    * `scrypt$<salt_hex>$<derived_hex>` (see services/password.ts).
    */
   passwordHash: text('password_hash'),
+  /**
+   * Optional CIDR / IP list restricting which clients may use this grant
+   * (public_link only). Empty/null = no restriction. Format: ['10.0.0.0/8', '203.0.113.5'].
+   */
+  allowedIps: jsonb('allowed_ips').$type<string[] | null>(),
   grantedBy: text('granted_by').notNull(),
   grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
 })
