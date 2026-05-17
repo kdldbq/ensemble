@@ -90,3 +90,42 @@ export type EnsembleEvent =
       userId: string
       at: string
     }
+  | {
+      type: 'comment.created'
+      commentId: string
+      workbookId: string
+      threadId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.resolved'
+      commentId: string
+      workbookId: string
+      threadId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.unresolved'
+      commentId: string
+      workbookId: string
+      threadId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.deleted'
+      commentId: string
+      workbookId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.mentioned'
+      commentId: string
+      workbookId: string
+      mentioner: string
+      mentioned: string[]
+      at: string
+    }

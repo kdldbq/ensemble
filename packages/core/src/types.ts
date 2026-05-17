@@ -119,3 +119,20 @@ export interface Protection {
   createdAt: string
   updatedAt: string
 }
+
+export interface Comment {
+  id: string
+  tenantId: string
+  workbookId: string
+  threadId: string
+  cellRef: string | null
+  parentId: string | null
+  authorId: string
+  body: string
+  mentions: string[]
+  resolved: boolean
+  resolvedBy: string | null
+  resolvedAt: string | null
+  createdAt: string
+  updatedAt: string
+}

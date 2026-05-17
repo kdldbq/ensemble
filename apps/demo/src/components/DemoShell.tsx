@@ -22,6 +22,57 @@ export function DemoShell() {
   const [previewKey, setPreviewKey] = useState(0)
   const [pinnedWbId, setPinnedWbId] = useState<string | null>(null)
 
+  // Global hotkeys (F6.4). Skip when an editable element has focus so spreadsheet
+  // typing isn't intercepted.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName?.toLowerCase()
+      const isEditable =
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        target?.isContentEditable === true
+      const meta = e.metaKey || e.ctrlKey
+
+      // Cmd/Ctrl+K → folders
+      if (meta && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setFolderOpen((v) => !v)
+        return
+      }
+      // Cmd/Ctrl+H → history (versions)
+      if (meta && e.key.toLowerCase() === 'h') {
+        e.preventDefault()
+        setVersionOpen((v) => !v)
+        return
+      }
+      // Cmd/Ctrl+/ → share (Cmd+J also common)
+      if (meta && (e.key === '/' || e.key.toLowerCase() === 'j')) {
+        e.preventDefault()
+        setShareOpen((v) => !v)
+        return
+      }
+      // ? → show keymap hint via alert (lightweight)
+      if (!isEditable && !meta && e.key === '?') {
+        e.preventDefault()
+        window.alert(
+          [
+            '键盘快捷键',
+            '',
+            'Cmd/Ctrl+K  打开文件夹',
+            'Cmd/Ctrl+H  打开版本历史',
+            'Cmd/Ctrl+/  打开分享',
+            'Esc        关闭打开的抽屉',
+            '?           显示本帮助',
+          ].join('\n'),
+        )
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   if (state.status === 'loading') return <FullPageMessage>正在连接演示…</FullPageMessage>
   if (state.status === 'error')
     return (

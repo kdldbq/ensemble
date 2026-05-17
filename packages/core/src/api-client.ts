@@ -1,5 +1,6 @@
 import type {
   ActivityEntry,
+  Comment,
   Folder,
   Grant,
   Protection,
@@ -223,6 +224,49 @@ export class ApiClient {
       delimiterPattern: string
       warning?: string
     }>
+  }
+  async listComments(
+    workbookId: string,
+    opts: { threadId?: string; includeResolved?: boolean } = {},
+  ): Promise<{ items: Comment[] }> {
+    const qs = new URLSearchParams()
+    if (opts.threadId) qs.set('threadId', opts.threadId)
+    if (opts.includeResolved) qs.set('include_resolved', 'true')
+    const path = `/api/v1/workbooks/${workbookId}/comments${qs.size ? `?${qs}` : ''}`
+    return (await this.req(path)).json() as Promise<{ items: Comment[] }>
+  }
+  async createComment(
+    workbookId: string,
+    input: {
+      threadId: string
+      cellRef?: string | null
+      parentId?: string | null
+      body: string
+    },
+  ): Promise<Comment> {
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/comments`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return res.json() as Promise<Comment>
+  }
+  async updateComment(
+    workbookId: string,
+    commentId: string,
+    patch: { body?: string; resolved?: boolean },
+  ): Promise<Comment> {
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    return res.json() as Promise<Comment>
+  }
+  async deleteComment(workbookId: string, commentId: string): Promise<void> {
+    await this.req(`/api/v1/workbooks/${workbookId}/comments/${commentId}`, {
+      method: 'DELETE',
+    })
   }
   async createGrant(
     input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt' | 'hasPassword'> & {

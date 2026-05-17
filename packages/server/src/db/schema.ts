@@ -123,6 +123,38 @@ export const mutations = pgTable(
   }),
 )
 
+export const comments = pgTable(
+  'comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    workbookId: uuid('workbook_id')
+      .notNull()
+      .references(() => workbooks.id),
+    /** Univer thread id (or app-generated). All replies share this. */
+    threadId: text('thread_id').notNull(),
+    /** A1-style cell ref, e.g. "Sheet1!A1". Nullable for workbook-level. */
+    cellRef: text('cell_ref'),
+    /** Optional parent comment id for explicit reply chains within a thread. */
+    parentId: uuid('parent_id'),
+    authorId: text('author_id').notNull(),
+    body: text('body').notNull(),
+    /** Array of user ids @-mentioned in the body. Parsed at write time. */
+    mentions: jsonb('mentions').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    resolved: boolean('resolved').notNull().default(false),
+    resolvedBy: text('resolved_by'),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    workbookThreadIdx: index('comments_workbook_thread_idx').on(t.workbookId, t.threadId),
+    workbookResolvedIdx: index('comments_workbook_resolved_idx').on(t.workbookId, t.resolved),
+  }),
+)
+
 export const rangeProtections = pgTable(
   'range_protections',
   {
@@ -167,6 +199,11 @@ export const auditEventType = pgEnum('audit_event_type', [
   'share.revoked',
   'protection.created',
   'protection.deleted',
+  'comment.created',
+  'comment.resolved',
+  'comment.unresolved',
+  'comment.deleted',
+  'comment.mentioned',
 ])
 
 export const auditLog = pgTable(

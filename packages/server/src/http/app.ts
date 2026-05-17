@@ -12,6 +12,8 @@ import { createMaskCachePubSub } from '../realtime/mask-cache-pubsub'
 import type { Redis } from '../redis/client'
 import { createActivityService } from '../services/activity-service'
 import type { ActivityService } from '../services/activity-service'
+import { createCommentService } from '../services/comment-service'
+import type { CommentService } from '../services/comment-service'
 import { createFolderService } from '../services/folder-service'
 import type { FolderService } from '../services/folder-service'
 import { MaskRuleCache } from '../services/mask-service'
@@ -25,6 +27,7 @@ import { createWorkbookService } from '../services/workbook-service'
 import type { WorkbookService } from '../services/workbook-service'
 import { activityRoute } from './routes/activity'
 import { aiRoute } from './routes/ai'
+import { commentsRoute } from './routes/comments'
 import { exportXlsxRoute } from './routes/export-xlsx'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
@@ -56,6 +59,7 @@ export interface AppServices {
   versions: VersionService
   activity: ActivityService
   protection: ProtectionService
+  comments: CommentService
 }
 
 export type AppEnv = {
@@ -108,6 +112,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     versions: createVersionService(deps.db, snapshots),
     activity: createActivityService(deps.db),
     protection: createProtectionService(deps.db),
+    comments: createCommentService(deps.db),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {
@@ -138,5 +143,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', activityRoute)
   app.route('/', protectionsRoute)
   app.route('/', aiRoute)
+  app.route('/', commentsRoute)
   return app
 }

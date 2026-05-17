@@ -82,6 +82,34 @@ function buildEvent(input: EmitInput, at: string): EnsembleEvent {
         userId: input.actorId,
         at,
       }
+    case 'comment.created':
+    case 'comment.resolved':
+    case 'comment.unresolved':
+      return {
+        type: input.type,
+        commentId: input.resourceId ?? '',
+        workbookId: (input.extra?.workbookId as string) ?? '',
+        threadId: (input.extra?.threadId as string) ?? '',
+        userId: input.actorId,
+        at,
+      }
+    case 'comment.deleted':
+      return {
+        type: input.type,
+        commentId: input.resourceId ?? '',
+        workbookId: (input.extra?.workbookId as string) ?? '',
+        userId: input.actorId,
+        at,
+      }
+    case 'comment.mentioned':
+      return {
+        type: input.type,
+        commentId: input.resourceId ?? '',
+        workbookId: (input.extra?.workbookId as string) ?? '',
+        mentioner: input.actorId,
+        mentioned: ((input.extra?.mentioned as string[]) ?? []),
+        at,
+      }
   }
 }
 
