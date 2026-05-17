@@ -6,6 +6,7 @@ export {
   type CollabCapability,
 } from './mount'
 export { xlsxToUniverJson, univerJsonToXlsx } from './xlsx-converter'
+export { detectFillPattern, extendFill, type FillPattern } from './smart-fill'
 export {
   createEditor,
   loadBrowserPlugins,
