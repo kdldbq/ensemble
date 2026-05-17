@@ -77,6 +77,16 @@ export const commentsRoute = new Hono<AppEnv>()
             resourceId: comment.id,
             extra: { workbookId: wbId, mentioned: comment.mentions },
           })
+          c.get('services').notifications.publish({
+            kind: 'comment.mentioned',
+            workbookId: wbId,
+            recipients: comment.mentions,
+            extra: {
+              commentId: comment.id,
+              actorId: id.userId,
+              preview: body.body.slice(0, 120),
+            },
+          })
         }
         return c.json(comment, 201)
       } catch (err) {

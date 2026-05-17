@@ -41,5 +41,11 @@ export {
   type Editor,
   type EditorOpts,
 } from './univer-wrapper'
-export { WsClient, type WelcomeFrame, type PresenceEntry } from './ws-client'
+export {
+  WsClient,
+  type WelcomeFrame,
+  type PresenceEntry,
+  type ConnectionState,
+  type NotificationFrame,
+} from './ws-client'
 export * from './types'

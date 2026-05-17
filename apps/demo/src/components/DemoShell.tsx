@@ -156,9 +156,25 @@ function Inner(p: InnerProps) {
     if (!handle) return undefined
     const unsubSaved = handle.onSaved(() => p.onSaved())
     const unsubMutation = handle.onMutationApplied(() => p.onSaved())
+    // 在线通知（@mention 等）
+    const unsubNotify = handle.onNotification((f) => {
+      if (f.kind === 'comment.mentioned') {
+        const actor = (f.extra?.actorId as string | undefined) ?? '协作者'
+        const preview = (f.extra?.preview as string | undefined) ?? ''
+        toast.info(`@${actor} 提到了你`, { description: preview })
+      }
+    })
+    // 连接状态：断线 / 重连提示
+    const unsubConn = handle.onConnectionChange((state) => {
+      if (state === 'reconnecting') toast.warning('网络已断开，正在重连…')
+      if (state === 'connected') toast.success('已连接')
+      if (state === 'offline') toast.error('已离线')
+    })
     return () => {
       unsubSaved()
       unsubMutation()
+      unsubNotify()
+      unsubConn()
     }
   }, [handle, p])
 

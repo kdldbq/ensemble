@@ -25,12 +25,14 @@ import { createVersionService } from '../services/version-service'
 import type { VersionService } from '../services/version-service'
 import { createWorkbookService } from '../services/workbook-service'
 import type { WorkbookService } from '../services/workbook-service'
+import { createNotificationBus } from '../realtime/notification-bus'
 import { activityRoute } from './routes/activity'
 import { adminRoute } from './routes/admin'
 import { aiRoute } from './routes/ai'
 import { commentsRoute } from './routes/comments'
 import { exportXlsxRoute } from './routes/export-xlsx'
 import { exportPdfRoute } from './routes/export-pdf'
+import { templatesRoute } from './routes/templates'
 import { rangeRoute } from './routes/range'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
@@ -64,6 +66,14 @@ export interface AppDeps {
   dlpMode?: 'warn' | 'block'
   /** Optional PDF renderer for /export.pdf. Without it, server falls back to printable HTML. */
   pdfRenderer?: import('../adapters/pdf').PdfRendererAdapter
+  /** Optional template catalog. /api/v1/templates returns empty + notice when absent. */
+  templates?: import('../adapters/enterprise').TemplateAdapter
+  /**
+   * Real-time notification bus. Optional — when absent, a fresh in-process bus
+   * is created on each `buildApp` call. Pass the same instance into the WS
+   * bridge so REST publishers and WS subscribers reach each other.
+   */
+  notifications?: import('../realtime/notification-bus').NotificationBus
 }
 
 export interface AppServices {
@@ -76,6 +86,7 @@ export interface AppServices {
   activity: ActivityService
   protection: ProtectionService
   comments: CommentService
+  notifications: import('../realtime/notification-bus').NotificationBus
 }
 
 export type AppEnv = {
@@ -129,6 +140,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     activity: createActivityService(deps.db),
     protection: createProtectionService(deps.db),
     comments: createCommentService(deps.db),
+    notifications: deps.notifications ?? createNotificationBus(),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {
@@ -181,6 +193,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', versionsRoute)
   app.route('/', exportXlsxRoute)
   app.route('/', exportPdfRoute)
+  app.route('/', templatesRoute)
   app.route('/', activityRoute)
   app.route('/', protectionsRoute)
   app.route('/', adminRoute)

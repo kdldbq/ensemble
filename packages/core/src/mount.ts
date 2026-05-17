@@ -3,7 +3,13 @@ import { ApiClient } from './api-client'
 import { createOfflineCache, type OfflineCache } from './offline-cache'
 import type { UniverWorkbookData } from './types'
 import { type Editor, createEditor, loadBrowserLocales, loadBrowserPlugins } from './univer-wrapper'
-import { type PresenceEntry, type WelcomeFrame, WsClient } from './ws-client'
+import {
+  type ConnectionState,
+  type NotificationFrame,
+  type PresenceEntry,
+  type WelcomeFrame,
+  WsClient,
+} from './ws-client'
 import { univerJsonToXlsx, xlsxToUniverJson } from './xlsx-converter'
 
 /**
@@ -130,6 +136,12 @@ export interface MountHandle {
     name: string,
     impl: (...args: Array<string | number | null>) => string | number | null,
   ): () => void
+  /** Subscribe to WS connection state — connecting / connected / reconnecting / offline. */
+  onConnectionChange(cb: (state: ConnectionState) => void): () => void
+  /** Current WS connection state. */
+  connectionState(): ConnectionState
+  /** Subscribe to in-room notifications (e.g. comment.mentioned). */
+  onNotification(cb: (frame: NotificationFrame) => void): () => void
   /** @internal — direct access to the WsClient; for tests and Playwright helpers */
   _wsClient: WsClient
 }
@@ -708,6 +720,15 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
       return () => {
         if (customFunctions.get(key) === impl) customFunctions.delete(key)
       }
+    },
+    onConnectionChange(cb) {
+      return ws.onConnectionChange(cb)
+    },
+    connectionState() {
+      return ws.connectionState()
+    },
+    onNotification(cb) {
+      return ws.onNotification(cb)
     },
     _wsClient: ws,
   }

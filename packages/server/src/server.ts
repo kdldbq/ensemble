@@ -10,6 +10,7 @@ import { createTokenBucket } from './realtime/backpressure'
 import { createCellLockManager } from './realtime/cell-lock-manager'
 import { createRoomRegistry } from './realtime/collab-room'
 import { createMutationBroadcaster } from './realtime/mutation-broadcaster'
+import { createNotificationBus } from './realtime/notification-bus'
 import { createPerTenantBucket } from './realtime/per-tenant-bucket'
 import { createPresenceTracker } from './realtime/presence-tracker'
 import { createRedis } from './redis/client'
@@ -49,6 +50,10 @@ export function createServer(opts: CreateServerOpts) {
     ...(opts.llm ? { llm: opts.llm } : {}),
   }
   const roomRegistry = createRoomRegistry()
+  // Single notification bus shared between REST publishers (e.g. comments
+  // route emitting comment.mentioned) and the WS bridge below. Single-process
+  // for now — wrap in Redis pub/sub if scaling out.
+  const notifications = createNotificationBus()
   const cellLocks = createCellLockManager({ redis, ttlSec: 30 })
   // Aggregate per-tenant quota (I7). Layered above the per-session 30/s bucket so
   // one noisy tenant can't starve others. 500 ops/sec accommodates ~20 active users.
@@ -179,6 +184,23 @@ export function createServer(opts: CreateServerOpts) {
 
         // Attach session to the raw WS so onMessage/onClose can reach it
         ;(ws as unknown as Record<string, unknown>)._session = session
+
+        // Subscribe to in-room notifications (e.g. @mention) and forward to
+        // this socket when this user is in the recipients list (or the list is
+        // empty, meaning broadcast). Unsubscribe on close.
+        if (notifications) {
+          const unsubscribe = notifications.subscribe(workbookId, (frame) => {
+            if (frame.recipients.length > 0 && !frame.recipients.includes(identity.userId)) {
+              return
+            }
+            try {
+              ws.send(JSON.stringify(frame))
+            } catch {
+              /* socket may be closing */
+            }
+          })
+          ;(ws as unknown as Record<string, unknown>)._notifUnsub = unsubscribe
+        }
       },
 
       onMessage(e, ws) {
@@ -195,11 +217,19 @@ export function createServer(opts: CreateServerOpts) {
           | ReturnType<typeof createSession>
           | undefined
         session?.onClose()
+        const unsub = (ws as unknown as Record<string, unknown>)._notifUnsub as
+          | (() => void)
+          | undefined
+        try {
+          unsub?.()
+        } catch {
+          /* swallow */
+        }
       },
     }
   })
 
-  builtApp = buildApp(deps, {
+  builtApp = buildApp({ ...deps, notifications }, {
     beforeRoutes: [{ path: '/api/v1/ws/:workbookId', handler: wsHandler }],
     ...(opts.extraRoutes ? { extraRoutes: opts.extraRoutes } : {}),
   })
