@@ -31,6 +31,14 @@ export interface FolderTreeProps {
   canEdit?: boolean
   onSelect?: (folder: Folder) => void
   selectedId?: string | null
+  /**
+   * Called after a folder is successfully deleted. Receives the original folder
+   * and an async `undo` callable that restores it. Hosts wire this to a toast
+   * action ("已删除 — 撤销") for fast, recoverable delete UX.
+   */
+  onAfterDelete?: (folder: Folder, undo: () => Promise<void>) => void
+  /** Called when an action fails. Defaults to inline error display. */
+  onError?: (err: Error) => void
 }
 
 const EXPAND_STORAGE_PREFIX = 'ensemble:folder-tree:expanded:'
@@ -369,6 +377,8 @@ export function FolderTree({
   canEdit = true,
   onSelect,
   selectedId,
+  onAfterDelete,
+  onError,
 }: FolderTreeProps) {
   const [folders, setFolders] = useState<Folder[]>([])
   const [loading, setLoading] = useState(true)
@@ -464,8 +474,36 @@ export function FolderTree({
   }
 
   async function handleDelete(folder: FolderTreeNode) {
-    if (!window.confirm(`确认删除「${folder.name}」？可在回收站恢复。`)) return
-    await runMutation(() => api.deleteFolder(folder.id))
+    // Optimistic: delete immediately, hand caller an undo handle for toast UI.
+    try {
+      setError(null)
+      await api.deleteFolder(folder.id)
+      await refresh()
+      if (onAfterDelete) {
+        const folderData: Folder = {
+          id: folder.id,
+          tenantId: folder.tenantId,
+          parentId: folder.parentId,
+          name: folder.name,
+          ownerId: folder.ownerId,
+          spaceType: folder.spaceType,
+          position: folder.position,
+          isDeleted: true,
+          deletedAt: folder.deletedAt,
+          createdAt: folder.createdAt,
+          updatedAt: folder.updatedAt,
+        }
+        const undo = async () => {
+          await api.restoreFolder(folder.id)
+          await refresh()
+        }
+        onAfterDelete(folderData, undo)
+      }
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e))
+      if (onError) onError(err)
+      else setError(err.message)
+    }
   }
 
   async function handleRestore(folder: Folder) {

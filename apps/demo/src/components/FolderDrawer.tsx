@@ -1,5 +1,6 @@
 import type { ApiClient, Folder } from '@ensemble-sheets/core'
 import { FolderTree } from '@ensemble-sheets/react'
+import { toast } from 'sonner'
 import { Drawer } from './Drawer'
 
 export interface FolderDrawerProps {
@@ -32,6 +33,27 @@ export function FolderDrawer({
         onSelect={(folder) => {
           onSelect(folder)
           if (folder.id) onClose()
+        }}
+        onAfterDelete={(folder, undo) => {
+          toast.success(`已删除「${folder.name}」`, {
+            duration: 8000,
+            action: {
+              label: '撤销',
+              onClick: () => {
+                void (async () => {
+                  try {
+                    await undo()
+                    toast.success(`已恢复「${folder.name}」`)
+                  } catch (e) {
+                    toast.error(`恢复失败：${e instanceof Error ? e.message : String(e)}`)
+                  }
+                })()
+              },
+            },
+          })
+        }}
+        onError={(err) => {
+          toast.error(`文件夹操作失败：${err.message}`, { duration: 8000 })
         }}
       />
       <p style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}>
