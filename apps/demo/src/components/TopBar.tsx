@@ -190,7 +190,18 @@ export function TopBar(props: TopBarProps) {
         onChange={(e) => {
           const v = e.target.value as '' | 'admin' | 'editor' | 'viewer' | '__random__'
           if (v === '') return
+          const label =
+            v === '__random__'
+              ? '随机访客'
+              : v === 'admin'
+                ? '管理员'
+                : v === 'editor'
+                  ? '编辑者'
+                  : '查看者'
           handleOpenAnotherUser(v === '__random__' ? undefined : (v as Persona))
+          toast.success(`已在新标签打开（${label}）`, {
+            description: '若被浏览器拦截，请允许此站弹窗',
+          })
           e.currentTarget.value = ''
         }}
       >
