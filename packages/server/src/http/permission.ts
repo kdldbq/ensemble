@@ -1,5 +1,6 @@
 import type { Context, MiddlewareHandler } from 'hono'
 import type { Capability, ResourceRef } from '../adapters/types'
+import { logger } from '../logger'
 import type { AppEnv } from './app'
 
 export type CapabilityName = keyof Capability
@@ -22,7 +23,7 @@ export function requireCapability(
       c.set('capabilities', capabilities)
       await next()
     } catch (err) {
-      console.error('PermissionAdapter.getCapabilities failed:', err)
+      logger.error({ err }, 'PermissionAdapter.getCapabilities failed')
       return c.json({ error: 'permission check failed' }, 500)
     }
   }

@@ -2,6 +2,7 @@ import type { EventAdapter } from '../adapters/identity'
 import type { EnsembleEvent } from '../adapters/types'
 import type { Database } from '../db/client'
 import { auditLog } from '../db/schema'
+import { logger } from '../logger'
 
 export interface EmitInput {
   tenantId: string
@@ -51,7 +52,7 @@ export function createEventEmitter(deps: EventEmitterDeps) {
           payload: input.extra ?? {},
         }),
         deps.eventAdapter.publish(ev).catch((err) => {
-          console.warn(`EventAdapter.publish failed for ${input.type}:`, err)
+          logger.warn({ err, eventType: input.type }, 'EventAdapter.publish failed')
         }),
       ])
     },

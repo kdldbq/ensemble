@@ -1,6 +1,7 @@
 import { and, eq, inArray, or, sql } from 'drizzle-orm'
 import type { Database } from '../db/client'
 import { shareGrants } from '../db/schema'
+import { logger } from '../logger'
 import type { Grant } from './grant-service'
 
 /**
@@ -16,8 +17,9 @@ async function warnIfNoTenantContext(db: Database, op: string): Promise<void> {
       sql`SELECT current_setting('app.tenant_id', true) AS ctx`,
     )
     if (!rows[0]?.ctx) {
-      console.warn(
-        `grant-repository: ${op} called without app.tenant_id — RLS will silently return 0 rows. Wrap in withTenant().`,
+      logger.warn(
+        { op },
+        'grant-repository: op called without app.tenant_id — RLS will silently return 0 rows. Wrap in withTenant().',
       )
     }
   } catch {

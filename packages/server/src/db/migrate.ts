@@ -1,13 +1,14 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
+import { logger } from '../logger'
 
 const url = process.env.DATABASE_URL
 if (!url) {
-  console.error('DATABASE_URL not set')
+  logger.error('DATABASE_URL not set')
   process.exit(1)
 }
 const sql = postgres(url, { max: 1 })
 await migrate(drizzle(sql), { migrationsFolder: './drizzle' })
 await sql.end()
-console.log('migrations applied')
+logger.info('migrations applied')
