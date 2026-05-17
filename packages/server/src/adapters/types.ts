@@ -52,5 +52,26 @@ export type EnsembleEvent =
       batchedOpsCount: number
       at: string
     }
+  | { type: 'workbook.deleted'; workbookId: string; userId: string; at: string }
+  | {
+      type: 'workbook.moved'
+      workbookId: string
+      userId: string
+      fromFolderId: string | null
+      toFolderId: string | null
+      at: string
+    }
   | { type: 'folder.created'; folderId: string; userId: string; at: string }
+  | { type: 'folder.renamed'; folderId: string; userId: string; newName: string; at: string }
+  | {
+      type: 'folder.moved'
+      folderId: string
+      userId: string
+      fromParentId: string | null
+      toParentId: string | null
+      at: string
+    }
+  | { type: 'folder.deleted'; folderId: string; userId: string; at: string }
+  | { type: 'folder.restored'; folderId: string; userId: string; at: string }
   | { type: 'share.granted'; grantId: string; grantedBy: string; at: string }
+  | { type: 'share.revoked'; grantId: string; revokedBy: string; at: string }

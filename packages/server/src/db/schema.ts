@@ -4,6 +4,7 @@ import {
   bigserial,
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -22,33 +23,50 @@ export const tenants = pgTable('tenants', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export const folders = pgTable('folders', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  parentId: uuid('parent_id'),
-  name: text('name').notNull(),
-  ownerId: text('owner_id').notNull(),
-  spaceType: spaceType('space_type').notNull(),
-  isDeleted: boolean('is_deleted').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export const folders = pgTable(
+  'folders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    parentId: uuid('parent_id'),
+    name: text('name').notNull(),
+    ownerId: text('owner_id').notNull(),
+    spaceType: spaceType('space_type').notNull(),
+    position: integer('position').notNull().default(0),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    tenantParentIdx: index('folders_tenant_parent_idx').on(t.tenantId, t.parentId),
+    tenantDeletedIdx: index('folders_tenant_deleted_idx').on(t.tenantId, t.isDeleted),
+  }),
+)
 
-export const workbooks = pgTable('workbooks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  folderId: uuid('folder_id').references(() => folders.id),
-  name: text('name').notNull(),
-  ownerId: text('owner_id').notNull(),
-  currentSnapshotId: uuid('current_snapshot_id'),
-  isDeleted: boolean('is_deleted').notNull().default(false),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export const workbooks = pgTable(
+  'workbooks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    folderId: uuid('folder_id').references(() => folders.id),
+    name: text('name').notNull(),
+    ownerId: text('owner_id').notNull(),
+    currentSnapshotId: uuid('current_snapshot_id'),
+    position: integer('position').notNull().default(0),
+    isDeleted: boolean('is_deleted').notNull().default(false),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    tenantFolderIdx: index('workbooks_tenant_folder_idx').on(t.tenantId, t.folderId),
+  }),
+)
 
 export const snapshots = pgTable('snapshots', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -104,8 +122,15 @@ export const auditEventType = pgEnum('audit_event_type', [
   'workbook.created',
   'workbook.opened',
   'workbook.edited',
+  'workbook.deleted',
+  'workbook.moved',
   'folder.created',
+  'folder.renamed',
+  'folder.moved',
+  'folder.deleted',
+  'folder.restored',
   'share.granted',
+  'share.revoked',
 ])
 
 export const auditLog = pgTable(
