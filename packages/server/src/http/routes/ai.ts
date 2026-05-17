@@ -24,6 +24,34 @@ Respond ONLY with a JSON object:
 
 Use only standard ASCII regex. If you cannot infer reliably, respond { "headers": [], "delimiterPattern": "" }`
 
+const BI_SYSTEM_PROMPT = `You are a data analyst answering questions about a spreadsheet range.
+
+The user provides:
+  - A natural-language question
+  - A range of cell values (CSV-formatted with header row)
+
+You respond with ONLY a JSON object:
+{
+  "answer": "<one-paragraph plain-language answer>",
+  "formula": "<optional spreadsheet formula computing the answer, starting with '='>",
+  "chart": { "type": "bar|line|pie|none", "xColumn": "<header>", "yColumn": "<header>" }
+}
+
+If you can't answer from the data, set answer to "data insufficient" and formula to "".`
+
+const CHART_SUGGEST_SYSTEM_PROMPT = `You are a chart-recommendation expert. The user provides a range of cell values; you suggest the best visualization.
+
+Respond ONLY with a JSON object:
+{
+  "type": "bar|line|pie|scatter|area|column",
+  "xColumn": "<header used for x-axis>",
+  "yColumns": ["<header>", ...],
+  "title": "<short descriptive title>",
+  "rationale": "<one-sentence reason>"
+}
+
+Prefer line for time-series, bar for categorical comparisons, pie only for shares of a whole.`
+
 export const aiRoute = new Hono<AppEnv>()
   .use('*', requireIdentity)
   .post('/api/v1/ai/formula', async (c) => {
@@ -114,6 +142,105 @@ export const aiRoute = new Hono<AppEnv>()
         connection: 'keep-alive',
       },
     })
+  })
+  .post('/api/v1/ai/bi', async (c) => {
+    const id = c.get('identity')!
+    const body = (await c.req.json()) as { question?: string; csv?: string }
+    if (!body.question || !body.csv) {
+      return c.json({ error: 'question and csv required' }, 400)
+    }
+    const llm = c.get('deps').llm
+    if (!llm) return c.json({ error: 'LLM not configured on this server' }, 501)
+    try {
+      const result = await llm.generate({
+        tenantId: id.tenantId,
+        userId: id.userId,
+        temperature: 0.1,
+        maxTokens: 600,
+        messages: [
+          { role: 'system', content: BI_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: `Question: ${body.question}\n\nData (CSV):\n${body.csv.slice(0, 8000)}`,
+          },
+        ],
+      })
+      try {
+        const parsed = JSON.parse(result.text) as {
+          answer?: string
+          formula?: string
+          chart?: { type: string; xColumn?: string; yColumn?: string }
+        }
+        return c.json({
+          answer: parsed.answer ?? 'data insufficient',
+          formula: parsed.formula ?? '',
+          chart: parsed.chart ?? { type: 'none' },
+          model: result.model,
+          tokens: result.tokens,
+        })
+      } catch {
+        logger.warn({ raw: result.text }, 'ai/bi: LLM returned non-JSON')
+        return c.json({
+          answer: result.text.slice(0, 500),
+          formula: '',
+          chart: { type: 'none' },
+          warning: 'LLM returned unstructured text',
+        })
+      }
+    } catch (err) {
+      logger.error({ err }, 'ai/bi failed')
+      return c.json({ error: err instanceof Error ? err.message : 'LLM call failed' }, 500)
+    }
+  })
+  .post('/api/v1/ai/chart-suggest', async (c) => {
+    const id = c.get('identity')!
+    const body = (await c.req.json()) as { csv?: string }
+    if (!body.csv) return c.json({ error: 'csv required' }, 400)
+    const llm = c.get('deps').llm
+    if (!llm) return c.json({ error: 'LLM not configured on this server' }, 501)
+    try {
+      const result = await llm.generate({
+        tenantId: id.tenantId,
+        userId: id.userId,
+        temperature: 0,
+        maxTokens: 400,
+        messages: [
+          { role: 'system', content: CHART_SUGGEST_SYSTEM_PROMPT },
+          { role: 'user', content: body.csv.slice(0, 6000) },
+        ],
+      })
+      try {
+        const parsed = JSON.parse(result.text) as {
+          type?: string
+          xColumn?: string
+          yColumns?: string[]
+          title?: string
+          rationale?: string
+        }
+        return c.json({
+          type: parsed.type ?? 'bar',
+          xColumn: parsed.xColumn ?? '',
+          yColumns: parsed.yColumns ?? [],
+          title: parsed.title ?? '',
+          rationale: parsed.rationale ?? '',
+          model: result.model,
+          tokens: result.tokens,
+        })
+      } catch {
+        logger.warn({ raw: result.text }, 'ai/chart-suggest: LLM returned non-JSON')
+        return c.json({
+          type: 'bar',
+          xColumn: '',
+          yColumns: [],
+          title: '',
+          rationale: '',
+          warning: 'LLM returned unstructured text',
+        })
+      }
+    } catch (err) {
+      logger.error({ err }, 'ai/chart-suggest failed')
+      return c.json({ error: err instanceof Error ? err.message : 'LLM call failed' }, 500)
+    }
   })
   .post('/api/v1/ai/detect-columns', async (c) => {
     const id = c.get('identity')!

@@ -239,6 +239,49 @@ export class ApiClient {
       topActors7d: Array<{ actorId: string; count: number }>
     }>
   }
+  async aiBI(
+    question: string,
+    csv: string,
+  ): Promise<{
+    answer: string
+    formula: string
+    chart: { type: string; xColumn?: string; yColumn?: string }
+    warning?: string
+  }> {
+    const res = await this.req('/api/v1/ai/bi', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question, csv }),
+    })
+    return res.json() as Promise<{
+      answer: string
+      formula: string
+      chart: { type: string; xColumn?: string; yColumn?: string }
+      warning?: string
+    }>
+  }
+  async aiChartSuggest(csv: string): Promise<{
+    type: string
+    xColumn: string
+    yColumns: string[]
+    title: string
+    rationale: string
+    warning?: string
+  }> {
+    const res = await this.req('/api/v1/ai/chart-suggest', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ csv }),
+    })
+    return res.json() as Promise<{
+      type: string
+      xColumn: string
+      yColumns: string[]
+      title: string
+      rationale: string
+      warning?: string
+    }>
+  }
   async aiDetectColumns(
     text: string,
   ): Promise<{ headers: string[]; delimiterPattern: string; warning?: string }> {
