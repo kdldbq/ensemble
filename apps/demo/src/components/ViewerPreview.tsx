@@ -83,7 +83,7 @@ export function ViewerPreview({ workbookId, refreshKey }: ViewerPreviewProps) {
       >
         <div style={{ fontWeight: 600 }}>查看者眼中（B 列已脱敏）</div>
         <div style={{ color: '#9ca3af', fontSize: 11, marginTop: 2 }}>
-          每 3 秒拉一次；保存后立即刷新
+          编辑器每 0.8 秒自动保存一次，本面板随后立即拉取最新快照
           {updatedAt && ` · 更新于 ${formatAgo(updatedAt)}`}
         </div>
       </header>

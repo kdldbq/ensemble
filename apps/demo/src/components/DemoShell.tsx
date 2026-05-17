@@ -1,7 +1,7 @@
 import { ApiClient, type MountHandle } from '@ensemble-sheets/core'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useVisitor } from '../lib/visitor'
-import type { Persona } from '../persona'
+import { type Persona, capabilitiesFor } from '../persona'
 import { FolderDrawer } from './FolderDrawer'
 import { OnboardingCoach } from './OnboardingCoach'
 import { PublicRoomBanner } from './PublicRoomBanner'
@@ -97,12 +97,28 @@ function Inner(p: InnerProps) {
   const token = `dev:${p.visitor.userId}`
   const api = useMemo(() => new ApiClient({ baseUrl: '', token: () => token }), [token])
   const handleRef = useRef<MountHandle | null>(null)
+  const [handle, setHandle] = useState<MountHandle | null>(null)
+  const capabilities = capabilitiesFor(p.visitor.persona)
+
+  // Bump preview whenever the editor saves (manual or auto) or applies a remote
+  // mutation — both signal the persisted snapshot may have changed, so the
+  // side-panel viewer-preview should refetch.
+  useEffect(() => {
+    if (!handle) return undefined
+    const unsubSaved = handle.onSaved(() => p.onSaved())
+    const unsubMutation = handle.onMutationApplied(() => p.onSaved())
+    return () => {
+      unsubSaved()
+      unsubMutation()
+    }
+  }, [handle, p])
 
   async function onSave() {
     if (!handleRef.current) return
     try {
       await handleRef.current.save()
-      p.onSaved()
+      // onSaved handler already fires from inside performSave → onSaved listener,
+      // so we don't double-bump here.
     } catch (e) {
       console.error('save failed', e)
     }
@@ -124,6 +140,7 @@ function Inner(p: InnerProps) {
         onOpenShare={() => p.setShareOpen(true)}
         onSave={onSave}
         onUploaded={p.onUploaded}
+        editorHandle={handle}
       />
       <PublicRoomBanner inPublicRoom={p.inPublicRoom} onLeave={p.onTogglePublicRoom} />
       <main style={{ flex: 1, minHeight: 0, display: 'flex' }}>
@@ -134,12 +151,14 @@ function Inner(p: InnerProps) {
           remountKey={p.remountKey}
           onReady={(h) => {
             handleRef.current = h
+            setHandle(h)
           }}
         />
         <ViewerPreview workbookId={p.activeWbId} refreshKey={p.previewKey} />
       </main>
       <FolderDrawer
         api={api}
+        canEdit={capabilities.canEdit}
         open={p.folderOpen}
         onClose={() => p.setFolderOpen(false)}
         onSelect={(folder) => {
