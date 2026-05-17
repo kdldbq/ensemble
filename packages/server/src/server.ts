@@ -148,6 +148,7 @@ export function createServer(opts: CreateServerOpts) {
             ws,
             clientId,
             identity,
+            capabilities: cap,
             workbookId,
             room,
             bucket: createTokenBucket({ capacity: 30, refillPerSec: 30 }),

@@ -1,7 +1,7 @@
 import type { MountHandle, WsClient } from '@ensemble-sheets/core'
-import { WorkbookEditor } from '@ensemble-sheets/react'
-import { useEffect, useRef } from 'react'
-import type { Persona } from '../persona'
+import { CellLockOverlay, WorkbookEditor } from '@ensemble-sheets/react'
+import { useEffect, useRef, useState } from 'react'
+import { type Persona, capabilitiesFor } from '../persona'
 
 export interface SingleEditorProps {
   workbookId: string
@@ -16,9 +16,9 @@ export interface SingleEditorProps {
 }
 
 const personaLabel: Record<Persona, string> = {
-  admin: '管理员',
-  editor: '编辑者',
-  viewer: '查看者（B 列已脱敏）',
+  admin: '管理员（可编辑、可分享）',
+  editor: '编辑者（可编辑）',
+  viewer: '查看者（只读，B 列脱敏）',
 }
 
 const personaTint: Record<Persona, string> = {
@@ -36,11 +36,15 @@ const personaTint: Record<Persona, string> = {
 export function SingleEditor(props: SingleEditorProps) {
   const wsRef = useRef<WsClient | null>(null)
   const handleRef = useRef<MountHandle | null>(null)
+  const [wsClient, setWsClient] = useState<WsClient | null>(null)
+
+  const cap = capabilitiesFor(props.persona)
 
   useEffect(() => {
     return () => {
       wsRef.current = null
       handleRef.current = null
+      setWsClient(null)
       delete (window as unknown as Record<string, unknown>)[`ensembleAcquireLock_${props.userId}`]
       delete (window as unknown as Record<string, unknown>)[`ensembleSave_${props.userId}`]
     }
@@ -66,10 +70,30 @@ export function SingleEditor(props: SingleEditorProps) {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
+          flexWrap: 'wrap',
         }}
       >
         <strong>{personaLabel[props.persona]}</strong>
         <span style={{ color: '#9ca3af' }}>· {props.userId}</span>
+        {!cap.canEdit && (
+          <span
+            style={{
+              background: '#fef3c7',
+              color: '#92400e',
+              padding: '1px 8px',
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            只读模式
+          </span>
+        )}
+        {wsClient && (
+          <span style={{ marginLeft: 'auto' }}>
+            <CellLockOverlay wsClient={wsClient} />
+          </span>
+        )}
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <WorkbookEditor
@@ -77,8 +101,11 @@ export function SingleEditor(props: SingleEditorProps) {
           apiBaseUrl=""
           wsBaseUrl={location.origin.replace('http', 'ws')}
           token={() => `dev:${props.userId}`}
+          capabilities={{ canEdit: cap.canEdit }}
+          autoSaveMs={cap.canEdit ? 800 : 0}
           onWsConnected={(ws) => {
             wsRef.current = ws
+            setWsClient(ws)
             ;(window as unknown as Record<string, unknown>)[`ensembleAcquireLock_${props.userId}`] =
               (region: string) => ws.acquireLock(region)
           }}

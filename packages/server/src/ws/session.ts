@@ -1,5 +1,5 @@
 import type { WSContext } from 'hono/ws'
-import type { IdentityContext } from '../adapters/types'
+import type { Capability, IdentityContext } from '../adapters/types'
 import type { TokenBucket } from '../realtime/backpressure'
 import type { CellLockManager } from '../realtime/cell-lock-manager'
 import type { CollabRoom } from '../realtime/collab-room'
@@ -11,6 +11,12 @@ export interface SessionContext {
   ws: WSContext
   clientId: string
   identity: IdentityContext
+  /**
+   * Capabilities resolved at WS open. Cached for the session lifetime so each inbound
+   * frame can be authorized without an extra adapter round-trip. The session does not
+   * observe mid-session permission changes; revocation requires the client to reconnect.
+   */
+  capabilities: Capability
   workbookId: string
   room: CollabRoom
   /** T15 replaces this with a real TokenBucket. Until then, pass { take: () => true }. */
@@ -24,7 +30,7 @@ export interface SessionDeps {
 }
 
 export function createSession(ctx: SessionContext, deps: SessionDeps) {
-  const { ws, clientId, identity, workbookId, room, bucket } = ctx
+  const { ws, clientId, identity, capabilities, workbookId, room, bucket } = ctx
   const { cellLocks, presence, broadcaster } = deps
 
   function send(frame: unknown): void {
@@ -37,6 +43,10 @@ export function createSession(ctx: SessionContext, deps: SessionDeps) {
 
     switch (frame.type) {
       case 'acquire_lock': {
+        if (!capabilities.canEdit) {
+          send({ type: 'error', code: 'forbidden', message: 'edit capability required' })
+          return
+        }
         const result = await cellLocks.acquire({
           workbookId,
           region: frame.region,
@@ -72,6 +82,15 @@ export function createSession(ctx: SessionContext, deps: SessionDeps) {
       }
 
       case 'submit_mutation': {
+        // Defense in depth: even if a malicious client wires Univer to a viewer
+        // session, every mutation frame must independently re-prove canEdit.
+        // (UI-layer enforcement in @ensemble-sheets/core sets Univer readOnly
+        // when canEdit is false, but the server cannot trust that.)
+        if (!capabilities.canEdit) {
+          send({ type: 'error', code: 'forbidden', message: 'edit capability required' })
+          return
+        }
+
         // T15 replaces the stub bucket with a real 30 ops/sec TokenBucket.
         if (!bucket.take()) {
           send({ type: 'error', code: 'rate_limited' })
