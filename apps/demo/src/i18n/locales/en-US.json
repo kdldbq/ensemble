@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "empty": "Nothing here",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "restore": "Restore",
+    "confirm": "Confirm",
+    "ok": "OK",
+    "close": "Close",
+    "copy": "Copy",
+    "search": "Search…"
+  },
+  "topbar": {
+    "demo_title": "ensemble demo",
+    "save": "Save",
+    "folders": "Folders",
+    "versions": "Version history",
+    "upload": "Upload",
+    "download": "Download xlsx",
+    "share": "Share",
+    "public_room": "Public room",
+    "back_to_sandbox": "Back to sandbox",
+    "open_another": "Open another",
+    "open_as_admin": "Open as admin",
+    "open_as_editor": "Open as editor",
+    "open_as_viewer": "Open as viewer",
+    "open_random": "Random visitor"
+  },
+  "folder": {
+    "title": "Folders",
+    "active_tab": "Active",
+    "trash_tab": "Trash",
+    "new_root": "New",
+    "search_placeholder": "Search folders…",
+    "trash_empty": "Trash is empty",
+    "deleted_at": "Deleted at",
+    "deleted_undo": "Undo",
+    "deleted_toast": "Deleted \"{{name}}\"",
+    "restored_toast": "Restored \"{{name}}\""
+  },
+  "persona": {
+    "admin": "Admin",
+    "editor": "Editor",
+    "viewer": "Viewer",
+    "readonly_badge": "Read-only mode"
+  },
+  "version": {
+    "title": "Named versions",
+    "save_version": "Save version",
+    "save_version_label": "Save current as named version",
+    "version_name_placeholder": "e.g. v1 / pre-launch / Q1 archive",
+    "restore_tooltip": "Restore to \"{{name}}\" (current edits saved as a new version)",
+    "restore_label": "Restore",
+    "restoring": "Restoring…",
+    "empty": "No named versions. Click + Save version to start."
+  },
+  "share": {
+    "title": "Share workbook",
+    "grantee_user": "Specific user",
+    "grantee_tenant_member": "All tenant members",
+    "grantee_public_link": "Anyone with the link",
+    "permission_view": "View",
+    "permission_edit": "Edit",
+    "permission_manage": "Manage",
+    "grant": "Grant access",
+    "granting": "Granting…",
+    "advanced": "Advanced (expiry / password)",
+    "expires_at": "Expires at (optional)",
+    "password": "Link password (optional, link share only)",
+    "password_placeholder": "Leave empty to let anyone with the link access",
+    "list_title": "Active grants",
+    "list_empty": "No active grants",
+    "revoke": "Revoke",
+    "copy_link": "Copy",
+    "copied": "Copied to clipboard",
+    "password_protected": "password protected"
+  },
+  "activity": {
+    "title": "Activity",
+    "empty": "No activity yet",
+    "load_more": "Load more",
+    "loading_more": "Loading…",
+    "just_now": "just now",
+    "minutes_ago": "{{count}} min ago",
+    "hours_ago": "{{count}} h ago",
+    "days_ago": "{{count}} d ago"
+  }
+}

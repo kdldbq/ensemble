@@ -8,9 +8,14 @@ import '@univerjs/sheets-ui/lib/index.css'
 import { installCssVars } from '@ensemble-sheets/react'
 import { createRoot } from 'react-dom/client'
 import { DemoShell } from './components/DemoShell'
+import { initI18n } from './i18n'
 
 // Install ensemble design tokens (CSS variables + focus-visible ring).
 installCssVars()
+
+// Init i18n before first render so `useTranslation()` returns translations
+// immediately (no flicker through key strings).
+initI18n()
 
 // Note: no <StrictMode> — Univer 0.22's internal bootstrap has a 300ms setTimeout
 // race with disposal that StrictMode's intentional double-mount trips. Production

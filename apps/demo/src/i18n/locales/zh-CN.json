@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "加载中…",
+    "empty": "暂无内容",
+    "error": "出错了",
+    "retry": "重试",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "restore": "恢复",
+    "confirm": "确认",
+    "ok": "确定",
+    "close": "关闭",
+    "copy": "复制",
+    "search": "搜索…"
+  },
+  "topbar": {
+    "demo_title": "ensemble 演示",
+    "save": "保存",
+    "folders": "文件夹",
+    "versions": "版本历史",
+    "upload": "上传",
+    "download": "下载 xlsx",
+    "share": "分享",
+    "public_room": "公共房间",
+    "back_to_sandbox": "回沙盒",
+    "open_another": "另开一人",
+    "open_as_admin": "以管理员开",
+    "open_as_editor": "以编辑者开",
+    "open_as_viewer": "以查看者开",
+    "open_random": "随机访客"
+  },
+  "folder": {
+    "title": "文件夹",
+    "active_tab": "活跃",
+    "trash_tab": "回收站",
+    "new_root": "新建",
+    "search_placeholder": "搜索文件夹…",
+    "trash_empty": "回收站为空",
+    "deleted_at": "已删除时间",
+    "deleted_undo": "撤销",
+    "deleted_toast": "已删除「{{name}}」",
+    "restored_toast": "已恢复「{{name}}」"
+  },
+  "persona": {
+    "admin": "管理员",
+    "editor": "编辑者",
+    "viewer": "查看者",
+    "readonly_badge": "只读模式"
+  },
+  "version": {
+    "title": "命名版本",
+    "save_version": "保存版本",
+    "save_version_label": "保存当前为命名版本",
+    "version_name_placeholder": "例：v1 / 上线前 / 季度归档",
+    "restore_tooltip": "恢复到「{{name}}」（当前编辑会另存为新版本）",
+    "restore_label": "恢复",
+    "restoring": "恢复中…",
+    "empty": "暂无命名版本。点 + 保存版本 开始。"
+  },
+  "share": {
+    "title": "分享工作簿",
+    "grantee_user": "指定用户",
+    "grantee_tenant_member": "本租户成员",
+    "grantee_public_link": "任何持链接者",
+    "permission_view": "查看",
+    "permission_edit": "编辑",
+    "permission_manage": "管理",
+    "grant": "授予访问",
+    "granting": "授予中…",
+    "advanced": "高级选项（过期 / 密码）",
+    "expires_at": "过期时间（可选）",
+    "password": "链接密码（可选，仅链接共享）",
+    "password_placeholder": "留空则任何持链接者可访问",
+    "list_title": "已分享列表",
+    "list_empty": "尚无分享授权",
+    "revoke": "撤销",
+    "copy_link": "复制",
+    "copied": "已复制到剪贴板",
+    "password_protected": "密码保护"
+  },
+  "activity": {
+    "title": "协作历史",
+    "empty": "暂无活动记录",
+    "load_more": "加载更多",
+    "loading_more": "加载中…",
+    "just_now": "刚刚",
+    "minutes_ago": "{{count}} 分钟前",
+    "hours_ago": "{{count}} 小时前",
+    "days_ago": "{{count}} 天前"
+  }
+}
