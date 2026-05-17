@@ -85,6 +85,8 @@ export interface Grant {
   expiresAt: string | null
   grantedBy: string
   grantedAt: string
+  /** True iff a password was set on this grant (passwordHash is never sent). */
+  hasPassword?: boolean
 }
 
 export interface Version {

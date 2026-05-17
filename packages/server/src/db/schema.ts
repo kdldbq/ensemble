@@ -96,6 +96,11 @@ export const shareGrants = pgTable('share_grants', {
   granteeId: text('grantee_id'),
   permission: permissionLevel('permission').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
+  /**
+   * Optional password gate for public_link grants. Stored as
+   * `scrypt$<salt_hex>$<derived_hex>` (see services/password.ts).
+   */
+  passwordHash: text('password_hash'),
   grantedBy: text('granted_by').notNull(),
   grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
 })

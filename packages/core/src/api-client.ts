@@ -172,7 +172,9 @@ export class ApiClient {
     return (await this.req(path)).json() as Promise<{ items: ActivityEntry[] }>
   }
   async createGrant(
-    input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt'>,
+    input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt' | 'hasPassword'> & {
+      password?: string
+    },
   ): Promise<Grant> {
     const res = await this.req('/api/v1/grants', {
       method: 'POST',
@@ -183,6 +185,26 @@ export class ApiClient {
   }
   async deleteGrant(id: string): Promise<void> {
     await this.req(`/api/v1/grants/${id}`, { method: 'DELETE' })
+  }
+  async listGrants(opts: { workbookId?: string; folderId?: string }): Promise<{ items: Grant[] }> {
+    const qs = new URLSearchParams()
+    if (opts.workbookId) qs.set('workbookId', opts.workbookId)
+    else if (opts.folderId) qs.set('folderId', opts.folderId)
+    else throw new Error('listGrants: workbookId or folderId required')
+    return (await this.req(`/api/v1/grants?${qs}`)).json() as Promise<{ items: Grant[] }>
+  }
+  /** Returns true iff the password is correct (or no password is set on the grant). */
+  async verifyGrantPassword(grantId: string, password: string): Promise<boolean> {
+    const res = await this.req(`/api/v1/grants/${grantId}/verify`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ password }),
+    }).catch((err) => {
+      // 401 → wrong password; rethrow others
+      if (err instanceof Error && /401/.test(err.message)) return null
+      throw err
+    })
+    return res !== null
   }
 
   async listVersions(workbookId: string): Promise<{ items: Version[] }> {
