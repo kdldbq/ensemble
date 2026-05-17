@@ -34,6 +34,7 @@ import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
 import type { GrantBody } from './routes/grants'
 import { healthRoute } from './routes/health'
+import { openApiRoute } from './routes/openapi'
 import { protectionsRoute } from './routes/protections'
 import { snapshotsRoute } from './routes/snapshots'
 import { versionsRoute } from './routes/versions'
@@ -127,6 +128,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     app.get(path, handler)
   }
   app.route('/', healthRoute)
+  app.route('/', openApiRoute)
   // Extra routes must mount BEFORE the auth'd sub-routers because Hono's
   // `use('*', requireIdentity)` on a sub-app intercepts every request that passes
   // through that sub-app (not just paths it has registered), regardless of mount
