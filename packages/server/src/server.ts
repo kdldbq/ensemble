@@ -10,6 +10,7 @@ import { createTokenBucket } from './realtime/backpressure'
 import { createCellLockManager } from './realtime/cell-lock-manager'
 import { createRoomRegistry } from './realtime/collab-room'
 import { createMutationBroadcaster } from './realtime/mutation-broadcaster'
+import { createPerTenantBucket } from './realtime/per-tenant-bucket'
 import { createPresenceTracker } from './realtime/presence-tracker'
 import { createRedis } from './redis/client'
 import { createMutationService } from './services/mutation-service'
@@ -49,6 +50,9 @@ export function createServer(opts: CreateServerOpts) {
   }
   const roomRegistry = createRoomRegistry()
   const cellLocks = createCellLockManager({ redis, ttlSec: 30 })
+  // Aggregate per-tenant quota (I7). Layered above the per-session 30/s bucket so
+  // one noisy tenant can't starve others. 500 ops/sec accommodates ~20 active users.
+  const tenantBucket = createPerTenantBucket({ capacity: 500, refillPerSec: 500 })
   const presence = createPresenceTracker({ evictAfterMs: 15000 })
   const mutationService = createMutationService({ db })
   const broadcaster = createMutationBroadcaster({
@@ -147,6 +151,13 @@ export function createServer(opts: CreateServerOpts) {
           send: (frame) => ws.send(JSON.stringify(frame)),
         })
 
+        // Composite bucket: tenant aggregate gate first, then per-session 30/s.
+        const perSession = createTokenBucket({ capacity: 30, refillPerSec: 30 })
+        const sessionBucket = {
+          take(): boolean {
+            return tenantBucket.take(identity.tenantId) && perSession.take()
+          },
+        }
         const session = createSession(
           {
             ws,
@@ -155,7 +166,7 @@ export function createServer(opts: CreateServerOpts) {
             capabilities: cap,
             workbookId,
             room,
-            bucket: createTokenBucket({ capacity: 30, refillPerSec: 30 }),
+            bucket: sessionBucket,
           },
           { cellLocks, presence, broadcaster },
         )
