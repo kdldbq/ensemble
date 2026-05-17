@@ -40,6 +40,15 @@ export {
   EmptyTemplateAdapter,
   DefaultBrandingAdapter,
 } from './adapters/enterprise'
+export type {
+  OAuthAdapter,
+  OAuthProviderConfig,
+  OAuthState,
+  OAuthIdentity,
+} from './adapters/oauth'
+export { NotImplementedOAuthAdapter } from './adapters/oauth'
+export type { Tracer, Span, SpanAttributes } from './tracing'
+export { setTracer, getTracer, traced } from './tracing'
 export { createServer, type CreateServerOpts } from './server'
 export { buildApp, type AppDeps, type AppEnv } from './http/app'
 export { createDb, type Database } from './db/client'
