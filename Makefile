@@ -5,16 +5,18 @@
 #   5303  Postgres (host)     5304  Redis (host)
 
 .DEFAULT_GOAL := help
-.PHONY: help setup install migrate dev dev-fg dev-down _kill-ports \
+.PHONY: help setup install migrate dev dev-bg dev-down restart _kill-ports _kill-audit-ports \
         db-up db-down db-logs ps logs \
-        build typecheck test e2e \
+        build build-libs typecheck test e2e audit verify \
         docs-dev docs-build \
         clean reset
 
-SERVER_PORT := 5301
-WEB_PORT    := 5302
-PG_PORT     := 5303
-REDIS_PORT  := 5304
+SERVER_PORT       := 5301
+WEB_PORT          := 5302
+PG_PORT           := 5303
+REDIS_PORT        := 5304
+AUDIT_SERVER_PORT := 5311
+AUDIT_WEB_PORT    := 5312
 
 DEMO_DIR    := apps/demo
 DEMO_LOG    := /tmp/ensemble-demo.log
@@ -48,7 +50,13 @@ migrate:        ## 跑 DB migrations (server 须先 build; 或直接用 'make se
 
 # ───── 开发 ─────────────────────────────────────────────────────────
 
-dev: _kill-ports db-up ## 起完整 demo (后台跑 server+vite, 浏览器开 :5302)
+dev: _kill-ports db-up ## 起完整 demo (前台 + 日志可见 + Ctrl-C 一把停)
+	@echo "  ▸ web:    http://localhost:$(WEB_PORT)"
+	@echo "  ▸ server: http://localhost:$(SERVER_PORT)/healthz"
+	@echo "  ▸ Ctrl-C 退出（concurrently 会把 server + vite 都收掉）"
+	@pnpm --filter @ensemble-sheets/demo dev
+
+dev-bg: _kill-ports db-up ## 起完整 demo (后台, 日志写到 /tmp; 'make dev-down' 停)
 	@nohup pnpm --filter @ensemble-sheets/demo dev > $(DEMO_LOG) 2>&1 &
 	@echo -n "waiting for server"; \
 	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do \
@@ -63,20 +71,28 @@ dev: _kill-ports db-up ## 起完整 demo (后台跑 server+vite, 浏览器开 :5
 	echo "  ▸ log:    tail -f $(DEMO_LOG)"; \
 	echo "  ▸ stop:   make dev-down"
 
-dev-fg: _kill-ports db-up ## 起完整 demo (前台, Ctrl-C 退出)
-	pnpm --filter @ensemble-sheets/demo dev
-
-dev-down:       ## 停 demo 进程 (保留容器)
+dev-down:       ## 停 demo 进程 (适用 dev-bg; 前台 dev 用 Ctrl-C)
 	@pkill -f 'tsx src/server-runner' 2>/dev/null || true
 	@pkill -f 'apps/demo.*vite' 2>/dev/null || true
 	@pkill -f 'concurrently.*pnpm dev' 2>/dev/null || true
 	@echo "✓ dev procs stopped (容器仍在; 'make db-down' 一并停)"
+
+restart: dev-down build-libs dev  ## 改了 core/react/server 后用这个 (停旧 + 重建 lib + 前台启)
 
 _kill-ports:
 	@for port in $(SERVER_PORT) $(WEB_PORT); do \
 		pid=$$(lsof -ti :$$port 2>/dev/null); \
 		if [ -n "$$pid" ]; then \
 			echo "killing pid $$pid on :$$port"; \
+			kill -9 $$pid 2>/dev/null || true; \
+		fi; \
+	done
+
+_kill-audit-ports:
+	@for port in $(AUDIT_SERVER_PORT) $(AUDIT_WEB_PORT); do \
+		pid=$$(lsof -ti :$$port 2>/dev/null); \
+		if [ -n "$$pid" ]; then \
+			echo "killing audit pid $$pid on :$$port"; \
 			kill -9 $$pid 2>/dev/null || true; \
 		fi; \
 	done
@@ -104,14 +120,30 @@ logs:           ## demo dev 进程日志 (tail -f)
 build:          ## 全 workspace build
 	pnpm -r run build
 
+build-libs:     ## 只 build demo 依赖的 lib (core+react+server)，比 'build' 快得多
+	@pnpm --filter @ensemble-sheets/core run build
+	@pnpm --filter @ensemble-sheets/react run build
+	@pnpm --filter @ensemble-sheets/server run build
+
 typecheck:      ## 全 workspace typecheck
 	pnpm -r run typecheck
 
 test:           ## 全 workspace 单测
 	pnpm -r run test
 
-e2e:            ## demo Playwright e2e
+e2e:            ## demo Playwright e2e (5301/5302, 原有 suite)
 	pnpm --filter @ensemble-sheets/demo e2e
+
+audit: _kill-audit-ports  ## v0.1 capability audit (独立 5311/5312, 不动你的 dev)
+	@cd $(DEMO_DIR) && pnpm exec playwright test \
+		--config e2e/playwright.audit.config.ts --reporter=line; \
+	  status=$$?; \
+	  $(MAKE) _kill-audit-ports >/dev/null 2>&1; \
+	  exit $$status
+
+verify: typecheck test build-libs audit  ## 完整 pre-ship 校验 (typecheck + 全测 + lib build + audit)
+	@echo ""
+	@echo "✓ verify pipeline 全通过 — ready to ship"
 
 # ───── 文档站 ───────────────────────────────────────────────────────
 
