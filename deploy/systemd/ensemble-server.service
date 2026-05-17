@@ -1,0 +1,58 @@
+# systemd unit for ensemble Hono HTTP+WS server.
+#
+# Install:
+#   sudo cp deploy/systemd/ensemble-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ensemble-server
+#
+# Configure:
+#   /etc/ensemble/server.env  (see deploy/.env.example for keys)
+#
+# Logs: `journalctl -u ensemble-server -f`
+
+[Unit]
+Description=ensemble collaborative spreadsheet server
+Documentation=https://github.com/kdldbq/ensemble
+After=network-online.target postgresql.service redis.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ensemble
+Group=ensemble
+WorkingDirectory=/opt/ensemble
+EnvironmentFile=/etc/ensemble/server.env
+
+ExecStart=/usr/bin/node --enable-source-maps /opt/ensemble/packages/server/dist/index.js
+ExecReload=/bin/kill -HUP $MAINPID
+
+Restart=on-failure
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/ensemble /var/log/ensemble
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=2G
+TasksMax=4096
+
+[Install]
+WantedBy=multi-user.target
