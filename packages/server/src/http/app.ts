@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { MiddlewareHandler } from 'hono'
 import type { EventAdapter, IdentityAdapter, PermissionAdapter } from '../adapters/identity'
+import type { LLMAdapter } from '../adapters/llm'
 import type { StorageAdapter } from '../adapters/storage'
 import type { Capability } from '../adapters/types'
 import type { Database } from '../db/client'
@@ -23,6 +24,7 @@ import type { VersionService } from '../services/version-service'
 import { createWorkbookService } from '../services/workbook-service'
 import type { WorkbookService } from '../services/workbook-service'
 import { activityRoute } from './routes/activity'
+import { aiRoute } from './routes/ai'
 import { exportXlsxRoute } from './routes/export-xlsx'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
@@ -41,6 +43,8 @@ export interface AppDeps {
   event: EventAdapter
   /** Optional: when provided, MaskRuleCache pub/sub invalidation is activated. */
   redis?: Redis
+  /** Optional: when provided, AI routes (/api/v1/ai/*) become functional. */
+  llm?: LLMAdapter
 }
 
 export interface AppServices {
@@ -133,5 +137,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', exportXlsxRoute)
   app.route('/', activityRoute)
   app.route('/', protectionsRoute)
+  app.route('/', aiRoute)
   return app
 }

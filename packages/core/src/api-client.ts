@@ -199,6 +199,31 @@ export class ApiClient {
       method: 'DELETE',
     })
   }
+  async aiFormula(
+    prompt: string,
+    opts: { context?: string } = {},
+  ): Promise<{ formula: string; warning?: string }> {
+    const res = await this.req('/api/v1/ai/formula', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt, ...(opts.context ? { context: opts.context } : {}) }),
+    })
+    return res.json() as Promise<{ formula: string; warning?: string }>
+  }
+  async aiDetectColumns(
+    text: string,
+  ): Promise<{ headers: string[]; delimiterPattern: string; warning?: string }> {
+    const res = await this.req('/api/v1/ai/detect-columns', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    return res.json() as Promise<{
+      headers: string[]
+      delimiterPattern: string
+      warning?: string
+    }>
+  }
   async createGrant(
     input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt' | 'hasPassword'> & {
       password?: string

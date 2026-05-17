@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { createNodeWebSocket } from '@hono/node-ws'
 import type { Hono } from 'hono'
 import type { EventAdapter, IdentityAdapter, PermissionAdapter } from './adapters/identity'
+import type { LLMAdapter } from './adapters/llm'
 import type { StorageAdapter } from './adapters/storage'
 import { createDb } from './db/client'
 import { type AppDeps, type AppEnv, buildApp } from './http/app'
@@ -22,6 +23,8 @@ export interface CreateServerOpts {
   storage: StorageAdapter
   event: EventAdapter
   redisUrl?: string
+  /** Optional LLM adapter. When provided, /api/v1/ai/* routes become functional. */
+  llm?: LLMAdapter
   /**
    * Optional Hono sub-app mounted after the product routes — for deployment-specific
    * helpers (e.g., the demo's whoami/reset endpoints) that share the same port without
@@ -42,6 +45,7 @@ export function createServer(opts: CreateServerOpts) {
     storage: opts.storage,
     event: opts.event,
     redis,
+    ...(opts.llm ? { llm: opts.llm } : {}),
   }
   const roomRegistry = createRoomRegistry()
   const cellLocks = createCellLockManager({ redis, ttlSec: 30 })

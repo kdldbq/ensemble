@@ -6,6 +6,8 @@ export {
   NoopEventAdapter,
 } from './adapters/identity'
 export type { StorageAdapter } from './adapters/storage'
+export type { LLMAdapter, LLMMessage, LLMGenerateOpts, LLMResult } from './adapters/llm'
+export { NoopLLMAdapter } from './adapters/llm'
 export { createServer, type CreateServerOpts } from './server'
 export { buildApp, type AppDeps, type AppEnv } from './http/app'
 export { createDb, type Database } from './db/client'
