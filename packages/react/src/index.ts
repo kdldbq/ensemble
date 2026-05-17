@@ -2,6 +2,7 @@ export { WorkbookEditor, type WorkbookEditorProps, type WorkbookWatermark } from
 export { FolderNavigator, type FolderNavigatorProps } from './FolderNavigator'
 export { FolderTree, type FolderTreeProps } from './FolderTree'
 export { ActivityTimeline, type ActivityTimelineProps } from './ActivityTimeline'
+export { CommentPanel, type CommentPanelProps } from './CommentPanel'
 export {
   Button,
   type ButtonProps,
