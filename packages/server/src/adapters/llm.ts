@@ -33,8 +33,9 @@ export interface LLMAdapter {
   generate(opts: LLMGenerateOpts): Promise<LLMResult>
   /**
    * Optional streaming variant (G1.3). Yields incremental text chunks as the
-   * provider generates them. When undefined, /api/v1/ai/*/stream endpoints
-   * fall back to generate() + single-chunk emission.
+   * provider generates them. When undefined, the AI stream endpoints
+   * (e.g. POST /api/v1/ai/formula/stream) fall back to generate() with
+   * single-chunk emission.
    */
   streamGenerate?(opts: LLMGenerateOpts): AsyncIterable<string>
 }
