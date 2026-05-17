@@ -28,11 +28,15 @@ export interface LLMResult {
 export interface LLMAdapter {
   /**
    * One-shot completion. Adapter implementations may add internal retries +
-   * timeouts; the contract is "throw if non-recoverable". This API is
-   * intentionally minimal — streaming and structured output come later as
-   * separate methods so the simple path stays simple.
+   * timeouts; the contract is "throw if non-recoverable".
    */
   generate(opts: LLMGenerateOpts): Promise<LLMResult>
+  /**
+   * Optional streaming variant (G1.3). Yields incremental text chunks as the
+   * provider generates them. When undefined, /api/v1/ai/*/stream endpoints
+   * fall back to generate() + single-chunk emission.
+   */
+  streamGenerate?(opts: LLMGenerateOpts): AsyncIterable<string>
 }
 
 /**

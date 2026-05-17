@@ -60,6 +60,61 @@ export const aiRoute = new Hono<AppEnv>()
       return c.json({ error: err instanceof Error ? err.message : 'LLM call failed' }, 500)
     }
   })
+  .post('/api/v1/ai/formula/stream', async (c) => {
+    const id = c.get('identity')!
+    const body = (await c.req.json()) as { prompt?: string; context?: string }
+    if (!body.prompt) return c.json({ error: 'prompt required' }, 400)
+    const llm = c.get('deps').llm
+    if (!llm) return c.json({ error: 'LLM not configured on this server' }, 501)
+    const opts = {
+      tenantId: id.tenantId,
+      userId: id.userId,
+      temperature: 0.2,
+      maxTokens: 200,
+      messages: [
+        { role: 'system' as const, content: FORMULA_SYSTEM_PROMPT },
+        {
+          role: 'user' as const,
+          content:
+            body.context !== undefined
+              ? `Context:\n${body.context}\n\nRequest: ${body.prompt}`
+              : body.prompt,
+        },
+      ],
+    }
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          if (llm.streamGenerate) {
+            for await (const chunk of llm.streamGenerate(opts)) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`))
+            }
+          } else {
+            const r = await llm.generate(opts)
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: r.text })}\n\n`))
+          }
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+        } catch (err) {
+          logger.error({ err }, 'ai/formula/stream failed')
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'stream failed' })}\n\n`,
+            ),
+          )
+        } finally {
+          controller.close()
+        }
+      },
+    })
+    return new Response(stream, {
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    })
+  })
   .post('/api/v1/ai/detect-columns', async (c) => {
     const id = c.get('identity')!
     const body = (await c.req.json()) as { text?: string }
