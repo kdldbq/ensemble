@@ -1,9 +1,17 @@
 export * from './adapters/types'
-export type { IdentityAdapter, PermissionAdapter, EventAdapter } from './adapters/identity'
+export type {
+  IdentityAdapter,
+  PermissionAdapter,
+  EventAdapter,
+  ErrorAdapter,
+  ErrorContext,
+  HandoffResult,
+} from './adapters/identity'
 export {
   NotImplementedIdentityAdapter,
   NotImplementedPermissionAdapter,
   NoopEventAdapter,
+  NoopErrorAdapter,
 } from './adapters/identity'
 export type { StorageAdapter } from './adapters/storage'
 export type { LLMAdapter, LLMMessage, LLMGenerateOpts, LLMResult } from './adapters/llm'
