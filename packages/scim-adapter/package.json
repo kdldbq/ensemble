@@ -1,0 +1,26 @@
+{
+  "name": "@ensemble-sheets/scim-adapter",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "description": "SCIM 2.0 (RFC 7644) Users + Groups handler for ensemble host applications. Wires identity-provider provisioning (Okta, Azure AD, JumpCloud) into a custom IdentityAdapter.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kdldbq/ensemble.git",
+    "directory": "packages/scim-adapter"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "20.16.10"
+  }
+}
