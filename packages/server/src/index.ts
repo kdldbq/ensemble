@@ -23,6 +23,23 @@ export {
   scanPayload,
   scanText,
 } from './services/dlp-rules'
+export type {
+  ApprovalAdapter,
+  ApprovalRequest,
+  ApprovalDecision,
+  LicenseAdapter,
+  SeatUsage,
+  TemplateAdapter,
+  WorkbookTemplate,
+  BrandingAdapter,
+  BrandingConfig,
+} from './adapters/enterprise'
+export {
+  AlwaysApproveAdapter,
+  UnlimitedLicenseAdapter,
+  EmptyTemplateAdapter,
+  DefaultBrandingAdapter,
+} from './adapters/enterprise'
 export { createServer, type CreateServerOpts } from './server'
 export { buildApp, type AppDeps, type AppEnv } from './http/app'
 export { createDb, type Database } from './db/client'
