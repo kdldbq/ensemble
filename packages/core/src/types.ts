@@ -105,3 +105,17 @@ export interface ActivityEntry {
   payload: Record<string, unknown>
   occurredAt: string
 }
+
+export interface Protection {
+  id: string
+  tenantId: string
+  workbookId: string
+  sheetId: string
+  rangeRef: string
+  description: string | null
+  allowedUserIds: string[] | null
+  allowedRoles: string[] | null
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}

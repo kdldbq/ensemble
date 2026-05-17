@@ -71,6 +71,13 @@
       "when": 1779005767802,
       "tag": "0009_cynical_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779006124069,
+      "tag": "0010_mighty_black_panther",
+      "breakpoints": true
     }
   ]
 }

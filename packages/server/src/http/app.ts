@@ -14,6 +14,8 @@ import type { ActivityService } from '../services/activity-service'
 import { createFolderService } from '../services/folder-service'
 import type { FolderService } from '../services/folder-service'
 import { MaskRuleCache } from '../services/mask-service'
+import { createProtectionService } from '../services/protection-service'
+import type { ProtectionService } from '../services/protection-service'
 import { createSnapshotService } from '../services/snapshot-service'
 import type { SnapshotService } from '../services/snapshot-service'
 import { createVersionService } from '../services/version-service'
@@ -26,6 +28,7 @@ import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
 import type { GrantBody } from './routes/grants'
 import { healthRoute } from './routes/health'
+import { protectionsRoute } from './routes/protections'
 import { snapshotsRoute } from './routes/snapshots'
 import { versionsRoute } from './routes/versions'
 import { workbooksRoute } from './routes/workbooks'
@@ -48,6 +51,7 @@ export interface AppServices {
   events: EventEmitter
   versions: VersionService
   activity: ActivityService
+  protection: ProtectionService
 }
 
 export type AppEnv = {
@@ -99,6 +103,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     events: createEventEmitter({ db: deps.db, eventAdapter: deps.event }),
     versions: createVersionService(deps.db, snapshots),
     activity: createActivityService(deps.db),
+    protection: createProtectionService(deps.db),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {
@@ -127,5 +132,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', versionsRoute)
   app.route('/', exportXlsxRoute)
   app.route('/', activityRoute)
+  app.route('/', protectionsRoute)
   return app
 }

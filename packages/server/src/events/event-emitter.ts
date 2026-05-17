@@ -65,6 +65,23 @@ function buildEvent(input: EmitInput, at: string): EnsembleEvent {
       return { type: input.type, grantId: input.resourceId ?? '', grantedBy: input.actorId, at }
     case 'share.revoked':
       return { type: input.type, grantId: input.resourceId ?? '', revokedBy: input.actorId, at }
+    case 'protection.created':
+      return {
+        type: input.type,
+        protectionId: input.resourceId ?? '',
+        workbookId: (input.extra?.workbookId as string) ?? '',
+        userId: input.actorId,
+        rangeRef: (input.extra?.rangeRef as string) ?? '',
+        at,
+      }
+    case 'protection.deleted':
+      return {
+        type: input.type,
+        protectionId: input.resourceId ?? '',
+        workbookId: (input.extra?.workbookId as string) ?? '',
+        userId: input.actorId,
+        at,
+      }
   }
 }
 

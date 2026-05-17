@@ -75,3 +75,18 @@ export type EnsembleEvent =
   | { type: 'folder.restored'; folderId: string; userId: string; at: string }
   | { type: 'share.granted'; grantId: string; grantedBy: string; at: string }
   | { type: 'share.revoked'; grantId: string; revokedBy: string; at: string }
+  | {
+      type: 'protection.created'
+      protectionId: string
+      workbookId: string
+      userId: string
+      rangeRef: string
+      at: string
+    }
+  | {
+      type: 'protection.deleted'
+      protectionId: string
+      workbookId: string
+      userId: string
+      at: string
+    }

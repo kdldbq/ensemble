@@ -2,6 +2,7 @@ import type {
   ActivityEntry,
   Folder,
   Grant,
+  Protection,
   Snapshot,
   UniverWorkbookData,
   Version,
@@ -170,6 +171,33 @@ export class ApiClient {
     if (opts.before !== undefined) qs.set('before', opts.before)
     const path = `/api/v1/activity${qs.size ? `?${qs}` : ''}`
     return (await this.req(path)).json() as Promise<{ items: ActivityEntry[] }>
+  }
+  async listProtections(workbookId: string): Promise<{ items: Protection[] }> {
+    return (await this.req(`/api/v1/workbooks/${workbookId}/protections`)).json() as Promise<{
+      items: Protection[]
+    }>
+  }
+  async createProtection(
+    workbookId: string,
+    input: {
+      sheetId: string
+      rangeRef: string
+      description?: string | null
+      allowedUserIds?: string[] | null
+      allowedRoles?: string[] | null
+    },
+  ): Promise<Protection> {
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/protections`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return res.json() as Promise<Protection>
+  }
+  async deleteProtection(workbookId: string, protectionId: string): Promise<void> {
+    await this.req(`/api/v1/workbooks/${workbookId}/protections/${protectionId}`, {
+      method: 'DELETE',
+    })
   }
   async createGrant(
     input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt' | 'hasPassword'> & {

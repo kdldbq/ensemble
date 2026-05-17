@@ -123,6 +123,35 @@ export const mutations = pgTable(
   }),
 )
 
+export const rangeProtections = pgTable(
+  'range_protections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    workbookId: uuid('workbook_id')
+      .notNull()
+      .references(() => workbooks.id),
+    /** Univer sheet id within workbook. */
+    sheetId: text('sheet_id').notNull(),
+    /** A1-style range, e.g. "B2:D10" or "A:A". Server treats as opaque label. */
+    rangeRef: text('range_ref').notNull(),
+    /** Optional human-readable description. */
+    description: text('description'),
+    /** List of user ids allowed to edit; if null+roles null, ANYONE with workbook canEdit can edit. */
+    allowedUserIds: jsonb('allowed_user_ids').$type<string[] | null>(),
+    /** Allowed role names (host-defined, e.g. ['admin','editor']). */
+    allowedRoles: jsonb('allowed_roles').$type<string[] | null>(),
+    createdBy: text('created_by').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    workbookSheetIdx: index('range_protections_workbook_sheet_idx').on(t.workbookId, t.sheetId),
+  }),
+)
+
 export const auditEventType = pgEnum('audit_event_type', [
   'workbook.created',
   'workbook.opened',
@@ -136,6 +165,8 @@ export const auditEventType = pgEnum('audit_event_type', [
   'folder.restored',
   'share.granted',
   'share.revoked',
+  'protection.created',
+  'protection.deleted',
 ])
 
 export const auditLog = pgTable(
