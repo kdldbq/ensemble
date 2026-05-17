@@ -8,6 +8,12 @@ export {
 export { xlsxToUniverJson, univerJsonToXlsx } from './xlsx-converter'
 export { detectFillPattern, extendFill, type FillPattern } from './smart-fill'
 export {
+  parseCrossRef,
+  formatCrossRef,
+  resolveCrossRef,
+  type CrossRef,
+} from './cross-ref'
+export {
   createEditor,
   loadBrowserPlugins,
   loadBrowserLocales,
