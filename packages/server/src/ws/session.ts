@@ -6,6 +6,7 @@ import type { CollabRoom } from '../realtime/collab-room'
 import { parseInboundFrame } from '../realtime/messages'
 import type { MutationBroadcaster } from '../realtime/mutation-broadcaster'
 import type { PresenceTracker } from '../realtime/presence-tracker'
+import { type RiskAdapter, scanPayload } from '../services/dlp-rules'
 
 export interface SessionContext {
   ws: WSContext
@@ -27,11 +28,15 @@ export interface SessionDeps {
   cellLocks: CellLockManager
   presence: PresenceTracker
   broadcaster: MutationBroadcaster
+  /** Optional DLP intercept (I). When set, payloads are scanned and findings alerted. */
+  risk?: RiskAdapter
+  /** Default 'warn' (allow + alert). 'block' rejects the mutation outright. */
+  dlpMode?: 'warn' | 'block'
 }
 
 export function createSession(ctx: SessionContext, deps: SessionDeps) {
   const { ws, clientId, identity, capabilities, workbookId, room, bucket } = ctx
-  const { cellLocks, presence, broadcaster } = deps
+  const { cellLocks, presence, broadcaster, risk, dlpMode } = deps
 
   function send(frame: unknown): void {
     ws.send(JSON.stringify(frame))
@@ -106,6 +111,28 @@ export function createSession(ctx: SessionContext, deps: SessionDeps) {
 
         // Renew the lock TTL while we persist.
         await cellLocks.renew({ workbookId, region: frame.region, userId: identity.userId })
+
+        // I: streaming DLP intercept. Scan only when a sink is wired so default
+        // path (no risk adapter) has zero overhead.
+        if (risk) {
+          const findings = scanPayload(frame.payload)
+          if (findings.length > 0) {
+            try {
+              await risk.alert({
+                tenantId: identity.tenantId,
+                actorId: identity.userId,
+                workbookId,
+                findings,
+              })
+            } catch {
+              /* never let alert errors break the edit path */
+            }
+            if (dlpMode === 'block') {
+              send({ type: 'error', code: 'dlp_blocked', message: 'mutation matched DLP rules' })
+              return
+            }
+          }
+        }
 
         await broadcaster.submit({
           room,

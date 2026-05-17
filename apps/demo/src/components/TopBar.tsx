@@ -1,6 +1,7 @@
 import type { ApiClient, MountHandle } from '@ensemble-sheets/core'
 import { PresenceAvatars } from '@ensemble-sheets/react'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { openAnotherUserUrl } from '../lib/visitor'
 import { downloadXlsx, uploadFile } from '../lib/xlsx-io'
@@ -34,6 +35,7 @@ const personaBadge: Record<Persona, { label: string; color: string }> = {
 }
 
 export function TopBar(props: TopBarProps) {
+  const { t } = useTranslation()
   const fileRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -140,13 +142,13 @@ export function TopBar(props: TopBarProps) {
         title={cap.canEdit ? '保存当前工作簿' : '查看者无法保存'}
         style={!cap.canEdit ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
       >
-        💾 保存
+        💾 {t('topbar.save')}
       </button>
       <button type="button" onClick={props.onOpenFolders}>
-        📁 文件夹
+        📁 {t('topbar.folders')}
       </button>
       <button type="button" onClick={props.onOpenVersions}>
-        🕘 版本历史
+        🕘 {t('topbar.versions')}
       </button>
       <button
         type="button"
@@ -155,7 +157,7 @@ export function TopBar(props: TopBarProps) {
         title={cap.canEdit ? '从本地 .xlsx 或 .csv 创建新工作簿' : '查看者无法上传'}
         style={!cap.canEdit ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
       >
-        ⬆ 上传
+        ⬆ {t('topbar.upload')}
       </button>
       <input
         ref={fileRef}
@@ -169,7 +171,7 @@ export function TopBar(props: TopBarProps) {
         }}
       />
       <button type="button" onClick={handleDownload} disabled={busy === 'download'}>
-        ⬇ 下载 xlsx
+        ⬇ {t('topbar.download')}
       </button>
       <button
         type="button"

@@ -47,8 +47,8 @@ export type {
   OAuthIdentity,
 } from './adapters/oauth'
 export { NotImplementedOAuthAdapter } from './adapters/oauth'
-export type { Tracer, Span, SpanAttributes } from './tracing'
-export { setTracer, getTracer, traced } from './tracing'
+export type { Tracer, Span, SpanAttributes, OtlpHttpTracerOpts } from './tracing'
+export { setTracer, getTracer, traced, createOtlpHttpTracer } from './tracing'
 export type {
   AgentPolicyAdapter,
   AgentUsageQuery,

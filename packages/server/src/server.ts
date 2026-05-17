@@ -168,7 +168,13 @@ export function createServer(opts: CreateServerOpts) {
             room,
             bucket: sessionBucket,
           },
-          { cellLocks, presence, broadcaster },
+          {
+            cellLocks,
+            presence,
+            broadcaster,
+            ...(deps.risk ? { risk: deps.risk } : {}),
+            ...(deps.dlpMode ? { dlpMode: deps.dlpMode } : {}),
+          },
         )
 
         // Attach session to the raw WS so onMessage/onClose can reach it

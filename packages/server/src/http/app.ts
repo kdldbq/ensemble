@@ -30,6 +30,7 @@ import { adminRoute } from './routes/admin'
 import { aiRoute } from './routes/ai'
 import { commentsRoute } from './routes/comments'
 import { exportXlsxRoute } from './routes/export-xlsx'
+import { exportPdfRoute } from './routes/export-pdf'
 import { rangeRoute } from './routes/range'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
@@ -53,6 +54,16 @@ export interface AppDeps {
   redis?: Redis
   /** Optional: when provided, AI routes (/api/v1/ai/*) become functional. */
   llm?: LLMAdapter
+  /**
+   * Optional DLP / risk alert sink. When provided, the WS mutation handler
+   * scans each incoming payload with DEFAULT_DLP_RULES; matches are forwarded
+   * to `risk.alert(...)`. Setting `dlpMode='block'` rejects the mutation;
+   * default is `dlpMode='warn'` (allow + alert).
+   */
+  risk?: import('../services/dlp-rules').RiskAdapter
+  dlpMode?: 'warn' | 'block'
+  /** Optional PDF renderer for /export.pdf. Without it, server falls back to printable HTML. */
+  pdfRenderer?: import('../adapters/pdf').PdfRendererAdapter
 }
 
 export interface AppServices {
@@ -169,6 +180,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', grantsRoute)
   app.route('/', versionsRoute)
   app.route('/', exportXlsxRoute)
+  app.route('/', exportPdfRoute)
   app.route('/', activityRoute)
   app.route('/', protectionsRoute)
   app.route('/', adminRoute)

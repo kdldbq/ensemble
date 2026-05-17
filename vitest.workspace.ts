@@ -8,5 +8,6 @@ export default [
   'packages/webhook',
   'packages/identity-jwks',
   'packages/crdt-yjs',
+  'packages/ocr-tesseract',
   'apps/demo',
 ]

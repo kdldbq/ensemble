@@ -33,6 +33,7 @@ export {
   type OfflineCacheOpts,
   type QueuedMutation,
 } from './offline-cache'
+export { runScript, type ScriptContext, type ScriptResult } from './scripts'
 export {
   createEditor,
   loadBrowserPlugins,

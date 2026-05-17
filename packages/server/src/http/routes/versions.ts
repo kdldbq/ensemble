@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { snapshots as snapshotsTable } from '../../db/schema'
+import { type WorkbookData, applyMaskRules } from '../../services/mask-service'
 import { diffSnapshots } from '../../services/version-diff'
 import type { AppEnv } from '../app'
 import { requireIdentity } from '../auth'
@@ -77,8 +78,16 @@ export const versionsRoute = new Hono<AppEnv>()
           c.get('deps').storage.get(vA.storageKey),
           c.get('deps').storage.get(vB.storageKey),
         ])
-        const a = JSON.parse(new TextDecoder().decode(bytesA))
-        const b = JSON.parse(new TextDecoder().decode(bytesB))
+        const aRaw = JSON.parse(new TextDecoder().decode(bytesA)) as WorkbookData
+        const bRaw = JSON.parse(new TextDecoder().decode(bytesB)) as WorkbookData
+        // 4.5: re-apply current mask rules before diffing. Without this, a
+        // viewer-with-restricted-cells could compute the diff and recover
+        // values that mask normally hides. Mask is the floor — never the
+        // historical snapshot's original mask.
+        const idCtx = c.get('identity')!
+        const rules = await c.get('services').masks.get(idCtx, wbId)
+        const a = rules.length > 0 ? applyMaskRules(aRaw, rules) : aRaw
+        const b = rules.length > 0 ? applyMaskRules(bRaw, rules) : bRaw
         const diff = diffSnapshots(a, b)
         return c.json(diff)
       } catch (err) {

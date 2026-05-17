@@ -37,3 +37,5 @@ export { VersionHistoryPanel, type VersionHistoryPanelProps } from './VersionHis
 export { PresenceAvatars, type PresenceAvatarsProps } from './PresenceAvatars'
 export { CursorOverlay, type CursorOverlayProps } from './CursorOverlay'
 export { ChartPanel, type ChartPanelProps } from './ChartPanel'
+export { PivotPanel, type PivotPanelProps } from './PivotPanel'
+export { AdminDashboard, type AdminDashboardProps } from './AdminDashboard'
