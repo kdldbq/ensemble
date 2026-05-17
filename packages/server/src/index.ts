@@ -16,6 +16,13 @@ export {
 export type { StorageAdapter } from './adapters/storage'
 export type { LLMAdapter, LLMMessage, LLMGenerateOpts, LLMResult } from './adapters/llm'
 export { NoopLLMAdapter } from './adapters/llm'
+export type { DlpRule, DlpFinding, RiskAdapter } from './services/dlp-rules'
+export {
+  DEFAULT_DLP_RULES,
+  NoopRiskAdapter,
+  scanPayload,
+  scanText,
+} from './services/dlp-rules'
 export { createServer, type CreateServerOpts } from './server'
 export { buildApp, type AppDeps, type AppEnv } from './http/app'
 export { createDb, type Database } from './db/client'
