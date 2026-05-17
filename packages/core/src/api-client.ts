@@ -268,6 +268,31 @@ export class ApiClient {
       method: 'DELETE',
     })
   }
+  async readRange(
+    workbookId: string,
+    input: { sheetId: string; rangeRef: string },
+  ): Promise<{
+    sheetId: string
+    rangeRef: string
+    rows: number
+    cols: number
+    values: unknown[][]
+    empty?: boolean
+  }> {
+    const res = await this.req(`/api/v1/workbooks/${workbookId}/range/read`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return res.json() as Promise<{
+      sheetId: string
+      rangeRef: string
+      rows: number
+      cols: number
+      values: unknown[][]
+      empty?: boolean
+    }>
+  }
   async createGrant(
     input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt' | 'hasPassword'> & {
       password?: string

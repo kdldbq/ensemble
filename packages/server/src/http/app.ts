@@ -29,6 +29,7 @@ import { activityRoute } from './routes/activity'
 import { aiRoute } from './routes/ai'
 import { commentsRoute } from './routes/comments'
 import { exportXlsxRoute } from './routes/export-xlsx'
+import { rangeRoute } from './routes/range'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
 import type { GrantBody } from './routes/grants'
@@ -144,5 +145,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', protectionsRoute)
   app.route('/', aiRoute)
   app.route('/', commentsRoute)
+  app.route('/', rangeRoute)
   return app
 }
