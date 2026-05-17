@@ -218,6 +218,18 @@ export const auditLog = pgTable(
     resourceId: uuid('resource_id'),
     payload: jsonb('payload').notNull().default(sql`'{}'::jsonb`),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * sha256 hex of the canonical row data (tenant|event|actor|resource|
+     * payload_canonical|occurred_iso).
+     */
+    rowHash: text('row_hash').notNull().default(''),
+    /** Previous chain_hash for the same tenant; genesis = ''. */
+    prevHash: text('prev_hash').notNull().default(''),
+    /**
+     * sha256 hex of (prev_hash + row_hash) — links rows into a per-tenant
+     * Merkle chain. Tampering with any row breaks all subsequent chain_hash.
+     */
+    chainHash: text('chain_hash').notNull().default(''),
   },
   (t) => ({
     tenantOccurredIdx: index('audit_log_tenant_occurred_idx').on(t.tenantId, t.occurredAt),

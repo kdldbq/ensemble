@@ -10,6 +10,15 @@ describe('EventEmitter', () => {
           inserts.push(v)
         },
       }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            orderBy: () => ({
+              limit: async () => [],
+            }),
+          }),
+        }),
+      }),
     }
     const publish = vi.fn(async () => {})
     const emitter = createEventEmitter({ db: fakeDb as never, eventAdapter: { publish } })
@@ -31,6 +40,15 @@ describe('EventEmitter', () => {
         values: async (v: unknown) => {
           inserts.push(v)
         },
+      }),
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            orderBy: () => ({
+              limit: async () => [],
+            }),
+          }),
+        }),
       }),
     }
     const adapter = {

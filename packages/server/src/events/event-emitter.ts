@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+import { desc, eq } from 'drizzle-orm'
 import type { EventAdapter } from '../adapters/identity'
 import type { EnsembleEvent } from '../adapters/types'
 import type { Database } from '../db/client'
@@ -113,18 +115,103 @@ function buildEvent(input: EmitInput, at: string): EnsembleEvent {
   }
 }
 
+function sha256Hex(s: string): string {
+  return createHash('sha256').update(s).digest('hex')
+}
+
+function canonicalRow(row: {
+  tenantId: string
+  eventType: string
+  actorId: string
+  resourceId: string | null
+  payload: Record<string, unknown>
+  occurredAt: string
+}): string {
+  // Stable JSON: sort object keys recursively so canonical form is deterministic.
+  const sortKeys = (v: unknown): unknown => {
+    if (v === null || typeof v !== 'object') return v
+    if (Array.isArray(v)) return v.map(sortKeys)
+    const obj = v as Record<string, unknown>
+    return Object.keys(obj)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, k) => {
+        acc[k] = sortKeys(obj[k])
+        return acc
+      }, {})
+  }
+  return [
+    row.tenantId,
+    row.eventType,
+    row.actorId,
+    row.resourceId ?? '',
+    JSON.stringify(sortKeys(row.payload)),
+    row.occurredAt,
+  ].join('|')
+}
+
 export function createEventEmitter(deps: EventEmitterDeps) {
+  // Serialize per-tenant inserts so chain_hash is deterministic and gap-free.
+  // Map<tenantId, Promise> — each new emit chains onto the previous one,
+  // forming a queue. Cleaned implicitly when promises resolve.
+  const tenantQueues = new Map<string, Promise<unknown>>()
+
+  async function appendChained(input: EmitInput, occurredIso: string): Promise<void> {
+    // Look up the latest row's chain_hash for this tenant (genesis = '').
+    const prev = await deps.db
+      .select({ chainHash: auditLog.chainHash })
+      .from(auditLog)
+      .where(eq(auditLog.tenantId, input.tenantId))
+      .orderBy(desc(auditLog.id))
+      .limit(1)
+    const prevHash = prev[0]?.chainHash ?? ''
+    const rowHash = sha256Hex(
+      canonicalRow({
+        tenantId: input.tenantId,
+        eventType: input.type,
+        actorId: input.actorId,
+        resourceId: input.resourceId ?? null,
+        payload: input.extra ?? {},
+        occurredAt: occurredIso,
+      }),
+    )
+    const chainHash = sha256Hex(prevHash + rowHash)
+    await deps.db.insert(auditLog).values({
+      tenantId: input.tenantId,
+      eventType: input.type,
+      actorId: input.actorId,
+      resourceId: input.resourceId ?? null,
+      payload: input.extra ?? {},
+      occurredAt: new Date(occurredIso),
+      rowHash,
+      prevHash,
+      chainHash,
+    })
+  }
+
   return {
     async emit(input: EmitInput): Promise<void> {
-      const at = new Date().toISOString()
-      const ev = buildEvent(input, at)
+      const occurredIso = new Date().toISOString()
+      const ev = buildEvent(input, occurredIso)
+
+      // Chain the audit insert onto the tenant queue. Each tenant gets its
+      // own serial pipeline; different tenants run concurrently.
+      const prevQueue = tenantQueues.get(input.tenantId) ?? Promise.resolve()
+      const next = prevQueue
+        .catch(() => {
+          /* prior insert failure shouldn't block this one — chain_hash
+             integrity check will surface tampering anyway */
+        })
+        .then(() => appendChained(input, occurredIso))
+      tenantQueues.set(input.tenantId, next)
+      next.finally(() => {
+        if (tenantQueues.get(input.tenantId) === next) {
+          tenantQueues.delete(input.tenantId)
+        }
+      })
+
       await Promise.all([
-        deps.db.insert(auditLog).values({
-          tenantId: input.tenantId,
-          eventType: input.type,
-          actorId: input.actorId,
-          resourceId: input.resourceId ?? null,
-          payload: input.extra ?? {},
+        next.catch((err) => {
+          logger.warn({ err, eventType: input.type }, 'audit chain insert failed')
         }),
         deps.eventAdapter.publish(ev).catch((err) => {
           logger.warn({ err, eventType: input.type }, 'EventAdapter.publish failed')
