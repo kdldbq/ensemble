@@ -9,6 +9,8 @@ import { createEventEmitter } from '../events/event-emitter'
 import type { EventEmitter } from '../events/event-emitter'
 import { createMaskCachePubSub } from '../realtime/mask-cache-pubsub'
 import type { Redis } from '../redis/client'
+import { createActivityService } from '../services/activity-service'
+import type { ActivityService } from '../services/activity-service'
 import { createFolderService } from '../services/folder-service'
 import type { FolderService } from '../services/folder-service'
 import { MaskRuleCache } from '../services/mask-service'
@@ -18,6 +20,7 @@ import { createVersionService } from '../services/version-service'
 import type { VersionService } from '../services/version-service'
 import { createWorkbookService } from '../services/workbook-service'
 import type { WorkbookService } from '../services/workbook-service'
+import { activityRoute } from './routes/activity'
 import { exportXlsxRoute } from './routes/export-xlsx'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
@@ -44,6 +47,7 @@ export interface AppServices {
   masks: MaskRuleCache
   events: EventEmitter
   versions: VersionService
+  activity: ActivityService
 }
 
 export type AppEnv = {
@@ -94,6 +98,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     masks: maskCache,
     events: createEventEmitter({ db: deps.db, eventAdapter: deps.event }),
     versions: createVersionService(deps.db, snapshots),
+    activity: createActivityService(deps.db),
   }
   const app = new Hono<AppEnv>()
   app.use('*', async (c, next) => {
@@ -121,5 +126,6 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', grantsRoute)
   app.route('/', versionsRoute)
   app.route('/', exportXlsxRoute)
+  app.route('/', activityRoute)
   return app
 }

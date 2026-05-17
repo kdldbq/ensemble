@@ -94,3 +94,12 @@ export interface Version {
   createdBy: string
   createdAt: string
 }
+
+export interface ActivityEntry {
+  id: string
+  eventType: string
+  actorId: string
+  resourceId: string | null
+  payload: Record<string, unknown>
+  occurredAt: string
+}

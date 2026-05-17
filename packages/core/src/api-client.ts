@@ -1,4 +1,12 @@
-import type { Folder, Grant, Snapshot, UniverWorkbookData, Version, Workbook } from './types'
+import type {
+  ActivityEntry,
+  Folder,
+  Grant,
+  Snapshot,
+  UniverWorkbookData,
+  Version,
+  Workbook,
+} from './types'
 
 export interface ApiClientOpts {
   baseUrl: string
@@ -143,6 +151,25 @@ export class ApiClient {
       body: JSON.stringify(patch),
     })
     return res.json() as Promise<{ id: string; name: string; folderId: string | null }>
+  }
+  async listActivity(
+    workbookId: string,
+    opts: { limit?: number; before?: string } = {},
+  ): Promise<{ items: ActivityEntry[] }> {
+    const qs = new URLSearchParams()
+    if (opts.limit !== undefined) qs.set('limit', String(opts.limit))
+    if (opts.before !== undefined) qs.set('before', opts.before)
+    const path = `/api/v1/workbooks/${workbookId}/activity${qs.size ? `?${qs}` : ''}`
+    return (await this.req(path)).json() as Promise<{ items: ActivityEntry[] }>
+  }
+  async listAllActivity(
+    opts: { limit?: number; before?: string } = {},
+  ): Promise<{ items: ActivityEntry[] }> {
+    const qs = new URLSearchParams()
+    if (opts.limit !== undefined) qs.set('limit', String(opts.limit))
+    if (opts.before !== undefined) qs.set('before', opts.before)
+    const path = `/api/v1/activity${qs.size ? `?${qs}` : ''}`
+    return (await this.req(path)).json() as Promise<{ items: ActivityEntry[] }>
   }
   async createGrant(
     input: Omit<Grant, 'id' | 'tenantId' | 'grantedBy' | 'grantedAt'>,
