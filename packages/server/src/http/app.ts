@@ -33,7 +33,9 @@ import { rangeRoute } from './routes/range'
 import { foldersRoute } from './routes/folders'
 import { grantsRoute } from './routes/grants'
 import type { GrantBody } from './routes/grants'
+import { httpRequestDurationSeconds, httpRequestsTotal } from '../metrics'
 import { healthRoute } from './routes/health'
+import { metricsRoute } from './routes/metrics'
 import { openApiRoute } from './routes/openapi'
 import { protectionsRoute } from './routes/protections'
 import { snapshotsRoute } from './routes/snapshots'
@@ -122,6 +124,28 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
     c.set('services', services)
     await next()
   })
+  // Metrics middleware: time + count HTTP requests by method + path-prefix +
+  // status class. Path is bucketed to /api/v1/<first> to avoid cardinality
+  // explosion from UUIDs.
+  app.use('*', async (c, next) => {
+    const start = process.hrtime.bigint()
+    await next()
+    const elapsedNs = Number(process.hrtime.bigint() - start)
+    const elapsedSec = elapsedNs / 1e9
+    const url = new URL(c.req.url, 'http://x')
+    const pathParts = url.pathname.split('/').filter(Boolean)
+    const bucket =
+      pathParts[0] === 'api' && pathParts[1] === 'v1' && pathParts[2]
+        ? `/api/v1/${pathParts[2]}`
+        : pathParts[0]
+          ? `/${pathParts[0]}`
+          : '/'
+    const status = c.res.status
+    const statusClass = `${Math.floor(status / 100)}xx`
+    const labels = { method: c.req.method, path: bucket, status: statusClass }
+    httpRequestsTotal.inc(labels)
+    httpRequestDurationSeconds.observe({ method: c.req.method, path: bucket }, elapsedSec)
+  })
   // WS and other pre-auth routes must be registered before sub-routers
   // that have use('*', requireIdentity), which would intercept all paths.
   for (const { path, handler } of opts?.beforeRoutes ?? []) {
@@ -129,6 +153,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   }
   app.route('/', healthRoute)
   app.route('/', openApiRoute)
+  app.route('/', metricsRoute)
   // Extra routes must mount BEFORE the auth'd sub-routers because Hono's
   // `use('*', requireIdentity)` on a sub-app intercepts every request that passes
   // through that sub-app (not just paths it has registered), regardless of mount
