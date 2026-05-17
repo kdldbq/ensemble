@@ -14,6 +14,26 @@ export {
   type CrossRef,
 } from './cross-ref'
 export {
+  computePivot,
+  type PivotAgg,
+  type PivotSpec,
+  type PivotResult,
+} from './pivot'
+export {
+  buildChartData,
+  type ChartKind,
+  type ChartSpec,
+  type ChartSeries,
+  type ChartData,
+  type FreezeConfig,
+} from './chart'
+export {
+  createOfflineCache,
+  type OfflineCache,
+  type OfflineCacheOpts,
+  type QueuedMutation,
+} from './offline-cache'
+export {
   createEditor,
   loadBrowserPlugins,
   loadBrowserLocales,

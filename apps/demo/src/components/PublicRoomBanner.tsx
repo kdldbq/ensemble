@@ -1,29 +1,34 @@
+import { useTranslation } from 'react-i18next'
+
 export interface PublicRoomBannerProps {
   inPublicRoom: boolean
   onLeave: () => void
 }
 
 export function PublicRoomBanner({ inPublicRoom, onLeave }: PublicRoomBannerProps) {
+  const { t } = useTranslation()
   if (!inPublicRoom) return null
   return (
     <div
+      role="status"
       style={{
-        background: '#fef3c7',
-        color: '#78350f',
+        background: 'var(--ens-color-warning-bg, #fef3c7)',
+        color: 'var(--ens-color-warning-fg, #78350f)',
         padding: '6px 12px',
         fontSize: 13,
-        borderBottom: '1px solid #fde68a',
+        borderBottom: '1px solid var(--ens-color-warning-border, #fde68a)',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
       }}
     >
       <span>
-        ☁ 你正在 <strong>公共房间</strong>。你在这里写的内容当前对所有其他访客可见。
+        ☁ {t('banner.public_room_msg')} <strong>{t('banner.public_room_label')}</strong>
+        {t('banner.public_room_warning')}
       </span>
       <div style={{ flex: 1 }} />
       <button type="button" onClick={onLeave}>
-        ← 回我的沙盒
+        {t('banner.public_room_back')}
       </button>
     </div>
   )

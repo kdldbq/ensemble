@@ -54,10 +54,14 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
   // a dependency, but we already track its primitive members instead.
   // biome-ignore lint/correctness/useExhaustiveDependencies: see comment above
   useEffect(() => {
-    if (!ref.current) return
+    const container = ref.current
+    if (!container) return
     let cancelled = false
+    // F7.1: clear any leftover DOM (Univer occasionally leaves canvas siblings
+    // behind after destroy in fast remount paths) so each mount starts fresh.
+    while (container.firstChild) container.removeChild(container.firstChild)
     void mountWorkbookEditor({
-      container: ref.current,
+      container,
       workbookId: props.workbookId,
       apiBaseUrl: props.apiBaseUrl,
       wsBaseUrl: props.wsBaseUrl,
@@ -79,7 +83,11 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
     })
     return () => {
       cancelled = true
-      void handleRef.current?.destroy()
+      const h = handleRef.current
+      handleRef.current = null
+      void h?.destroy()
+      // Ensure no stale children remain even if destroy is async / partial.
+      while (container.firstChild) container.removeChild(container.firstChild)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

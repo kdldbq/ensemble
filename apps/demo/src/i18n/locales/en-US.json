@@ -88,5 +88,11 @@
     "minutes_ago": "{{count}} min ago",
     "hours_ago": "{{count}} h ago",
     "days_ago": "{{count}} d ago"
+  },
+  "banner": {
+    "public_room_msg": "You're in",
+    "public_room_label": "the public room",
+    "public_room_warning": ". What you write here is visible to all other guests.",
+    "public_room_back": "← Back to my sandbox"
   }
 }

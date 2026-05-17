@@ -88,5 +88,11 @@
     "minutes_ago": "{{count}} 分钟前",
     "hours_ago": "{{count}} 小时前",
     "days_ago": "{{count}} 天前"
+  },
+  "banner": {
+    "public_room_msg": "你正在",
+    "public_room_label": "公共房间",
+    "public_room_warning": "。你在这里写的内容当前对所有其他访客可见。",
+    "public_room_back": "← 回我的沙盒"
   }
 }
