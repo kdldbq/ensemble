@@ -1,5 +1,6 @@
 import { ApiClient, type MountHandle } from '@ensemble-sheets/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Toaster } from 'sonner'
 import { useVisitor } from '../lib/visitor'
 import { type Persona, capabilitiesFor } from '../persona'
 import { FolderDrawer } from './FolderDrawer'
@@ -36,7 +37,14 @@ export function DemoShell() {
   const workbookLabel = inPublicRoom ? '公共房间' : pinnedWbId ? '已导入工作簿' : '我的沙盒'
 
   return (
-    <Inner
+    <>
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        toastOptions={{ duration: 3500 }}
+      />
+      <Inner
       visitor={visitor}
       inPublicRoom={inPublicRoom}
       onTogglePublicRoom={() => {
@@ -66,6 +74,7 @@ export function DemoShell() {
         setPreviewKey((k) => k + 1)
       }}
     />
+    </>
   )
 }
 
