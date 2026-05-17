@@ -14,7 +14,8 @@ export async function scanLocks(
       const values = await redis.mget(...keys)
       for (let i = 0; i < keys.length; i++) {
         const v = values[i]
-        if (v) out.push({ region: keys[i]?.slice(prefix.length), ownerId: v })
+        const k = keys[i]
+        if (v && k) out.push({ region: k.slice(prefix.length), ownerId: v })
       }
     }
   } while (cursor !== '0')

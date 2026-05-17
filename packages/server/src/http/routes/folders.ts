@@ -58,7 +58,7 @@ export const foldersRoute = new Hono<AppEnv>()
     requireCapability('canEdit', (c) => ({
       type: 'folder',
       id: c.req.param('id'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const id = c.get('identity')!
@@ -97,7 +97,7 @@ export const foldersRoute = new Hono<AppEnv>()
     requireCapability('canDelete', (c) => ({
       type: 'folder',
       id: c.req.param('id'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const id = c.get('identity')!

@@ -10,7 +10,7 @@ export const exportXlsxRoute = new Hono<AppEnv>().use('*', requireIdentity).get(
   requireCapability('canView', (c) => ({
     type: 'workbook',
     id: c.req.param('wbId'),
-    tenantId: c.get('identity')?.tenantId,
+    tenantId: c.get('identity')!.tenantId,
   })),
   async (c) => {
     const idCtx = c.get('identity')!

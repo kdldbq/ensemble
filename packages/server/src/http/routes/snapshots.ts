@@ -11,7 +11,7 @@ export const snapshotsRoute = new Hono<AppEnv>()
     requireCapability('canEdit', (c) => ({
       type: 'workbook',
       id: c.req.param('wbId'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const id = c.get('identity')!
@@ -48,7 +48,7 @@ export const snapshotsRoute = new Hono<AppEnv>()
     requireCapability('canView', (c) => ({
       type: 'workbook',
       id: c.req.param('wbId'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const { storage } = c.get('deps')
@@ -73,7 +73,7 @@ export const snapshotsRoute = new Hono<AppEnv>()
     requireCapability('canView', (c) => ({
       type: 'workbook',
       id: c.req.param('wbId'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const { storage } = c.get('deps')

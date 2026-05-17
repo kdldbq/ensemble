@@ -43,7 +43,7 @@ export const workbooksRoute = new Hono<AppEnv>()
     requireCapability('canView', (c) => ({
       type: 'workbook',
       id: c.req.param('id'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const id = c.get('identity')!
@@ -65,7 +65,7 @@ export const workbooksRoute = new Hono<AppEnv>()
     requireCapability('canDelete', (c) => ({
       type: 'workbook',
       id: c.req.param('id'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const id = c.get('identity')!

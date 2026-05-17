@@ -10,7 +10,7 @@ export const versionsRoute = new Hono<AppEnv>()
     requireCapability('canView', (c) => ({
       type: 'workbook',
       id: c.req.param('wbId'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => c.json({ items: await c.get('services').versions.listNamed(c.req.param('wbId')) }),
   )
@@ -19,7 +19,7 @@ export const versionsRoute = new Hono<AppEnv>()
     requireCapability('canEdit', (c) => ({
       type: 'workbook',
       id: c.req.param('wbId'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const idCtx = c.get('identity')!
@@ -45,7 +45,7 @@ export const versionsRoute = new Hono<AppEnv>()
     requireCapability('canEdit', (c) => ({
       type: 'workbook',
       id: c.req.param('wbId'),
-      tenantId: c.get('identity')?.tenantId,
+      tenantId: c.get('identity')!.tenantId,
     })),
     async (c) => {
       const idCtx = c.get('identity')!

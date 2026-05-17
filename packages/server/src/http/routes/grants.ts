@@ -29,7 +29,7 @@ export const grantsRoute = new Hono<AppEnv>()
     requireCapability('canShare', (c) => {
       const body = c.get('grantBody')
       if (!body) throw new Error('grantBody missing')
-      return { type: body.resourceType, id: body.resourceId, tenantId: c.get('identity')?.tenantId }
+      return { type: body.resourceType, id: body.resourceId, tenantId: c.get('identity')!.tenantId }
     }),
     async (c) => {
       const id = c.get('identity')!
@@ -77,7 +77,7 @@ export const grantsRoute = new Hono<AppEnv>()
     '/api/v1/grants/:id',
     requireCapability('canShare', (c) => {
       const g = c.get('grantToDelete')!
-      return { type: g.resourceType, id: g.resourceId, tenantId: c.get('identity')?.tenantId }
+      return { type: g.resourceType, id: g.resourceId, tenantId: c.get('identity')!.tenantId }
     }),
     async (c) => {
       const idCtx = c.get('identity')!
