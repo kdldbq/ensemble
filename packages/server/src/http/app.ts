@@ -26,6 +26,7 @@ import type { VersionService } from '../services/version-service'
 import { createWorkbookService } from '../services/workbook-service'
 import type { WorkbookService } from '../services/workbook-service'
 import { activityRoute } from './routes/activity'
+import { adminRoute } from './routes/admin'
 import { aiRoute } from './routes/ai'
 import { commentsRoute } from './routes/comments'
 import { exportXlsxRoute } from './routes/export-xlsx'
@@ -170,6 +171,7 @@ export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
   app.route('/', exportXlsxRoute)
   app.route('/', activityRoute)
   app.route('/', protectionsRoute)
+  app.route('/', adminRoute)
   app.route('/', aiRoute)
   app.route('/', commentsRoute)
   app.route('/', rangeRoute)

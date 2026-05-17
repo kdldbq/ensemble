@@ -211,6 +211,34 @@ export class ApiClient {
     })
     return res.json() as Promise<{ formula: string; warning?: string }>
   }
+  async adminStats(): Promise<{
+    tenantId: string
+    generatedAt: string
+    workbooks: number
+    folders: number
+    snapshots: number
+    storageBytes: number
+    activeUsers24h: number
+    activeUsers7d: number
+    events24h: number
+    eventsByType30d: Array<{ eventType: string; count: number }>
+    topActors7d: Array<{ actorId: string; count: number }>
+  }> {
+    const res = await this.req('/api/v1/admin/stats')
+    return res.json() as Promise<{
+      tenantId: string
+      generatedAt: string
+      workbooks: number
+      folders: number
+      snapshots: number
+      storageBytes: number
+      activeUsers24h: number
+      activeUsers7d: number
+      events24h: number
+      eventsByType30d: Array<{ eventType: string; count: number }>
+      topActors7d: Array<{ actorId: string; count: number }>
+    }>
+  }
   async aiDetectColumns(
     text: string,
   ): Promise<{ headers: string[]; delimiterPattern: string; warning?: string }> {
