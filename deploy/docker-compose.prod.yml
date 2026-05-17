@@ -1,0 +1,101 @@
+# Production-leaning docker-compose for self-hosted ensemble.
+#
+# Usage:
+#   cp deploy/.env.example deploy/.env  # then edit secrets
+#   docker compose -f deploy/docker-compose.prod.yml up -d
+#
+# Backups (Postgres):
+#   docker compose -f deploy/docker-compose.prod.yml exec postgres \
+#     pg_dump -U postgres ensemble | gzip > backup-$(date +%F).sql.gz
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ensemble}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  server:
+    image: ${ENSEMBLE_SERVER_IMAGE:-ghcr.io/kdldbq/ensemble-server:latest}
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ensemble}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5301/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    ports:
+      - "127.0.0.1:5301:5301"
+
+  web:
+    image: ${ENSEMBLE_WEB_IMAGE:-ghcr.io/kdldbq/ensemble-web:latest}
+    restart: unless-stopped
+    depends_on:
+      - server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    ports:
+      - "127.0.0.1:5302:80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+      - web
+
+volumes:
+  postgres_data:
+  redis_data:
