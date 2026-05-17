@@ -69,6 +69,15 @@ export interface MountOpts {
     /** Rotation in degrees, default -22 */
     rotateDeg?: number
   }
+  /**
+   * Best-effort copy / print deterrence. When true:
+   * - Container gets `user-select: none` (blocks Ctrl-A → Ctrl-C of cell text).
+   * - `@media print` hides the container entirely (Cmd-P prints blank page).
+   * - Container blurs while window is unfocused (deters over-the-shoulder photos).
+   * Browsers cannot truly prevent screenshots — these are speed bumps, not
+   * security boundaries. Pair with watermark for forensic attribution.
+   */
+  preventCopy?: boolean
   /** @internal — for tests */
   _editorFactory?: (container: HTMLElement) => Editor
   /** @internal — for tests */
@@ -163,6 +172,30 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
   const canEdit = opts.capabilities?.canEdit ?? true
   const sessionLockRegion = `auto-${cryptoRandomId()}`
   const cleanups: Array<() => void> = []
+
+  // ─── Copy / print deterrence (D5) ─────────────────────────────────────────
+  if (opts.preventCopy && !opts._editorFactory) {
+    const doc = opts.container.ownerDocument
+    const styleEl = doc.createElement('style')
+    const cls = `ensemble-no-copy-${cryptoRandomId()}`
+    opts.container.classList.add(cls)
+    styleEl.textContent = `
+.${cls} { user-select: none; -webkit-user-select: none; }
+.${cls}.ensemble-window-hidden { filter: blur(8px); transition: filter 80ms; }
+@media print { .${cls} { display: none !important; } }
+`
+    doc.head.appendChild(styleEl)
+    const onVisibility = () => {
+      if (doc.visibilityState === 'hidden') opts.container.classList.add('ensemble-window-hidden')
+      else opts.container.classList.remove('ensemble-window-hidden')
+    }
+    doc.addEventListener('visibilitychange', onVisibility)
+    cleanups.push(() => {
+      doc.removeEventListener('visibilitychange', onVisibility)
+      styleEl.remove()
+      opts.container.classList.remove(cls, 'ensemble-window-hidden')
+    })
+  }
 
   // ─── Watermark overlay (best-effort leak deterrence) ──────────────────────
   // pointer-events:none, sits above canvas at z=5, removed by destroy() via cleanups.

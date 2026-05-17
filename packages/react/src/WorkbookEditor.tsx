@@ -33,6 +33,8 @@ export interface WorkbookEditorProps {
   onWsConnected?: (ws: WsClient) => void
   /** Overlay watermark on canvas (best-effort; pointer-events:none). */
   watermark?: WorkbookWatermark
+  /** Best-effort copy/print deterrence. See MountOpts.preventCopy. */
+  preventCopy?: boolean
 }
 
 export function WorkbookEditor(props: WorkbookEditorProps) {
@@ -63,6 +65,7 @@ export function WorkbookEditor(props: WorkbookEditorProps) {
       ...(props.capabilities ? { capabilities: props.capabilities } : {}),
       ...(props.autoSaveMs !== undefined ? { autoSaveMs: props.autoSaveMs } : {}),
       ...(props.watermark ? { watermark: props.watermark } : {}),
+      ...(props.preventCopy ? { preventCopy: true } : {}),
       onWsConnected: (ws) => {
         if (!cancelled) onWsConnectedRef.current?.(ws)
       },
