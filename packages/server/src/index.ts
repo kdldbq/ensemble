@@ -49,6 +49,16 @@ export type {
 export { NotImplementedOAuthAdapter } from './adapters/oauth'
 export type { Tracer, Span, SpanAttributes } from './tracing'
 export { setTracer, getTracer, traced } from './tracing'
+export type {
+  AgentPolicyAdapter,
+  AgentUsageQuery,
+  AgentUsageDecision,
+  AgentUsageRecord,
+} from './adapters/agent-policy'
+export {
+  UnrestrictedAgentPolicyAdapter,
+  InMemoryAgentPolicyAdapter,
+} from './adapters/agent-policy'
 export { createServer, type CreateServerOpts } from './server'
 export { buildApp, type AppDeps, type AppEnv } from './http/app'
 export { createDb, type Database } from './db/client'
