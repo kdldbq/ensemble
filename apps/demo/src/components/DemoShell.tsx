@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import { useVisitor } from '../lib/visitor'
 import { type Persona, capabilitiesFor } from '../persona'
 import { FolderDrawer } from './FolderDrawer'
+import { KeymapHelp } from './KeymapHelp'
 import { OnboardingCoach } from './OnboardingCoach'
 import { PublicRoomBanner } from './PublicRoomBanner'
 import { ShareDialog } from './ShareDialog'
@@ -21,9 +22,10 @@ export function DemoShell() {
   const [remountKey, setRemountKey] = useState(0)
   const [previewKey, setPreviewKey] = useState(0)
   const [pinnedWbId, setPinnedWbId] = useState<string | null>(null)
+  const [keymapHelpOpen, setKeymapHelpOpen] = useState(false)
 
-  // Global hotkeys (F6.4). Skip when an editable element has focus so spreadsheet
-  // typing isn't intercepted.
+  // Global hotkeys (F6.4 + K5). Skip when an editable element has focus so
+  // spreadsheet typing isn't intercepted.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
@@ -35,38 +37,24 @@ export function DemoShell() {
         target?.isContentEditable === true
       const meta = e.metaKey || e.ctrlKey
 
-      // Cmd/Ctrl+K → folders
       if (meta && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setFolderOpen((v) => !v)
         return
       }
-      // Cmd/Ctrl+H → history (versions)
       if (meta && e.key.toLowerCase() === 'h') {
         e.preventDefault()
         setVersionOpen((v) => !v)
         return
       }
-      // Cmd/Ctrl+/ → share (Cmd+J also common)
       if (meta && (e.key === '/' || e.key.toLowerCase() === 'j')) {
         e.preventDefault()
         setShareOpen((v) => !v)
         return
       }
-      // ? → show keymap hint via alert (lightweight)
       if (!isEditable && !meta && e.key === '?') {
         e.preventDefault()
-        window.alert(
-          [
-            '键盘快捷键',
-            '',
-            'Cmd/Ctrl+K  打开文件夹',
-            'Cmd/Ctrl+H  打开版本历史',
-            'Cmd/Ctrl+/  打开分享',
-            'Esc        关闭打开的抽屉',
-            '?           显示本帮助',
-          ].join('\n'),
-        )
+        setKeymapHelpOpen((v) => !v)
       }
     }
     document.addEventListener('keydown', onKey)
@@ -95,6 +83,7 @@ export function DemoShell() {
         closeButton
         toastOptions={{ duration: 3500 }}
       />
+      <KeymapHelp open={keymapHelpOpen} onClose={() => setKeymapHelpOpen(false)} />
       <Inner
       visitor={visitor}
       inPublicRoom={inPublicRoom}
