@@ -1,8 +1,9 @@
+// biome-ignore-all lint/style/noNonNullAssertion: array accesses are guarded by length checks that Biome cannot statically prove.
 import { CustomCommandExecutionError } from '@univerjs/core'
 import { ApiClient } from './api-client'
-import { type OfflineCache, createOfflineCache } from './offline-cache'
+import { createOfflineCache, type OfflineCache } from './offline-cache'
 import type { UniverWorkbookData } from './types'
-import { type Editor, createEditor, loadBrowserLocales, loadBrowserPlugins } from './univer-wrapper'
+import { createEditor, type Editor, loadBrowserLocales, loadBrowserPlugins } from './univer-wrapper'
 import {
   type ConnectionState,
   type NotificationFrame,

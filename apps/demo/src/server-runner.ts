@@ -1,10 +1,10 @@
 import { mkdir } from 'node:fs/promises'
 import {
+  createDb,
+  createServer,
   type IdentityAdapter,
   NoopEventAdapter,
   type PermissionAdapter,
-  createDb,
-  createServer,
 } from '@ensemble-sheets/server'
 import { FsStorage } from '@ensemble-sheets/storage-fs'
 import { capabilitiesFor, idToPersona, maskRulesFor } from './persona'

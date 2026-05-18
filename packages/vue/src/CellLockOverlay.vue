@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// biome-ignore-all lint/correctness/noUnusedImports: Vue SFC template references this import; Biome cannot parse the template block.
 import type { WsClient } from '@ensemble-sheets/core'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import LockBadge from './LockBadge.vue'

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MaskRule } from '../../src/adapters/types'
-import { MaskRuleCache, applyMaskRules } from '../../src/services/mask-service'
+import { applyMaskRules, MaskRuleCache } from '../../src/services/mask-service'
 
 function wb() {
   return {

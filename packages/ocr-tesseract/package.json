@@ -5,8 +5,15 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -17,7 +24,9 @@
     "tesseract.js": "^5.1.0"
   },
   "peerDependenciesMeta": {
-    "tesseract.js": { "optional": false }
+    "tesseract.js": {
+      "optional": false
+    }
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/correctness/noUnusedFunctionParameters: Playwright route handlers receive named params even when unused; renaming to _ breaks runtime route filtering.
 /**
  * v0.1 capability audit — exercises every claim in the README's GA blurb plus
  * the demo showcase's 9 + extras. Runs against an isolated 5311/5312 server
@@ -16,7 +17,7 @@
  * gesture (IME composition, native dialogs), the test is skipped with a
  * documented reason.
  */
-import { type Page, expect, test } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 const ADMIN_USER = `admin-${Math.random().toString(36).slice(2, 8)}`
 const EDITOR_USER = `editor-${Math.random().toString(36).slice(2, 8)}`

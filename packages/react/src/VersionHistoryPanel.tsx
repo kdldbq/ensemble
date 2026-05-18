@@ -133,7 +133,6 @@ export function VersionHistoryPanel({
       {creating && (
         <form onSubmit={handleCreate} style={{ display: 'flex', gap: 6, padding: '8px 0' }}>
           <input
-            autoFocus
             aria-label="版本名称"
             value={draftName}
             onChange={(e) => setDraftName(e.target.value)}

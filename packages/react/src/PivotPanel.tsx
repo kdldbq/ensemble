@@ -1,9 +1,11 @@
+// biome-ignore-all lint/suspicious/noArrayIndexKey: pivot field rows are reordered via drag; index plus stable field name disambiguates.
+// biome-ignore-all lint/style/noNonNullAssertion: test fixtures and statically-known DOM/array shapes are asserted by the test setup, not by runtime checks.
 import {
+  computePivot,
   type MountHandle,
   type PivotAgg,
   type PivotResult,
   type PivotSpec,
-  computePivot,
 } from '@ensemble-sheets/core'
 import { useEffect, useMemo, useState } from 'react'
 

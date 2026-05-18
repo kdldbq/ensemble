@@ -1,7 +1,8 @@
+// biome-ignore-all lint/style/noNonNullAssertion: c.get(...) values are narrowed by the requireIdentity / requireCapability middleware that runs before every handler in this file; Biome cannot see the cross-middleware invariant.
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { snapshots as snapshotsTable } from '../../db/schema'
-import { type WorkbookData, applyMaskRules } from '../../services/mask-service'
+import { applyMaskRules, type WorkbookData } from '../../services/mask-service'
 import { diffSnapshots } from '../../services/version-diff'
 import type { AppEnv } from '../app'
 import { requireIdentity } from '../auth'

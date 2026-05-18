@@ -1,4 +1,5 @@
-import { SignJWT, exportJWK, generateKeyPair } from 'jose'
+// biome-ignore-all lint/style/noNonNullAssertion: test fixtures and statically-known DOM/array shapes are asserted by the test setup, not by runtime checks.
+import { exportJWK, generateKeyPair, SignJWT } from 'jose'
 import { describe, expect, it, vi } from 'vitest'
 import { JwksIdentityAdapter } from '../src/index'
 

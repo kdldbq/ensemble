@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// biome-ignore-all lint/correctness/noUnusedVariables: Vue SFC template references these refs/props; Biome cannot parse the template block.
 const props = defineProps<{ ownerId: string; class?: string }>()
 </script>
 

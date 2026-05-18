@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createCellLockManager } from '../../src/realtime/cell-lock-manager'
-import { type Redis, createRedis } from '../../src/redis/client'
+import { createRedis, type Redis } from '../../src/redis/client'
 import { redisUrl } from './_dbHelpers'
 
 let redis: Redis

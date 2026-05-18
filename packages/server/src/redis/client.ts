@@ -1,5 +1,5 @@
-import { Redis } from 'ioredis'
 import type { RedisOptions } from 'ioredis'
+import { Redis } from 'ioredis'
 
 export function createRedis(url: string, opts: RedisOptions = {}): Redis {
   return new Redis(url, {

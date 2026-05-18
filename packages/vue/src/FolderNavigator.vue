@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// biome-ignore-all lint/correctness/noUnusedVariables: Vue SFC template references these refs/methods; Biome cannot parse the template block.
 import type { ApiClient, Folder } from '@ensemble-sheets/core'
 import { onMounted, ref } from 'vue'
 

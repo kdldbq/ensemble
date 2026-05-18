@@ -1,3 +1,5 @@
+// biome-ignore-all lint/correctness/noUnusedVariables: test scaffolding holds references for lifetime control.
+// biome-ignore-all lint/suspicious/useIterableCallbackReturn: test predicates intentionally return non-boolean values for assertion clarity.
 import { describe, expect, it } from 'vitest'
 import { WsClient } from '../src/ws-client'
 
@@ -133,7 +135,7 @@ describe('WsClient', () => {
     // fire a message with a string that is valid JSON but not welcome/error
     // to trigger the catch(e) => reject path with a non-Error (simulate by firing
     // an unparseable message via a direct listener call that throws a non-Error string)
-    const msgListeners = sockets[0].listeners.get('message') ?? []
+    const _msgListeners = sockets[0].listeners.get('message') ?? []
     // Manually call listener with non-string data that JSON.parse throws non-Error on
     // We can't easily get JSON.parse to throw non-Error, so instead test the
     // e instanceof Error : false branch by spying on JSON.parse

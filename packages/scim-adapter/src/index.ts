@@ -104,7 +104,7 @@ export function parseSimpleFilter(
 ): { field: 'userName' | 'externalId'; value: string } | null {
   if (!filter) return null
   const m = /^(userName|externalId)\s+eq\s+"([^"]+)"$/i.exec(filter.trim())
-  if (!m || !m[1] || m[2] === undefined) return null
+  if (!m?.[1] || m[2] === undefined) return null
   return { field: m[1] as 'userName' | 'externalId', value: m[2] }
 }
 

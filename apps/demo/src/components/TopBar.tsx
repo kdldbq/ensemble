@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { openAnotherUserUrl } from '../lib/visitor'
 import { downloadXlsx, uploadFile } from '../lib/xlsx-io'
-import { type Persona, capabilitiesFor } from '../persona'
+import { capabilitiesFor, type Persona } from '../persona'
 
 export interface TopBarProps {
   api: ApiClient

@@ -1,9 +1,9 @@
 import {
   type CSSProperties,
+  forwardRef,
   type InputHTMLAttributes,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
-  forwardRef,
 } from 'react'
 
 export type FieldSize = 'sm' | 'md' | 'lg'

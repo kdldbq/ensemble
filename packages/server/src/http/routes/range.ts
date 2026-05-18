@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: c.get(...) values are narrowed by the requireIdentity / requireCapability middleware that runs before every handler in this file; Biome cannot see the cross-middleware invariant.
 import { Hono } from 'hono'
 import type { AppEnv } from '../app'
 import { requireIdentity } from '../auth'
@@ -32,7 +33,7 @@ function parseA1Range(
 
 function parseA1Cell(s: string): { row: number; col: number } | null {
   const m = /^([A-Z]+)([0-9]+)?$/.exec(s)
-  if (!m || !m[1]) return null
+  if (!m?.[1]) return null
   let col = 0
   for (const ch of m[1]) {
     col = col * 26 + (ch.charCodeAt(0) - 64)

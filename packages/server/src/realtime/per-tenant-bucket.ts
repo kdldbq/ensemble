@@ -1,4 +1,4 @@
-import { type BucketOpts, type TokenBucket, createTokenBucket } from './backpressure'
+import { type BucketOpts, createTokenBucket, type TokenBucket } from './backpressure'
 
 export interface PerTenantBucketOpts extends BucketOpts {
   /**

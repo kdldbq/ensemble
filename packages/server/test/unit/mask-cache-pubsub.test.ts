@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { INVALIDATE_CHANNEL, createMaskCachePubSub } from '../../src/realtime/mask-cache-pubsub'
+import { createMaskCachePubSub, INVALIDATE_CHANNEL } from '../../src/realtime/mask-cache-pubsub'
 
 function fakeRedis() {
   const handlers = new Map<string, ((channel: string, msg: string) => void)[]>()

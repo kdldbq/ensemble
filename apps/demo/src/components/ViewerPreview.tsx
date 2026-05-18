@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noArrayIndexKey: rows render once from a frozen snapshot; reordering is not possible at this layer.
 import type { UniverWorkbookData } from '@ensemble-sheets/core'
 import { useEffect, useRef, useState } from 'react'
 

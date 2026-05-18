@@ -1,7 +1,7 @@
 import type { AppEnv, Database, StorageAdapter } from '@ensemble-sheets/server'
 import { Hono } from 'hono'
 import { getCookie, setCookie } from 'hono/cookie'
-import { type Persona, idToPersona } from './persona'
+import { idToPersona, type Persona } from './persona'
 import { ensureSandboxWorkbook, resetDemoData } from './server-bootstrap'
 
 const COOKIE_NAME = 'ev_visitor'

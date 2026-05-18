@@ -64,7 +64,14 @@ export async function verifyPassword(plain: string, stored: string): Promise<boo
     p = Number(parts[3])
     saltHex = parts[4]
     expectedHex = parts[5]
-    if (!Number.isInteger(N) || N <= 0 || !Number.isInteger(r) || r <= 0 || !Number.isInteger(p) || p <= 0) {
+    if (
+      !Number.isInteger(N) ||
+      N <= 0 ||
+      !Number.isInteger(r) ||
+      r <= 0 ||
+      !Number.isInteger(p) ||
+      p <= 0
+    ) {
       return false
     }
   } else if (parts.length === 3) {

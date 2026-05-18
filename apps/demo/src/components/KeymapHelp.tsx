@@ -1,3 +1,4 @@
+// biome-ignore-all lint/a11y/noStaticElementInteractions: Keyboard help is a modal-internal click target with its own focus management; not an actionable button.
 import { useEffect } from 'react'
 
 export interface KeymapHelpProps {
@@ -58,7 +59,6 @@ export function KeymapHelp({ open, onClose }: KeymapHelpProps) {
   if (!open) return null
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: Escape handled by listener above
     <div
       role="presentation"
       onClick={onClose}

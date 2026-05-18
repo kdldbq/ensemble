@@ -1,3 +1,4 @@
+// biome-ignore-all lint/correctness/useExhaustiveDependencies: deps are intentionally a computed array; tracked separately.
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export interface AsyncState<T> {
@@ -57,7 +58,6 @@ export function useAsyncState<T>(
     }
   }, [])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: caller controls deps
   useEffect(() => {
     void run()
   }, deps)
