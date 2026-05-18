@@ -233,34 +233,79 @@ export function createEditor(opts: EditorOpts): Editor {
  *
  * Failures are swallowed (returns undefined) so Node/jsdom tests still work.
  */
+/**
+ * Deep-merge plain-object locale dicts in place. Univer plugins each contribute
+ * to a few top-level keys, but several of them legitimately overlap — e.g.
+ * sheets-numfmt-ui, sheets-conditional-formatting-ui, and sheets-ui all nest
+ * strings under `sheet`. A shallow `Object.assign` would silently drop every
+ * earlier `sheet.*` when a later plugin sets its own `sheet.*`, producing the
+ * "raw key shown verbatim in the UI" failure mode (e.g. dropdowns reading
+ * `sheet.cf.ruleType.highlightCell` instead of `突出显示单元格`).
+ */
+function deepMergeLocale(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): Record<string, unknown> {
+  for (const key of Object.keys(source)) {
+    const sv = source[key]
+    const tv = target[key]
+    if (
+      sv &&
+      typeof sv === 'object' &&
+      !Array.isArray(sv) &&
+      tv &&
+      typeof tv === 'object' &&
+      !Array.isArray(tv)
+    ) {
+      deepMergeLocale(tv as Record<string, unknown>, sv as Record<string, unknown>)
+    } else {
+      target[key] = sv
+    }
+  }
+  return target
+}
+
 export async function loadBrowserLocales(): Promise<ILocales | undefined> {
+  // Each entry MUST be an inline `import()` with a string literal so bundlers
+  // (vite / webpack) can statically resolve and code-split each chunk. Don't
+  // refactor to `import(variable)` unless you also wire up `import.meta.glob`,
+  // or the locale resources won't be shipped to the browser.
+  //
+  // Order matters only as a tie-breaker for primitive-vs-primitive collisions
+  // (last write wins). For nested objects deepMergeLocale handles overlap, so
+  // adding a plugin here is safe regardless of position.
+  const loaders: Array<() => Promise<{ default: unknown }>> = [
+    () => import('@univerjs/design/locale/zh-CN'),
+    () => import('@univerjs/ui/locale/zh-CN'),
+    () => import('@univerjs/docs-ui/locale/zh-CN'),
+    () => import('@univerjs/docs-drawing-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets/locale/zh-CN'),
+    () => import('@univerjs/sheets-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-formula/locale/zh-CN'),
+    () => import('@univerjs/sheets-formula-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-numfmt-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-conditional-formatting-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-data-validation-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-filter-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-sort/locale/zh-CN'),
+    () => import('@univerjs/sheets-sort-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-find-replace/locale/zh-CN'),
+    () => import('@univerjs/sheets-drawing-ui/locale/zh-CN'),
+    () => import('@univerjs/sheets-thread-comment-ui/locale/zh-CN'),
+    () => import('@univerjs/find-replace/locale/zh-CN'),
+    () => import('@univerjs/thread-comment-ui/locale/zh-CN'),
+  ]
   try {
-    const [ui, docsUi, sheets, sheetsUi, sheetsFormula] = await Promise.all([
-      import('@univerjs/ui/locale/zh-CN')
-        .then((m) => (m as { default: unknown }).default)
-        .catch(() => ({})),
-      import('@univerjs/docs-ui/locale/zh-CN')
-        .then((m) => (m as { default: unknown }).default)
-        .catch(() => ({})),
-      import('@univerjs/sheets/locale/zh-CN')
-        .then((m) => (m as { default: unknown }).default)
-        .catch(() => ({})),
-      import('@univerjs/sheets-ui/locale/zh-CN')
-        .then((m) => (m as { default: unknown }).default)
-        .catch(() => ({})),
-      import('@univerjs/sheets-formula/locale/zh-CN')
-        .then((m) => (m as { default: unknown }).default)
-        .catch(() => ({})),
-    ])
-    const merged = Object.assign(
-      {},
-      ui,
-      docsUi,
-      sheets,
-      sheetsUi,
-      sheetsFormula,
-    ) as ILocales[LocaleType]
-    return { [LocaleType.ZH_CN]: merged }
+    const dicts = await Promise.all(
+      loaders.map((load) =>
+        load()
+          .then((m) => (m.default ?? {}) as Record<string, unknown>)
+          .catch(() => ({}) as Record<string, unknown>),
+      ),
+    )
+    const merged: Record<string, unknown> = {}
+    for (const d of dicts) deepMergeLocale(merged, d)
+    return { [LocaleType.ZH_CN]: merged as ILocales[LocaleType] }
   } catch (err) {
     console.warn('ensemble: failed to load Univer locales (UI may be unlabeled)', err)
     return undefined
