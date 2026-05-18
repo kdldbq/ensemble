@@ -43,6 +43,18 @@ function makeCapturingTracer() {
   return { tracer, captured }
 }
 
+function firstCapture(captured: Array<{ body: string }>): string {
+  const first = captured[0]
+  if (!first) throw new Error('expected at least one captured OTLP request')
+  return first.body
+}
+
+function spanByName(spans: OtlpSpan[], name: string): OtlpSpan {
+  const s = spans.find((x) => x.name === name)
+  if (!s) throw new Error(`span '${name}' missing from captured OTLP payload`)
+  return s
+}
+
 describe('tracing — traceId propagation', () => {
   it('nested traced() calls share traceId, child has parentSpanId pointing at parent', async () => {
     const { tracer, captured } = makeCapturingTracer()
@@ -57,14 +69,12 @@ describe('tracing — traceId propagation', () => {
     await tracer.flush()
     expect(captured).toHaveLength(1)
 
-    const spans = parseSpans(captured[0]!.body)
-    const parent = spans.find((s) => s.name === 'parent')
-    const child = spans.find((s) => s.name === 'child')
-    expect(parent).toBeDefined()
-    expect(child).toBeDefined()
-    expect(parent!.traceId).toBe(child!.traceId)
-    expect(child!.parentSpanId).toBe(parent!.spanId)
-    expect(parent!.parentSpanId).toBeUndefined()
+    const spans = parseSpans(firstCapture(captured))
+    const parent = spanByName(spans, 'parent')
+    const child = spanByName(spans, 'child')
+    expect(parent.traceId).toBe(child.traceId)
+    expect(child.parentSpanId).toBe(parent.spanId)
+    expect(parent.parentSpanId).toBeUndefined()
   })
 
   it('sibling traced() calls inside a parent share the parent traceId', async () => {
@@ -77,10 +87,10 @@ describe('tracing — traceId propagation', () => {
     })
 
     await tracer.flush()
-    const spans = parseSpans(captured[0]!.body)
-    const root = spans.find((s) => s.name === 'root')!
-    const left = spans.find((s) => s.name === 'left')!
-    const right = spans.find((s) => s.name === 'right')!
+    const spans = parseSpans(firstCapture(captured))
+    const root = spanByName(spans, 'root')
+    const left = spanByName(spans, 'left')
+    const right = spanByName(spans, 'right')
     expect(left.traceId).toBe(root.traceId)
     expect(right.traceId).toBe(root.traceId)
     expect(left.parentSpanId).toBe(root.spanId)
@@ -96,9 +106,9 @@ describe('tracing — traceId propagation', () => {
     await traced('second-request', async () => {})
 
     await tracer.flush()
-    const spans = parseSpans(captured[0]!.body)
-    const a = spans.find((s) => s.name === 'first-request')!
-    const b = spans.find((s) => s.name === 'second-request')!
+    const spans = parseSpans(firstCapture(captured))
+    const a = spanByName(spans, 'first-request')
+    const b = spanByName(spans, 'second-request')
     expect(a.traceId).not.toBe(b.traceId)
   })
 })
