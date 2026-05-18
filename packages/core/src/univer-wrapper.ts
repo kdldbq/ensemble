@@ -109,7 +109,7 @@ function toUniverWorkbook(data: UniverWorkbookData): IWorkbookData {
     sheets,
     styles: {},
     appVersion: '',
-    locale: LocaleType.EN_US,
+    locale: LocaleType.ZH_CN,
   }
 }
 
@@ -130,7 +130,7 @@ function fromUniverWorkbook(snapshot: IWorkbookData): UniverWorkbookData {
 
 export function createEditor(opts: EditorOpts): Editor {
   const univer = new Univer({
-    locale: opts.locale ?? LocaleType.EN_US,
+    locale: opts.locale ?? LocaleType.ZH_CN,
     ...(opts.locales ? { locales: opts.locales } : {}),
   })
 
@@ -236,19 +236,19 @@ export function createEditor(opts: EditorOpts): Editor {
 export async function loadBrowserLocales(): Promise<ILocales | undefined> {
   try {
     const [ui, docsUi, sheets, sheetsUi, sheetsFormula] = await Promise.all([
-      import('@univerjs/ui/locale/en-US')
+      import('@univerjs/ui/locale/zh-CN')
         .then((m) => (m as { default: unknown }).default)
         .catch(() => ({})),
-      import('@univerjs/docs-ui/locale/en-US')
+      import('@univerjs/docs-ui/locale/zh-CN')
         .then((m) => (m as { default: unknown }).default)
         .catch(() => ({})),
-      import('@univerjs/sheets/locale/en-US')
+      import('@univerjs/sheets/locale/zh-CN')
         .then((m) => (m as { default: unknown }).default)
         .catch(() => ({})),
-      import('@univerjs/sheets-ui/locale/en-US')
+      import('@univerjs/sheets-ui/locale/zh-CN')
         .then((m) => (m as { default: unknown }).default)
         .catch(() => ({})),
-      import('@univerjs/sheets-formula/locale/en-US')
+      import('@univerjs/sheets-formula/locale/zh-CN')
         .then((m) => (m as { default: unknown }).default)
         .catch(() => ({})),
     ])
@@ -260,7 +260,7 @@ export async function loadBrowserLocales(): Promise<ILocales | undefined> {
       sheetsUi,
       sheetsFormula,
     ) as ILocales[LocaleType]
-    return { [LocaleType.EN_US]: merged }
+    return { [LocaleType.ZH_CN]: merged }
   } catch (err) {
     console.warn('ensemble: failed to load Univer locales (UI may be unlabeled)', err)
     return undefined
