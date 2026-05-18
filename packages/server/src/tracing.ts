@@ -131,21 +131,28 @@ export function createOtlpHttpTracer(
     if (opts.authorization) headers.authorization = opts.authorization
     try {
       await fetchImpl(opts.endpoint, { method: 'POST', headers, body })
-    } catch {
-      if (buf.length < 5_000) buf.unshift(...batch)
+    } catch (err) {
+      if (buf.length < 5_000) {
+        buf.unshift(...batch)
+      } else {
+        // Hard cap to avoid unbounded memory growth when the collector is down
+        // for an extended period. Operators need to see this — silent drops
+        // mean traces vanish and nobody notices the broken exporter.
+        console.warn(
+          `ensemble.tracing: dropped ${batch.length} spans (buffer full, exporter unreachable)`,
+          err,
+        )
+      }
     }
   }
 
   if (flushIntervalMs > 0) {
+    // Node's setInterval returns a Timeout with .unref(); browser returns a
+    // number. Only Node needs unref to avoid keeping the event loop alive.
     const handle = setInterval(() => {
       void flush()
-    }, flushIntervalMs)
-    if (
-      typeof handle === 'object' &&
-      handle &&
-      'unref' in handle &&
-      typeof handle.unref === 'function'
-    ) {
+    }, flushIntervalMs) as ReturnType<typeof setInterval>
+    if (typeof handle === 'object' && typeof handle.unref === 'function') {
       handle.unref()
     }
   }

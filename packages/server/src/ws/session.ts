@@ -77,6 +77,10 @@ export function createSession(ctx: SessionContext, deps: SessionDeps) {
       }
 
       case 'release_lock': {
+        if (!capabilities.canEdit) {
+          send({ type: 'error', code: 'forbidden', message: 'edit capability required' })
+          return
+        }
         await cellLocks.release({
           workbookId,
           region: frame.region,
@@ -124,8 +128,11 @@ export function createSession(ctx: SessionContext, deps: SessionDeps) {
                 workbookId,
                 findings,
               })
-            } catch {
-              /* never let alert errors break the edit path */
+            } catch (err) {
+              // Never let alert errors break the edit path. Surface to logs so a
+              // broken DLP sink is visible to ops — otherwise the sink can rot
+              // silently while findings pile up unobserved.
+              console.error('ensemble: DLP risk.alert failed', err)
             }
             if (dlpMode === 'block') {
               send({ type: 'error', code: 'dlp_blocked', message: 'mutation matched DLP rules' })

@@ -139,8 +139,13 @@ export async function handleScimRequest(
 
   try {
     if (req.method === 'GET' && !id) {
-      const startIndex = Number(req.query?.get('startIndex') ?? '1')
-      const count = Math.min(Number(req.query?.get('count') ?? '50'), 200)
+      // Clamp: SCIM startIndex is 1-based per RFC 7644 §3.4.2.4; count is
+      // 0-based but negative/NaN should not silently become 0 or NaN.
+      const rawStart = Number(req.query?.get('startIndex') ?? '1')
+      const startIndex = Number.isFinite(rawStart) && rawStart >= 1 ? Math.floor(rawStart) : 1
+      const rawCount = Number(req.query?.get('count') ?? '50')
+      const count =
+        Number.isFinite(rawCount) && rawCount >= 0 ? Math.min(Math.floor(rawCount), 200) : 50
       if (isUser) {
         const filter = parseSimpleFilter(req.query?.get('filter') ?? null)
         const { total, items } = await store.listUsers({ startIndex, count, filter })

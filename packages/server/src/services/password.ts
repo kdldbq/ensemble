@@ -34,14 +34,10 @@ export async function verifyPassword(plain: string, stored: string): Promise<boo
   const saltHex = parts[1]
   const expectedHex = parts[2]
   if (!saltHex || !expectedHex) return false
-  let salt: Buffer
-  let expected: Buffer
-  try {
-    salt = Buffer.from(saltHex, 'hex')
-    expected = Buffer.from(expectedHex, 'hex')
-  } catch {
-    return false
-  }
+  // Buffer.from(s, 'hex') silently truncates on malformed hex rather than
+  // throwing, so the length check below is what actually rejects bad input.
+  const salt = Buffer.from(saltHex, 'hex')
+  const expected = Buffer.from(expectedHex, 'hex')
   if (salt.length === 0 || expected.length === 0) return false
   const derived = await scryptAsync(plain, salt, expected.length)
   if (derived.length !== expected.length) return false

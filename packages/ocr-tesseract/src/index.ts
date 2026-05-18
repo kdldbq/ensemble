@@ -20,6 +20,11 @@ export class TesseractOcrAdapter implements OcrAdapter {
   constructor(private readonly opts: TesseractOcrAdapterOpts = {}) {}
 
   async extract(input: OcrInput): Promise<OcrTable> {
+    // tesseract.js ships permissive types and changes its export shape across
+    // major versions; we pin against the duck-typed `.recognize(buffer, lang, opts)`
+    // entry point and `.data.text / .data.confidence` result. If tesseract.js
+    // breaks one of these, replace the access with a typed import + bump the
+    // peerDependency range.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tess: any = await import('tesseract.js').catch(() => null)
     if (!tess) {

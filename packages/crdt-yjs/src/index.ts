@@ -122,8 +122,24 @@ export class InMemoryLwwCrdtAdapter implements CRDTAdapter {
   }
 
   merge(update: Uint8Array): CellOp[] {
-    const ops = JSON.parse(new TextDecoder().decode(update)) as CellOp[]
-    for (const op of ops) this.applyOp(op)
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(update))
+    if (!Array.isArray(parsed)) throw new Error('crdt-yjs: merge(update) expected an array')
+    const ops: CellOp[] = []
+    for (const raw of parsed) {
+      if (
+        !raw ||
+        typeof raw !== 'object' ||
+        typeof (raw as { lamport?: unknown }).lamport !== 'number' ||
+        typeof (raw as { replica?: unknown }).replica !== 'string' ||
+        !(raw as { addr?: unknown }).addr ||
+        typeof (raw as { addr?: { sheet?: unknown } }).addr?.sheet !== 'string'
+      ) {
+        throw new Error('crdt-yjs: merge(update) malformed CellOp')
+      }
+      const op = raw as CellOp
+      this.applyOp(op)
+      ops.push(op)
+    }
     return ops
   }
 }

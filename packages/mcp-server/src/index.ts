@@ -135,10 +135,6 @@ export function createEnsembleMcpServer(opts: EnsembleMcpServerOpts) {
       switch (req.name) {
         case 'list_folders':
           return makeText(await api.listFolders())
-        case 'list_workbooks':
-          return makeText({
-            note: 'List workbooks not yet exposed via ApiClient stub — use ensemble REST GET /api/v1/workbooks directly.',
-          })
         case 'create_folder':
           return makeText(
             await api.createFolder({
