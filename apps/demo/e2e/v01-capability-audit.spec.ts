@@ -75,10 +75,10 @@ async function setCellAndSave(
   // a workbook the page isn't watching.
   await page.evaluate(
     async ({ userId, row, col, value }) => {
-      const res = await fetch(
-        `/api/demo/whoami?u=${encodeURIComponent(userId)}`,
-        { method: 'POST', credentials: 'include' },
-      )
+      const res = await fetch(`/api/demo/whoami?u=${encodeURIComponent(userId)}`, {
+        method: 'POST',
+        credentials: 'include',
+      })
       const visitor = (await res.json()) as {
         userId: string
         sandboxWbId: string
@@ -96,14 +96,11 @@ async function setCellAndSave(
           },
         },
       }
-      const upload = await fetch(
-        `/api/v1/workbooks/${wbId}/snapshots?reason=manual`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer dev:${userId}` },
-          body: JSON.stringify(snapshot),
-        },
-      )
+      const upload = await fetch(`/api/v1/workbooks/${wbId}/snapshots?reason=manual`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer dev:${userId}` },
+        body: JSON.stringify(snapshot),
+      })
       if (!upload.ok) throw new Error(`save failed ${upload.status}`)
     },
     { userId, row, col, value },
@@ -116,9 +113,7 @@ function viewerPanel(page: Page) {
 }
 
 test.describe('A. Live sync', () => {
-  test('A1: admin saves a value — viewer-preview snapshot reflects within 5s', async ({
-    page,
-  }) => {
+  test('A1: admin saves a value — viewer-preview snapshot reflects within 5s', async ({ page }) => {
     const u = `${ADMIN_USER}-A1`
     await openAs(page, u)
     await setCellAndSave(page, u, 0, 0, 'hello-from-admin')
@@ -183,14 +178,11 @@ test.describe('B. RBAC', () => {
     const status = await page.evaluate(async () => {
       const r = await fetch('/api/demo/whoami', { method: 'POST', credentials: 'include' })
       const v = (await r.json()) as { sandboxWbId: string }
-      const upload = await fetch(
-        `/api/v1/workbooks/${v.sandboxWbId}/snapshots?reason=manual`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer dev:viewer-${Math.random().toString(36).slice(2, 8)}` },
-          body: JSON.stringify({ id: v.sandboxWbId, sheetOrder: [], sheets: {} }),
-        },
-      )
+      const upload = await fetch(`/api/v1/workbooks/${v.sandboxWbId}/snapshots?reason=manual`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer dev:viewer-${Math.random().toString(36).slice(2, 8)}` },
+        body: JSON.stringify({ id: v.sandboxWbId, sheetOrder: [], sheets: {} }),
+      })
       return upload.status
     })
     expect([401, 403]).toContain(status)
@@ -251,9 +243,7 @@ test.describe('D. Univer plugin discoverability', () => {
 })
 
 test.describe('E. Base spreadsheet features', () => {
-  test('E1: Univer registers undo/redo commands (probe via commandService)', async ({
-    page,
-  }) => {
+  test('E1: Univer registers undo/redo commands (probe via commandService)', async ({ page }) => {
     await openAs(page, `${ADMIN_USER}-E1`)
     // Headless Chromium can't reliably drive the Univer cell editor (canvas-
     // routed pointer events into the EditorBridgeService are flaky), so

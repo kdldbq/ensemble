@@ -1,8 +1,15 @@
 import { CustomCommandExecutionError } from '@univerjs/core'
 import { ApiClient } from './api-client'
+import { type OfflineCache, createOfflineCache } from './offline-cache'
 import type { UniverWorkbookData } from './types'
 import { type Editor, createEditor, loadBrowserLocales, loadBrowserPlugins } from './univer-wrapper'
-import { type PresenceEntry, type WelcomeFrame, WsClient } from './ws-client'
+import {
+  type ConnectionState,
+  type NotificationFrame,
+  type PresenceEntry,
+  type WelcomeFrame,
+  WsClient,
+} from './ws-client'
 import { univerJsonToXlsx, xlsxToUniverJson } from './xlsx-converter'
 
 /**
@@ -54,6 +61,52 @@ export interface MountOpts {
    *  Use this to wire up WS-level helpers (e.g. acquireLock) without waiting for the
    *  full editor mount cycle. */
   onWsConnected?: (ws: WsClient) => void
+  /**
+   * Overlay watermark rendered on top of the canvas. Best-effort leak deterrence:
+   * the overlay is `pointer-events: none` so it doesn't intercept clicks but does
+   * appear in screenshots/screen recordings. NOT anti-screenshot (browsers cannot
+   * truly prevent that).
+   */
+  watermark?: {
+    text: string
+    /** 0..1, default 0.08 */
+    opacity?: number
+    /** CSS color string, default #1f2937 */
+    color?: string
+    /** Rotation in degrees, default -22 */
+    rotateDeg?: number
+  }
+  /**
+   * Best-effort copy / print deterrence. When true:
+   * - Container gets `user-select: none` (blocks Ctrl-A → Ctrl-C of cell text).
+   * - `@media print` hides the container entirely (Cmd-P prints blank page).
+   * - Container blurs while window is unfocused (deters over-the-shoulder photos).
+   * Browsers cannot truly prevent screenshots — these are speed bumps, not
+   * security boundaries. Pair with watermark for forensic attribution.
+   */
+  preventCopy?: boolean
+  /**
+   * J3: enable IndexedDB-backed offline mutation queue. When the WS bridge is
+   * down, locally-captured mutations are persisted and replayed on the next
+   * successful heartbeat. Off by default; consumers opt in to avoid surprising
+   * cross-tab persistence semantics.
+   */
+  offlineQueue?: boolean | { idbFactory?: IDBFactory }
+  /**
+   * Initial freeze applied right after the editor mounts. Same shape as
+   * MountHandle.setFrozen — declarative version for hosts that don't want to
+   * await the handle.
+   */
+  freeze?: { rows: number; cols: number }
+  /**
+   * Host-supplied custom formulas. Each entry registers a `=NAME(...)` formula
+   * the user can type. Equivalent to calling handle.registerCustomFunction
+   * for each entry after mount. Names are case-insensitive.
+   */
+  customFunctions?: Record<
+    string,
+    (...args: Array<string | number | null>) => string | number | null
+  >
   /** @internal — for tests */
   _editorFactory?: (container: HTMLElement) => Editor
   /** @internal — for tests */
@@ -64,24 +117,34 @@ export interface MountHandle {
   save(): Promise<{ id: string }>
   exportXlsx(): Uint8Array
   destroy(): Promise<void>
-  /**
-   * Subscribe to remote mutations being applied to this editor. Fires AFTER the
-   * Univer command service has finished applying the change locally. Consumers
-   * like the side-panel preview use this to refresh derived views.
-   * Returns an unsubscribe function.
-   */
   onMutationApplied(cb: (seqNum: number, userId: string) => void): () => void
-  /**
-   * Subscribe to presence_update frames. Fires every time the server broadcasts
-   * the room's roster (clientId → userId/cursor). Returns an unsubscribe function.
-   */
   onPresence(cb: (entries: PresenceEntry[]) => void): () => void
-  /**
-   * Subscribe to save completions. Fires after any successful snapshot upload —
-   * the manual `save()` call, the debounced auto-save, AND after applying a
-   * remote mutation if `autoSaveMs` is on. Use this to refresh derived views.
-   */
   onSaved(cb: (snapshotId: string) => void): () => void
+  /**
+   * Read a 2-D grid from an A1-style range. `Sheet1!A1:C20` selects the sheet;
+   * bare `A1:C20` reads the first sheet. Empty cells come back as null.
+   */
+  readRange(rangeA1: string): Array<Array<string | number | null>>
+  /**
+   * Freeze the given number of rows (top) and cols (left) on the first sheet.
+   * Best-effort: if Univer's sheets-ui plugin is not present the call is a no-op.
+   */
+  setFrozen(config: { rows: number; cols: number }): Promise<void>
+  /**
+   * Register a host-supplied custom formula. Once registered, `=NAME(...)`
+   * cells evaluate via `impl`. Returns an unregister function. Names are
+   * case-insensitive; redefining overwrites silently.
+   */
+  registerCustomFunction(
+    name: string,
+    impl: (...args: Array<string | number | null>) => string | number | null,
+  ): () => void
+  /** Subscribe to WS connection state — connecting / connected / reconnecting / offline. */
+  onConnectionChange(cb: (state: ConnectionState) => void): () => void
+  /** Current WS connection state. */
+  connectionState(): ConnectionState
+  /** Subscribe to in-room notifications (e.g. comment.mentioned). */
+  onNotification(cb: (frame: NotificationFrame) => void): () => void
   /** @internal — direct access to the WsClient; for tests and Playwright helpers */
   _wsClient: WsClient
 }
@@ -125,6 +188,34 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     sheets: { [sheetId]: { id: sheetId, name: 'Sheet1', cellData: {} } },
   }
   editor.load(data)
+  // Host-supplied custom formula registry (10.3). Declared before any side
+  // effect that touches it, because Univer's mount path can fire commands
+  // before we return the MountHandle.
+  const customFunctions = new Map<
+    string,
+    (...args: Array<string | number | null>) => string | number | null
+  >()
+  // Apply declarative freeze (10.10) — best effort; ignored if Univer's
+  // sheets-ui freeze plugin is not present (e.g. headless tests).
+  if (opts.freeze && editor.commandService) {
+    try {
+      void editor.commandService.executeCommand('sheet.command.set-frozen', {
+        startRow: Math.max(0, opts.freeze.rows),
+        startColumn: Math.max(0, opts.freeze.cols),
+        ySplit: opts.freeze.rows > 0 ? 1 : 0,
+        xSplit: opts.freeze.cols > 0 ? 1 : 0,
+      })
+    } catch (err) {
+      console.warn('ensemble: initial freeze failed', err)
+    }
+  }
+  // Wire host-supplied custom functions (10.3). Stored in the same map handle.
+  // registerCustomFunction populates so unregister semantics are uniform.
+  if (opts.customFunctions) {
+    for (const [name, impl] of Object.entries(opts.customFunctions)) {
+      customFunctions.set(name.toUpperCase(), impl)
+    }
+  }
 
   // Univer 0.22 UI plugins (sheets-ui, docs-ui) wire keyboard / focus listeners during
   // their onRendered phase, which runs AFTER createUnit kicks the renderer. Without a
@@ -148,6 +239,78 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
   const canEdit = opts.capabilities?.canEdit ?? true
   const sessionLockRegion = `auto-${cryptoRandomId()}`
   const cleanups: Array<() => void> = []
+
+  // ─── Copy / print deterrence (D5) ─────────────────────────────────────────
+  if (opts.preventCopy && !opts._editorFactory) {
+    const doc = opts.container.ownerDocument
+    const styleEl = doc.createElement('style')
+    const cls = `ensemble-no-copy-${cryptoRandomId()}`
+    opts.container.classList.add(cls)
+    styleEl.textContent = `
+.${cls} { user-select: none; -webkit-user-select: none; }
+.${cls}.ensemble-window-hidden { filter: blur(8px); transition: filter 80ms; }
+@media print { .${cls} { display: none !important; } }
+`
+    doc.head.appendChild(styleEl)
+    const onVisibility = () => {
+      if (doc.visibilityState === 'hidden') opts.container.classList.add('ensemble-window-hidden')
+      else opts.container.classList.remove('ensemble-window-hidden')
+    }
+    doc.addEventListener('visibilitychange', onVisibility)
+    cleanups.push(() => {
+      doc.removeEventListener('visibilitychange', onVisibility)
+      styleEl.remove()
+      opts.container.classList.remove(cls, 'ensemble-window-hidden')
+    })
+  }
+
+  // ─── Watermark overlay (best-effort leak deterrence) ──────────────────────
+  // pointer-events:none, sits above canvas at z=5, removed by destroy() via cleanups.
+  if (opts.watermark && !opts._editorFactory) {
+    const wm = opts.watermark
+    const opacity = wm.opacity ?? 0.08
+    const color = wm.color ?? '#1f2937'
+    const rotate = wm.rotateDeg ?? -22
+    const watermarkEl = opts.container.ownerDocument.createElement('div')
+    watermarkEl.setAttribute('aria-hidden', 'true')
+    watermarkEl.dataset.ensembleWatermark = 'true'
+    Object.assign(watermarkEl.style, {
+      position: 'absolute',
+      inset: '0',
+      pointerEvents: 'none',
+      overflow: 'hidden',
+      zIndex: '5',
+      opacity: String(opacity),
+      color,
+      fontSize: '13px',
+      fontFamily: 'system-ui, sans-serif',
+      whiteSpace: 'nowrap',
+      userSelect: 'none',
+    } satisfies Partial<CSSStyleDeclaration>)
+    // Build a repeating grid via 24 spans (6 rows x 4 cols).
+    for (let r = 0; r < 6; r++) {
+      for (let c = 0; c < 4; c++) {
+        const span = opts.container.ownerDocument.createElement('span')
+        span.textContent = wm.text
+        Object.assign(span.style, {
+          position: 'absolute',
+          top: `${r * 18}%`,
+          left: `${c * 28}%`,
+          transform: `rotate(${rotate}deg)`,
+          transformOrigin: 'left top',
+        } satisfies Partial<CSSStyleDeclaration>)
+        watermarkEl.appendChild(span)
+      }
+    }
+    const containerStyle = opts.container.style
+    if (containerStyle.position === '' || containerStyle.position === 'static') {
+      containerStyle.position = 'relative'
+    }
+    opts.container.appendChild(watermarkEl)
+    cleanups.push(() => {
+      watermarkEl.remove()
+    })
+  }
   const mutationAppliedListeners: Array<(seqNum: number, userId: string) => void> = []
   const presenceListeners: Array<(entries: PresenceEntry[]) => void> = []
   const savedListeners: Array<(snapshotId: string) => void> = []
@@ -173,12 +336,7 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
    */
   let cellLockBlockedBy: string | null = null
 
-  function makeCellRegion(
-    unitId: string,
-    subUnitId: string,
-    row: number,
-    col: number,
-  ): string {
+  function makeCellRegion(unitId: string, subUnitId: string, row: number, col: number): string {
     return `cell:${unitId}/${subUnitId}!R${row}C${col}`
   }
 
@@ -308,6 +466,10 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
           const col = typeof anchor?.startColumn === 'number' ? anchor.startColumn : null
           if (unitId && subUnitId && row !== null && col !== null) {
             void updateCellLock(makeCellRegion(unitId, subUnitId, row, col))
+            // B1: 30 Hz throttled cursor stream. Heartbeat carries cursor since
+            // v0.1; here we just send extras between the 5 s keepalives so peers
+            // see the local user move in near-real-time.
+            scheduleCursorBroadcast(subUnitId, row, col)
           }
           return
         }
@@ -335,7 +497,32 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
             // command fires synthetically right after mount).
             region: currentCellRegion ?? sessionLockRegion,
             payload: { id: info.id, params: info.params ?? {} },
-          }).catch((err) => console.warn('ensemble: outbound mutation failed', info.id, err))
+          }).catch((err) => {
+            console.warn('ensemble: outbound mutation failed', info.id, err)
+            // Best-effort: persist for retry on next connection.
+            if (offlineCache) {
+              void offlineCache
+                .enqueue({
+                  workbookId: opts.workbookId,
+                  clientSeq: 0,
+                  region: currentCellRegion ?? sessionLockRegion,
+                  payload: { id: info.id, params: info.params ?? {} },
+                  ts: Date.now(),
+                })
+                .catch(() => {})
+            }
+          })
+        } else if (offlineCache) {
+          // WS is down — stash so it survives a reload and we can replay later.
+          void offlineCache
+            .enqueue({
+              workbookId: opts.workbookId,
+              clientSeq: 0,
+              region: currentCellRegion ?? sessionLockRegion,
+              payload: { id: info.id, params: info.params ?? {} },
+              ts: Date.now(),
+            })
+            .catch(() => {})
         }
         // Schedule debounced auto-save so the derived viewer-preview snapshot
         // catches up without the user hitting Save manually.
@@ -345,12 +532,81 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
     }
   }
 
+  // J3: optional offline mutation queue. Lazy — only instantiated when the
+  // host opts in via `offlineQueue`. Drain happens on the 5 s keepalive when
+  // the socket is reachable again.
+  let offlineCache: OfflineCache | null = null
+  if (opts.offlineQueue) {
+    const cacheOpts = typeof opts.offlineQueue === 'object' ? opts.offlineQueue : {}
+    offlineCache = createOfflineCache(cacheOpts)
+  }
+  async function drainOfflineQueue(): Promise<void> {
+    if (!offlineCache || !ws.isConnected()) return
+    let pending: Awaited<ReturnType<OfflineCache['drain']>> = []
+    try {
+      pending = await offlineCache.drain(opts.workbookId)
+    } catch {
+      return
+    }
+    if (pending.length === 0) return
+    const replayed: number[] = []
+    for (const item of pending) {
+      try {
+        await ws.submitMutation({ region: item.region, payload: item.payload })
+        if (item.id !== undefined) replayed.push(item.id)
+      } catch {
+        // Bail on first failure — preserve order. Remaining items stay queued.
+        break
+      }
+    }
+    if (replayed.length > 0) {
+      try {
+        await offlineCache.remove(replayed)
+      } catch {
+        /* swallow — next drain will re-attempt */
+      }
+    }
+  }
+
+  // B1: 30 Hz cursor throttle. Coalesces rapid selection moves into at most
+  // one frame per ~33 ms; trailing-edge flush keeps the final position fresh.
+  const CURSOR_THROTTLE_MS = 33
+  let cursorPending: { sheet: string; row: number; col: number } | null = null
+  let cursorTimer: ReturnType<typeof setTimeout> | null = null
+  let lastCursorSent = 0
+  function flushCursor(): void {
+    cursorTimer = null
+    const next = cursorPending
+    cursorPending = null
+    if (!next) return
+    lastCursorSent = Date.now()
+    try {
+      if (ws.isConnected()) ws.sendHeartbeat(next)
+    } catch {
+      /* socket may have closed mid-flush */
+    }
+  }
+  function scheduleCursorBroadcast(sheet: string, row: number, col: number): void {
+    cursorPending = { sheet, row, col }
+    if (cursorTimer) return
+    const elapsed = Date.now() - lastCursorSent
+    const wait = Math.max(0, CURSOR_THROTTLE_MS - elapsed)
+    cursorTimer = setTimeout(flushCursor, wait)
+  }
+  cleanups.push(() => {
+    if (cursorTimer) clearTimeout(cursorTimer)
+    cursorTimer = null
+    cursorPending = null
+  })
+
   // Keep our presence entry alive (server evicts after 15s idle). Fire once
   // immediately so the room roster sees us right after WS welcome.
   const heartbeatTimer = ws.isConnected()
     ? safeInterval(() => {
         try {
           ws.sendHeartbeat()
+          // J3: piggyback offline drain on the keepalive tick.
+          if (offlineCache) void drainOfflineQueue()
         } catch {
           /* socket may have closed mid-tick */
         }
@@ -440,8 +696,117 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
         if (i >= 0) savedListeners.splice(i, 1)
       }
     },
+    readRange(rangeA1) {
+      return readRangeFromSnapshot(editor.getData(), rangeA1)
+    },
+    async setFrozen(config) {
+      if (!editor.commandService) return
+      try {
+        await editor.commandService.executeCommand('sheet.command.set-frozen', {
+          startRow: Math.max(0, config.rows),
+          startColumn: Math.max(0, config.cols),
+          ySplit: config.rows > 0 ? 1 : 0,
+          xSplit: config.cols > 0 ? 1 : 0,
+        })
+      } catch (err) {
+        console.warn('ensemble: setFrozen failed', err)
+      }
+    },
+    registerCustomFunction(name, impl) {
+      const key = name.toUpperCase()
+      customFunctions.set(key, impl)
+      return () => {
+        if (customFunctions.get(key) === impl) customFunctions.delete(key)
+      }
+    },
+    onConnectionChange(cb) {
+      return ws.onConnectionChange(cb)
+    },
+    connectionState() {
+      return ws.connectionState()
+    },
+    onNotification(cb) {
+      return ws.onNotification(cb)
+    },
     _wsClient: ws,
   }
+}
+
+/**
+ * Pure A1 range reader over a Univer snapshot. Exported indirectly via
+ * MountHandle.readRange. Keeps no Univer types in its signature so it stays
+ * testable in Node.
+ */
+function readRangeFromSnapshot(
+  snapshot: UniverWorkbookData,
+  rangeA1: string,
+): Array<Array<string | number | null>> {
+  const parsed = parseA1Range(rangeA1)
+  if (!parsed) return []
+  const sheets = (snapshot as unknown as { sheets?: Record<string, unknown> }).sheets ?? {}
+  let sheet: Record<string, unknown> | null = null
+  if (parsed.sheetName) {
+    for (const id of Object.keys(sheets)) {
+      const s = sheets[id] as { name?: string } | undefined
+      if (s && s.name === parsed.sheetName) {
+        sheet = sheets[id] as Record<string, unknown>
+        break
+      }
+    }
+  } else {
+    const first = Object.keys(sheets)[0]
+    if (first) sheet = sheets[first] as Record<string, unknown>
+  }
+  if (!sheet) return []
+  const cellData = (sheet.cellData ?? {}) as Record<string, Record<string, { v?: unknown }>>
+  const out: Array<Array<string | number | null>> = []
+  for (let r = parsed.r0; r <= parsed.r1; r++) {
+    const row: Array<string | number | null> = []
+    const rec = cellData[String(r)]
+    for (let c = parsed.c0; c <= parsed.c1; c++) {
+      const cell = rec?.[String(c)]
+      const v = cell?.v
+      if (v === null || v === undefined) row.push(null)
+      else if (typeof v === 'number') row.push(v)
+      else if (typeof v === 'string') row.push(v)
+      else row.push(String(v))
+    }
+    out.push(row)
+  }
+  return out
+}
+
+/** Parse A1 like "Sheet1!A1:C20" or "A1:C20". 0-indexed row/col bounds (inclusive). */
+function parseA1Range(s: string): null | {
+  sheetName: string | null
+  r0: number
+  c0: number
+  r1: number
+  c1: number
+} {
+  const m = /^(?:(.+?)!)?([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(s.trim())
+  if (!m) return null
+  const sheetName = m[1] ? m[1].replace(/^'|'$/g, '') : null
+  const c0 = colToIndex(m[2]!)
+  const c1 = colToIndex(m[4]!)
+  const r0 = Number(m[3]) - 1
+  const r1 = Number(m[5]) - 1
+  if (r0 < 0 || r1 < 0 || c0 < 0 || c1 < 0) return null
+  return {
+    sheetName,
+    r0: Math.min(r0, r1),
+    c0: Math.min(c0, c1),
+    r1: Math.max(r0, r1),
+    c1: Math.max(c0, c1),
+  }
+}
+
+function colToIndex(letters: string): number {
+  let n = 0
+  for (const ch of letters) {
+    n = n * 26 + (ch.charCodeAt(0) - 64)
+  }
+  return n - 1
 }
 
 function cryptoRandomId(): string {

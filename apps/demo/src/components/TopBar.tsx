@@ -1,8 +1,10 @@
 import type { ApiClient, MountHandle } from '@ensemble-sheets/core'
 import { PresenceAvatars } from '@ensemble-sheets/react'
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { openAnotherUserUrl } from '../lib/visitor'
-import { downloadXlsx, uploadXlsx } from '../lib/xlsx-io'
+import { downloadXlsx, uploadFile } from '../lib/xlsx-io'
 import { type Persona, capabilitiesFor } from '../persona'
 
 export interface TopBarProps {
@@ -32,53 +34,43 @@ const personaBadge: Record<Persona, { label: string; color: string }> = {
   viewer: { label: '查看者', color: '#9333ea' },
 }
 
-type ToastKind = 'ok' | 'warn' | 'err'
-const toastColor: Record<ToastKind, string> = {
-  ok: '#065f46',
-  warn: '#92400e',
-  err: '#991b1b',
-}
-
 export function TopBar(props: TopBarProps) {
+  const { t } = useTranslation()
   const fileRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ msg: string; kind: ToastKind } | null>(null)
 
   const cap = capabilitiesFor(props.persona)
 
-  function announce(msg: string, kind: ToastKind = 'ok') {
-    setToast({ msg, kind })
-    window.setTimeout(() => setToast(null), 3500)
-  }
-
   /**
-   * Convert a thrown error into a user-friendly toast message. Server returns
+   * Convert a thrown error into a user-friendly toast. Server returns
    * "ensemble 403: edit capability required" for RBAC failures — surface that
    * as "no permission" instead of a generic "save failed: HTTP 403".
+   * Error toasts are extended (8s) to give users time to read.
    */
-  function explainError(label: string, err: unknown): { msg: string; kind: ToastKind } {
+  function announceError(label: string, err: unknown): void {
     const raw = err instanceof Error ? err.message : String(err)
     if (/40[13]/.test(raw) || /edit capability|forbidden/i.test(raw)) {
-      return { msg: `✗ ${label}失败：你的角色没有此权限`, kind: 'warn' }
+      toast.warning(`${label}失败：你的角色没有此权限`)
+      return
     }
     if (/network|fetch|timeout/i.test(raw)) {
-      return { msg: `✗ ${label}失败：网络问题，请重试`, kind: 'err' }
+      toast.error(`${label}失败：网络问题，请重试`, { duration: 8000 })
+      return
     }
-    return { msg: `✗ ${label}失败：${raw}`, kind: 'err' }
+    toast.error(`${label}失败：${raw}`, { duration: 8000 })
   }
 
   async function handleSave() {
     if (!cap.canEdit) {
-      announce('✗ 查看者无法保存（角色限制）', 'warn')
+      toast.warning('查看者无法保存（角色限制）')
       return
     }
     setBusy('save')
     try {
       await props.onSave()
-      announce('✓ 已保存')
+      toast.success('已保存')
     } catch (e) {
-      const t = explainError('保存', e)
-      announce(t.msg, t.kind)
+      announceError('保存', e)
     } finally {
       setBusy(null)
     }
@@ -86,17 +78,16 @@ export function TopBar(props: TopBarProps) {
 
   async function handleUpload(file: File) {
     if (!cap.canEdit) {
-      announce('✗ 查看者无法上传（角色限制）', 'warn')
+      toast.warning('查看者无法上传（角色限制）')
       return
     }
     setBusy('upload')
     try {
-      const { workbookId, name } = await uploadXlsx(props.api, file)
-      announce(`✓ 已上传「${name}」`)
+      const { workbookId, name } = await uploadFile(props.api, file)
+      toast.success(`已上传「${name}」`)
       props.onUploaded(workbookId)
     } catch (e) {
-      const t = explainError('上传', e)
-      announce(t.msg, t.kind)
+      announceError('上传', e)
     } finally {
       setBusy(null)
     }
@@ -106,10 +97,9 @@ export function TopBar(props: TopBarProps) {
     setBusy('download')
     try {
       await downloadXlsx('', props.token, props.workbookId, props.workbookLabel)
-      announce('✓ 已开始下载')
+      toast.success('已开始下载')
     } catch (e) {
-      const t = explainError('下载', e)
-      announce(t.msg, t.kind)
+      announceError('下载', e)
     } finally {
       setBusy(null)
     }
@@ -152,27 +142,27 @@ export function TopBar(props: TopBarProps) {
         title={cap.canEdit ? '保存当前工作簿' : '查看者无法保存'}
         style={!cap.canEdit ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
       >
-        💾 保存
+        💾 {t('topbar.save')}
       </button>
       <button type="button" onClick={props.onOpenFolders}>
-        📁 文件夹
+        📁 {t('topbar.folders')}
       </button>
       <button type="button" onClick={props.onOpenVersions}>
-        🕘 版本历史
+        🕘 {t('topbar.versions')}
       </button>
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={busy === 'upload' || !cap.canEdit}
-        title={cap.canEdit ? '从本地 .xlsx 创建新工作簿' : '查看者无法上传'}
+        title={cap.canEdit ? '从本地 .xlsx 或 .csv 创建新工作簿' : '查看者无法上传'}
         style={!cap.canEdit ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
       >
-        ⬆ 上传 xlsx
+        ⬆ {t('topbar.upload')}
       </button>
       <input
         ref={fileRef}
         type="file"
-        accept=".xlsx"
+        accept=".xlsx,.csv"
         style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0]
@@ -181,7 +171,7 @@ export function TopBar(props: TopBarProps) {
         }}
       />
       <button type="button" onClick={handleDownload} disabled={busy === 'download'}>
-        ⬇ 下载 xlsx
+        ⬇ {t('topbar.download')}
       </button>
       <button
         type="button"
@@ -202,7 +192,18 @@ export function TopBar(props: TopBarProps) {
         onChange={(e) => {
           const v = e.target.value as '' | 'admin' | 'editor' | 'viewer' | '__random__'
           if (v === '') return
+          const label =
+            v === '__random__'
+              ? '随机访客'
+              : v === 'admin'
+                ? '管理员'
+                : v === 'editor'
+                  ? '编辑者'
+                  : '查看者'
           handleOpenAnotherUser(v === '__random__' ? undefined : (v as Persona))
+          toast.success(`已在新标签打开（${label}）`, {
+            description: '若被浏览器拦截，请允许此站弹窗',
+          })
           e.currentTarget.value = ''
         }}
       >
@@ -228,27 +229,6 @@ export function TopBar(props: TopBarProps) {
       >
         {badge.label}
       </span>
-
-      {toast && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 6px)',
-            right: 12,
-            background: '#fff',
-            color: toastColor[toast.kind],
-            border: `1px solid ${toastColor[toast.kind]}`,
-            padding: '6px 12px',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 500,
-            zIndex: 10,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          }}
-        >
-          {toast.msg}
-        </div>
-      )}
     </header>
   )
 }

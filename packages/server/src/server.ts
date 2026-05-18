@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { createNodeWebSocket } from '@hono/node-ws'
 import type { Hono } from 'hono'
 import type { EventAdapter, IdentityAdapter, PermissionAdapter } from './adapters/identity'
+import type { LLMAdapter } from './adapters/llm'
 import type { StorageAdapter } from './adapters/storage'
 import { createDb } from './db/client'
 import { type AppDeps, type AppEnv, buildApp } from './http/app'
@@ -9,6 +10,8 @@ import { createTokenBucket } from './realtime/backpressure'
 import { createCellLockManager } from './realtime/cell-lock-manager'
 import { createRoomRegistry } from './realtime/collab-room'
 import { createMutationBroadcaster } from './realtime/mutation-broadcaster'
+import { createNotificationBus } from './realtime/notification-bus'
+import { createPerTenantBucket } from './realtime/per-tenant-bucket'
 import { createPresenceTracker } from './realtime/presence-tracker'
 import { createRedis } from './redis/client'
 import { createMutationService } from './services/mutation-service'
@@ -22,6 +25,8 @@ export interface CreateServerOpts {
   storage: StorageAdapter
   event: EventAdapter
   redisUrl?: string
+  /** Optional LLM adapter. When provided, /api/v1/ai/* routes become functional. */
+  llm?: LLMAdapter
   /**
    * Optional Hono sub-app mounted after the product routes — for deployment-specific
    * helpers (e.g., the demo's whoami/reset endpoints) that share the same port without
@@ -42,9 +47,17 @@ export function createServer(opts: CreateServerOpts) {
     storage: opts.storage,
     event: opts.event,
     redis,
+    ...(opts.llm ? { llm: opts.llm } : {}),
   }
   const roomRegistry = createRoomRegistry()
+  // Single notification bus shared between REST publishers (e.g. comments
+  // route emitting comment.mentioned) and the WS bridge below. Single-process
+  // for now — wrap in Redis pub/sub if scaling out.
+  const notifications = createNotificationBus()
   const cellLocks = createCellLockManager({ redis, ttlSec: 30 })
+  // Aggregate per-tenant quota (I7). Layered above the per-session 30/s bucket so
+  // one noisy tenant can't starve others. 500 ops/sec accommodates ~20 active users.
+  const tenantBucket = createPerTenantBucket({ capacity: 500, refillPerSec: 500 })
   const presence = createPresenceTracker({ evictAfterMs: 15000 })
   const mutationService = createMutationService({ db })
   const broadcaster = createMutationBroadcaster({
@@ -143,6 +156,13 @@ export function createServer(opts: CreateServerOpts) {
           send: (frame) => ws.send(JSON.stringify(frame)),
         })
 
+        // Composite bucket: tenant aggregate gate first, then per-session 30/s.
+        const perSession = createTokenBucket({ capacity: 30, refillPerSec: 30 })
+        const sessionBucket = {
+          take(): boolean {
+            return tenantBucket.take(identity.tenantId) && perSession.take()
+          },
+        }
         const session = createSession(
           {
             ws,
@@ -151,13 +171,36 @@ export function createServer(opts: CreateServerOpts) {
             capabilities: cap,
             workbookId,
             room,
-            bucket: createTokenBucket({ capacity: 30, refillPerSec: 30 }),
+            bucket: sessionBucket,
           },
-          { cellLocks, presence, broadcaster },
+          {
+            cellLocks,
+            presence,
+            broadcaster,
+            ...(deps.risk ? { risk: deps.risk } : {}),
+            ...(deps.dlpMode ? { dlpMode: deps.dlpMode } : {}),
+          },
         )
 
         // Attach session to the raw WS so onMessage/onClose can reach it
         ;(ws as unknown as Record<string, unknown>)._session = session
+
+        // Subscribe to in-room notifications (e.g. @mention) and forward to
+        // this socket when this user is in the recipients list (or the list is
+        // empty, meaning broadcast). Unsubscribe on close.
+        if (notifications) {
+          const unsubscribe = notifications.subscribe(workbookId, (frame) => {
+            if (frame.recipients.length > 0 && !frame.recipients.includes(identity.userId)) {
+              return
+            }
+            try {
+              ws.send(JSON.stringify(frame))
+            } catch {
+              /* socket may be closing */
+            }
+          })
+          ;(ws as unknown as Record<string, unknown>)._notifUnsub = unsubscribe
+        }
       },
 
       onMessage(e, ws) {
@@ -174,14 +217,25 @@ export function createServer(opts: CreateServerOpts) {
           | ReturnType<typeof createSession>
           | undefined
         session?.onClose()
+        const unsub = (ws as unknown as Record<string, unknown>)._notifUnsub as
+          | (() => void)
+          | undefined
+        try {
+          unsub?.()
+        } catch {
+          /* swallow */
+        }
       },
     }
   })
 
-  builtApp = buildApp(deps, {
-    beforeRoutes: [{ path: '/api/v1/ws/:workbookId', handler: wsHandler }],
-    ...(opts.extraRoutes ? { extraRoutes: opts.extraRoutes } : {}),
-  })
+  builtApp = buildApp(
+    { ...deps, notifications },
+    {
+      beforeRoutes: [{ path: '/api/v1/ws/:workbookId', handler: wsHandler }],
+      ...(opts.extraRoutes ? { extraRoutes: opts.extraRoutes } : {}),
+    },
+  )
 
   return {
     listen({ port }: { port: number }) {

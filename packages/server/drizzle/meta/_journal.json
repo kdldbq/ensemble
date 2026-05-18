@@ -57,6 +57,48 @@
       "when": 1778899560000,
       "tag": "0007_rls_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779002167951,
+      "tag": "0008_crazy_wasp",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779005767802,
+      "tag": "0009_cynical_rawhide_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779006124069,
+      "tag": "0010_mighty_black_panther",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779009566057,
+      "tag": "0011_wonderful_rage",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779010983742,
+      "tag": "0012_tense_madrox",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779025169563,
+      "tag": "0013_melodic_silver_samurai",
+      "breakpoints": true
     }
   ]
 }

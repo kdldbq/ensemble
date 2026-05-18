@@ -39,9 +39,39 @@ export interface Folder {
   name: string
   ownerId: string
   spaceType: 'personal' | 'shared'
+  position: number
   isDeleted: boolean
+  deletedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface FolderTreeNode extends Folder {
+  children: FolderTreeNode[]
+  depth: number
+}
+
+export function buildFolderTree(flat: Folder[]): FolderTreeNode[] {
+  const byParent = new Map<string | null, Folder[]>()
+  for (const f of flat) {
+    const key = f.parentId
+    const list = byParent.get(key) ?? []
+    list.push(f)
+    byParent.set(key, list)
+  }
+  for (const list of byParent.values()) {
+    list.sort((a, b) => a.position - b.position || a.createdAt.localeCompare(b.createdAt))
+  }
+
+  function build(parentId: string | null, depth: number): FolderTreeNode[] {
+    const children = byParent.get(parentId) ?? []
+    return children.map((f) => ({
+      ...f,
+      depth,
+      children: build(f.id, depth + 1),
+    }))
+  }
+  return build(null, 0)
 }
 
 export interface Grant {
@@ -55,6 +85,8 @@ export interface Grant {
   expiresAt: string | null
   grantedBy: string
   grantedAt: string
+  /** True iff a password was set on this grant (passwordHash is never sent). */
+  hasPassword?: boolean
 }
 
 export interface Version {
@@ -63,4 +95,44 @@ export interface Version {
   name: string
   createdBy: string
   createdAt: string
+}
+
+export interface ActivityEntry {
+  id: string
+  eventType: string
+  actorId: string
+  resourceId: string | null
+  payload: Record<string, unknown>
+  occurredAt: string
+}
+
+export interface Protection {
+  id: string
+  tenantId: string
+  workbookId: string
+  sheetId: string
+  rangeRef: string
+  description: string | null
+  allowedUserIds: string[] | null
+  allowedRoles: string[] | null
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Comment {
+  id: string
+  tenantId: string
+  workbookId: string
+  threadId: string
+  cellRef: string | null
+  parentId: string | null
+  authorId: string
+  body: string
+  mentions: string[]
+  resolved: boolean
+  resolvedBy: string | null
+  resolvedAt: string | null
+  createdAt: string
+  updatedAt: string
 }

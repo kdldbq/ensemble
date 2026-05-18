@@ -6,6 +6,34 @@ export {
   type CollabCapability,
 } from './mount'
 export { xlsxToUniverJson, univerJsonToXlsx } from './xlsx-converter'
+export { detectFillPattern, extendFill, type FillPattern } from './smart-fill'
+export {
+  parseCrossRef,
+  formatCrossRef,
+  resolveCrossRef,
+  type CrossRef,
+} from './cross-ref'
+export {
+  computePivot,
+  type PivotAgg,
+  type PivotSpec,
+  type PivotResult,
+} from './pivot'
+export {
+  buildChartData,
+  type ChartKind,
+  type ChartSpec,
+  type ChartSeries,
+  type ChartData,
+  type FreezeConfig,
+} from './chart'
+export {
+  createOfflineCache,
+  type OfflineCache,
+  type OfflineCacheOpts,
+  type QueuedMutation,
+} from './offline-cache'
+export { runScript, type ScriptContext, type ScriptResult } from './scripts'
 export {
   createEditor,
   loadBrowserPlugins,
@@ -13,5 +41,11 @@ export {
   type Editor,
   type EditorOpts,
 } from './univer-wrapper'
-export { WsClient, type WelcomeFrame, type PresenceEntry } from './ws-client'
+export {
+  WsClient,
+  type WelcomeFrame,
+  type PresenceEntry,
+  type ConnectionState,
+  type NotificationFrame,
+} from './ws-client'
 export * from './types'

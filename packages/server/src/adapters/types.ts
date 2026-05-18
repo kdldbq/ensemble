@@ -18,6 +18,22 @@ export interface Capability {
   canEdit: boolean
   canShare: boolean
   canDelete: boolean
+  /**
+   * Whether the user may post comments on this workbook. Optional — when
+   * undefined, defaults to canEdit. Hosts implementing a "view + comment"
+   * tier should set canComment=true with canEdit=false.
+   */
+  canComment?: boolean
+  /**
+   * Whether the user may download/export the workbook (xlsx, PDF). Optional —
+   * defaults to canView. Set false for "view but no copy out" compliance.
+   */
+  canDownload?: boolean
+  /**
+   * Whether the user may print. Optional — defaults to canView. Frontend-only
+   * enforcement (browsers cannot truly prevent print).
+   */
+  canPrint?: boolean
 }
 
 export type MaskMatch =
@@ -52,5 +68,80 @@ export type EnsembleEvent =
       batchedOpsCount: number
       at: string
     }
+  | { type: 'workbook.deleted'; workbookId: string; userId: string; at: string }
+  | {
+      type: 'workbook.moved'
+      workbookId: string
+      userId: string
+      fromFolderId: string | null
+      toFolderId: string | null
+      at: string
+    }
   | { type: 'folder.created'; folderId: string; userId: string; at: string }
+  | { type: 'folder.renamed'; folderId: string; userId: string; newName: string; at: string }
+  | {
+      type: 'folder.moved'
+      folderId: string
+      userId: string
+      fromParentId: string | null
+      toParentId: string | null
+      at: string
+    }
+  | { type: 'folder.deleted'; folderId: string; userId: string; at: string }
+  | { type: 'folder.restored'; folderId: string; userId: string; at: string }
   | { type: 'share.granted'; grantId: string; grantedBy: string; at: string }
+  | { type: 'share.revoked'; grantId: string; revokedBy: string; at: string }
+  | {
+      type: 'protection.created'
+      protectionId: string
+      workbookId: string
+      userId: string
+      rangeRef: string
+      at: string
+    }
+  | {
+      type: 'protection.deleted'
+      protectionId: string
+      workbookId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.created'
+      commentId: string
+      workbookId: string
+      threadId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.resolved'
+      commentId: string
+      workbookId: string
+      threadId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.unresolved'
+      commentId: string
+      workbookId: string
+      threadId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.deleted'
+      commentId: string
+      workbookId: string
+      userId: string
+      at: string
+    }
+  | {
+      type: 'comment.mentioned'
+      commentId: string
+      workbookId: string
+      mentioner: string
+      mentioned: string[]
+      at: string
+    }

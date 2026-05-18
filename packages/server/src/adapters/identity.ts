@@ -2,6 +2,20 @@ import type { Capability, EnsembleEvent, IdentityContext, MaskRule, ResourceRef 
 
 export interface IdentityAdapter {
   resolveFromToken(token: string): Promise<IdentityContext>
+  /**
+   * Optional employee-leaver handoff. When a user departs, the host can
+   * implement this to reassign their owned resources to another user
+   * (manager, successor). Called by an admin tool / scheduled job — ensemble
+   * does NOT call this on every login. If undefined, hosts handle handoff
+   * out-of-band (manual SQL, etc.).
+   */
+  handoff?(fromUserId: string, toUserId: string, tenantId: string): Promise<HandoffResult>
+}
+
+export interface HandoffResult {
+  workbooksTransferred: number
+  foldersTransferred: number
+  errors: string[]
 }
 
 export class NotImplementedIdentityAdapter implements IdentityAdapter {
@@ -41,4 +55,29 @@ export interface EventAdapter {
 
 export class NoopEventAdapter implements EventAdapter {
   async publish(_event: EnsembleEvent): Promise<void> {}
+}
+
+/**
+ * Optional error sink (I8). Hosts wire Sentry, Datadog, OpsGenie, etc.
+ * When undefined, errors only land in pino logs. Hosts implementing this
+ * adapter receive *structured* errors with module + context for tagging.
+ */
+export interface ErrorAdapter {
+  capture(error: Error, context: ErrorContext): Promise<void> | void
+}
+
+export interface ErrorContext {
+  /** Originating module — 'http' | 'ws' | 'auth' | 'storage' | 'mask' | ... */
+  module: string
+  tenantId?: string
+  userId?: string
+  workbookId?: string
+  /** Free-form extras for tagging (request path, frame type, etc). */
+  extra?: Record<string, unknown>
+}
+
+export class NoopErrorAdapter implements ErrorAdapter {
+  capture(_error: Error, _context: ErrorContext): void {
+    /* swallow — pino already logged it */
+  }
 }

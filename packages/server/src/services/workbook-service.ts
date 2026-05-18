@@ -50,8 +50,27 @@ export function createWorkbookService(db: Database) {
     async softDelete(input: RefInput) {
       await db
         .update(workbooks)
-        .set({ isDeleted: true, updatedAt: new Date() })
+        .set({ isDeleted: true, deletedAt: new Date(), updatedAt: new Date() })
         .where(and(eq(workbooks.id, input.id), eq(workbooks.tenantId, input.tenantId)))
+    },
+    async update(
+      input: RefInput & { name?: string; folderId?: string | null },
+    ): Promise<typeof workbooks.$inferSelect | null> {
+      const patch: Partial<typeof workbooks.$inferInsert> = { updatedAt: new Date() }
+      if (input.name !== undefined) {
+        const trimmed = input.name.trim()
+        if (trimmed.length === 0 || trimmed.length > 256) return null
+        patch.name = trimmed
+      }
+      if (input.folderId !== undefined) {
+        patch.folderId = input.folderId
+      }
+      const [row] = await db
+        .update(workbooks)
+        .set(patch)
+        .where(and(eq(workbooks.id, input.id), eq(workbooks.tenantId, input.tenantId)))
+        .returning()
+      return row ?? null
     },
     async setCurrentSnapshot(input: RefInput & { snapshotId: string }) {
       await db

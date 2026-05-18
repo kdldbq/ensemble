@@ -28,6 +28,14 @@ export interface GrantContext {
   identity: IdentityContext
   resource: ResourceRef
   workbookOwnerId: string
+  /**
+   * Tenant that owns the workbook. The workbook-owner short-circuit MUST
+   * verify identity.tenantId === workbookTenantId before granting full
+   * capability — otherwise an attacker whose userId happens to collide
+   * with another tenant's workbook owner would inherit that workbook.
+   * UUID collisions are vanishingly rare but defense-in-depth.
+   */
+  workbookTenantId: string
   workbookFolderId: string | null
   folderAncestors: () => Promise<string[]>
   findGrants: (
@@ -41,21 +49,55 @@ const EMPTY: Capability = { canView: false, canEdit: false, canShare: false, can
 function levelToCapability(level: Grant['permission']): Capability {
   switch (level) {
     case 'view':
-      return { canView: true, canEdit: false, canShare: false, canDelete: false }
+      return {
+        canView: true,
+        canEdit: false,
+        canShare: false,
+        canDelete: false,
+        canComment: false,
+        canDownload: true,
+        canPrint: true,
+      }
     case 'edit':
-      return { canView: true, canEdit: true, canShare: false, canDelete: false }
+      return {
+        canView: true,
+        canEdit: true,
+        canShare: false,
+        canDelete: false,
+        canComment: true,
+        canDownload: true,
+        canPrint: true,
+      }
     case 'manage':
-      return { canView: true, canEdit: true, canShare: true, canDelete: true }
+      return {
+        canView: true,
+        canEdit: true,
+        canShare: true,
+        canDelete: true,
+        canComment: true,
+        canDownload: true,
+        canPrint: true,
+      }
   }
 }
 
 function merge(a: Capability, b: Capability): Capability {
-  return {
+  const out: Capability = {
     canView: a.canView || b.canView,
     canEdit: a.canEdit || b.canEdit,
     canShare: a.canShare || b.canShare,
     canDelete: a.canDelete || b.canDelete,
   }
+  if (a.canComment !== undefined || b.canComment !== undefined) {
+    out.canComment = Boolean(a.canComment) || Boolean(b.canComment)
+  }
+  if (a.canDownload !== undefined || b.canDownload !== undefined) {
+    out.canDownload = Boolean(a.canDownload) || Boolean(b.canDownload)
+  }
+  if (a.canPrint !== undefined || b.canPrint !== undefined) {
+    out.canPrint = Boolean(a.canPrint) || Boolean(b.canPrint)
+  }
+  return out
 }
 
 function isApplicable(grant: Grant, identity: IdentityContext, presentedToken?: string): boolean {
@@ -71,7 +113,10 @@ function isApplicable(grant: Grant, identity: IdentityContext, presentedToken?: 
 }
 
 export async function resolveCapability(ctx: GrantContext): Promise<Capability> {
-  if (ctx.workbookOwnerId === ctx.identity.userId) {
+  if (
+    ctx.workbookOwnerId === ctx.identity.userId &&
+    ctx.workbookTenantId === ctx.identity.tenantId
+  ) {
     return { canView: true, canEdit: true, canShare: true, canDelete: true }
   }
   const refs: Array<{ resourceType: 'folder' | 'workbook'; resourceId: string }> = [

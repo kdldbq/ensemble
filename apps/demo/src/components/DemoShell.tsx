@@ -1,8 +1,10 @@
 import { ApiClient, type MountHandle } from '@ensemble-sheets/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Toaster } from 'sonner'
 import { useVisitor } from '../lib/visitor'
 import { type Persona, capabilitiesFor } from '../persona'
 import { FolderDrawer } from './FolderDrawer'
+import { KeymapHelp } from './KeymapHelp'
 import { OnboardingCoach } from './OnboardingCoach'
 import { PublicRoomBanner } from './PublicRoomBanner'
 import { ShareDialog } from './ShareDialog'
@@ -20,6 +22,44 @@ export function DemoShell() {
   const [remountKey, setRemountKey] = useState(0)
   const [previewKey, setPreviewKey] = useState(0)
   const [pinnedWbId, setPinnedWbId] = useState<string | null>(null)
+  const [keymapHelpOpen, setKeymapHelpOpen] = useState(false)
+
+  // Global hotkeys (F6.4 + K5). Skip when an editable element has focus so
+  // spreadsheet typing isn't intercepted.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName?.toLowerCase()
+      const isEditable =
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        target?.isContentEditable === true
+      const meta = e.metaKey || e.ctrlKey
+
+      if (meta && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setFolderOpen((v) => !v)
+        return
+      }
+      if (meta && e.key.toLowerCase() === 'h') {
+        e.preventDefault()
+        setVersionOpen((v) => !v)
+        return
+      }
+      if (meta && (e.key === '/' || e.key.toLowerCase() === 'j')) {
+        e.preventDefault()
+        setShareOpen((v) => !v)
+        return
+      }
+      if (!isEditable && !meta && e.key === '?') {
+        e.preventDefault()
+        setKeymapHelpOpen((v) => !v)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   if (state.status === 'loading') return <FullPageMessage>正在连接演示…</FullPageMessage>
   if (state.status === 'error')
@@ -36,36 +76,40 @@ export function DemoShell() {
   const workbookLabel = inPublicRoom ? '公共房间' : pinnedWbId ? '已导入工作簿' : '我的沙盒'
 
   return (
-    <Inner
-      visitor={visitor}
-      inPublicRoom={inPublicRoom}
-      onTogglePublicRoom={() => {
-        setPinnedWbId(null)
-        setInPublicRoom((v) => !v)
-        setPreviewKey((k) => k + 1)
-      }}
-      folderOpen={folderOpen}
-      versionOpen={versionOpen}
-      shareOpen={shareOpen}
-      setFolderOpen={setFolderOpen}
-      setVersionOpen={setVersionOpen}
-      setShareOpen={setShareOpen}
-      activeWbId={activeWbId}
-      workbookLabel={workbookLabel}
-      remountKey={remountKey}
-      previewKey={previewKey}
-      onRestored={() => {
-        setRemountKey((k) => k + 1)
-        setPreviewKey((k) => k + 1)
-      }}
-      onSaved={() => setPreviewKey((k) => k + 1)}
-      onUploaded={(wbId) => {
-        setInPublicRoom(false)
-        setPinnedWbId(wbId)
-        setRemountKey((k) => k + 1)
-        setPreviewKey((k) => k + 1)
-      }}
-    />
+    <>
+      <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 3500 }} />
+      <KeymapHelp open={keymapHelpOpen} onClose={() => setKeymapHelpOpen(false)} />
+      <Inner
+        visitor={visitor}
+        inPublicRoom={inPublicRoom}
+        onTogglePublicRoom={() => {
+          setPinnedWbId(null)
+          setInPublicRoom((v) => !v)
+          setPreviewKey((k) => k + 1)
+        }}
+        folderOpen={folderOpen}
+        versionOpen={versionOpen}
+        shareOpen={shareOpen}
+        setFolderOpen={setFolderOpen}
+        setVersionOpen={setVersionOpen}
+        setShareOpen={setShareOpen}
+        activeWbId={activeWbId}
+        workbookLabel={workbookLabel}
+        remountKey={remountKey}
+        previewKey={previewKey}
+        onRestored={() => {
+          setRemountKey((k) => k + 1)
+          setPreviewKey((k) => k + 1)
+        }}
+        onSaved={() => setPreviewKey((k) => k + 1)}
+        onUploaded={(wbId) => {
+          setInPublicRoom(false)
+          setPinnedWbId(wbId)
+          setRemountKey((k) => k + 1)
+          setPreviewKey((k) => k + 1)
+        }}
+      />
+    </>
   )
 }
 
@@ -107,9 +151,25 @@ function Inner(p: InnerProps) {
     if (!handle) return undefined
     const unsubSaved = handle.onSaved(() => p.onSaved())
     const unsubMutation = handle.onMutationApplied(() => p.onSaved())
+    // 在线通知（@mention 等）
+    const unsubNotify = handle.onNotification((f) => {
+      if (f.kind === 'comment.mentioned') {
+        const actor = (f.extra?.actorId as string | undefined) ?? '协作者'
+        const preview = (f.extra?.preview as string | undefined) ?? ''
+        toast.info(`@${actor} 提到了你`, { description: preview })
+      }
+    })
+    // 连接状态：断线 / 重连提示
+    const unsubConn = handle.onConnectionChange((state) => {
+      if (state === 'reconnecting') toast.warning('网络已断开，正在重连…')
+      if (state === 'connected') toast.success('已连接')
+      if (state === 'offline') toast.error('已离线')
+    })
     return () => {
       unsubSaved()
       unsubMutation()
+      unsubNotify()
+      unsubConn()
     }
   }, [handle, p])
 
@@ -154,7 +214,9 @@ function Inner(p: InnerProps) {
             setHandle(h)
           }}
         />
-        <ViewerPreview workbookId={p.activeWbId} refreshKey={p.previewKey} />
+        <div className="ensemble-narrow-hide" style={{ display: 'flex', minWidth: 0, flex: 1 }}>
+          <ViewerPreview workbookId={p.activeWbId} refreshKey={p.previewKey} />
+        </div>
       </main>
       <FolderDrawer
         api={api}

@@ -103,6 +103,10 @@ export function SingleEditor(props: SingleEditorProps) {
           token={() => `dev:${props.userId}`}
           capabilities={{ canEdit: cap.canEdit }}
           autoSaveMs={cap.canEdit ? 800 : 0}
+          watermark={{
+            text: `${props.userId} · ${new Date().toISOString().slice(0, 10)}`,
+            opacity: 0.06,
+          }}
           onWsConnected={(ws) => {
             wsRef.current = ws
             setWsClient(ws)

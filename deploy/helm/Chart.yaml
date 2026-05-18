@@ -1,0 +1,16 @@
+apiVersion: v2
+name: ensemble
+description: Self-hosted ensemble collaborative spreadsheet SDK
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+keywords:
+  - spreadsheet
+  - collaboration
+  - univer
+home: https://github.com/kdldbq/ensemble
+sources:
+  - https://github.com/kdldbq/ensemble
+maintainers:
+  - name: ensemble maintainers
+    url: https://github.com/kdldbq/ensemble

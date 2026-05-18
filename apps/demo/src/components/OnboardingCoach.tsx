@@ -1,17 +1,108 @@
-import { useEffect, useState } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 
-const STORAGE_KEY = 'ev_demo_onboarded_v2'
+const STORAGE_KEY = 'ev_demo_onboarded_v3'
 
-/**
- * One-shot coachmark for first-time visitors. Stores a flag in localStorage so it
- * doesn't reappear after dismiss. Re-show by clearing the key in dev tools.
- *
- * v2 (2026-05-17): rewritten after audit found the original list (4 items)
- * underrepresented v0.1 capability — added live-sync, lock-visibility, and
- * Univer-ribbon callouts.
- */
+interface Step {
+  title: string
+  body: ReactNode
+}
+
+const kbdCell: CSSProperties = { whiteSpace: 'nowrap', paddingRight: 8 }
+
+const STEPS: Step[] = [
+  {
+    title: '👋 欢迎来到 ensemble 演示',
+    body: (
+      <>
+        ensemble 是一个 <strong>开源 / 自托管</strong> 的 Univer 协作 SDK。 本演示展示 v0.2 GA
+        的核心能力。按 <kbd>下一步</kbd> 逐项了解， 或按 <kbd>跳过</kbd> 直接开始。
+      </>
+    ),
+  },
+  {
+    title: '🤝 协作 + 数据掩码',
+    body: (
+      <>
+        <p style={{ margin: '0 0 6px' }}>
+          左侧是你的编辑面板；右侧「查看者眼中」面板会自动同步并按
+          <strong>查看者权限</strong> 脱敏 B 列。
+        </p>
+        <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>
+          顶部头像显示房间内其他人；有人在编辑某区域时状态栏右侧出现锁标。
+        </p>
+      </>
+    ),
+  },
+  {
+    title: '📁 文件夹 + 分享',
+    body: (
+      <>
+        <p style={{ margin: '0 0 6px' }}>
+          <strong>📁 文件夹</strong>：F2 重命名 / Delete 删除（可在回收站恢复） / 搜索框过滤。
+        </p>
+        <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>
+          <strong>↗ 分享</strong>：单用户 / 整租户 / 链接共享三种 grant； 链接共享支持密码 + 过期。
+        </p>
+      </>
+    ),
+  },
+  {
+    title: '🕘 版本 + 协作历史',
+    body: (
+      <>
+        <p style={{ margin: '0 0 6px' }}>
+          <strong>🕘 版本历史</strong>：保存命名版本，可一键恢复（自动另存当前为新版本）。
+        </p>
+        <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>
+          所有 mutation 写入 audit_log；管理员可查看完整协作历史时间线。
+        </p>
+      </>
+    ),
+  },
+  {
+    title: '⌨ 键盘快捷键',
+    body: (
+      <table style={{ fontSize: 12, borderCollapse: 'collapse' }}>
+        <tbody>
+          <tr>
+            <td style={kbdCell}>
+              <kbd>⌘/Ctrl + K</kbd>
+            </td>
+            <td style={{ paddingLeft: 8 }}>打开文件夹</td>
+          </tr>
+          <tr>
+            <td style={kbdCell}>
+              <kbd>⌘/Ctrl + H</kbd>
+            </td>
+            <td style={{ paddingLeft: 8 }}>版本历史</td>
+          </tr>
+          <tr>
+            <td style={kbdCell}>
+              <kbd>⌘/Ctrl + /</kbd>
+            </td>
+            <td style={{ paddingLeft: 8 }}>分享对话框</td>
+          </tr>
+          <tr>
+            <td style={kbdCell}>
+              <kbd>?</kbd>
+            </td>
+            <td style={{ paddingLeft: 8 }}>显示快捷键帮助</td>
+          </tr>
+          <tr>
+            <td style={kbdCell}>
+              <kbd>Esc</kbd>
+            </td>
+            <td style={{ paddingLeft: 8 }}>关闭抽屉</td>
+          </tr>
+        </tbody>
+      </table>
+    ),
+  },
+]
+
 export function OnboardingCoach() {
   const [show, setShow] = useState(false)
+  const [step, setStep] = useState(0)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -23,15 +114,33 @@ export function OnboardingCoach() {
     setShow(false)
   }
 
+  function next() {
+    if (step >= STEPS.length - 1) {
+      dismiss()
+      return
+    }
+    setStep((s) => s + 1)
+  }
+
+  function prev() {
+    if (step > 0) setStep((s) => s - 1)
+  }
+
   if (!show) return null
+
+  const current = STEPS[step]
+  if (!current) return null
 
   return (
     <div
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="ensemble-onboarding-title"
       style={{
         position: 'fixed',
-        bottom: 24,
-        left: 24,
-        maxWidth: 420,
+        top: 64,
+        right: 24,
+        maxWidth: 360,
         background: '#0f172a',
         color: '#fff',
         padding: 18,
@@ -42,59 +151,68 @@ export function OnboardingCoach() {
         lineHeight: 1.55,
       }}
     >
-      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
-        👋 欢迎来到 ensemble 演示
-      </div>
-      <div style={{ color: '#cbd5e1', marginBottom: 10 }}>一站式可点击 v0.1 GA 能力清单：</div>
-
-      <Section title="协作">
-        <li>编辑左侧单元格 → 0.8 秒后自动保存 → 右侧「查看者眼中」面板自动刷新（B 列脱敏）</li>
-        <li>顶部头像列表展示当前房间里的其他人</li>
-        <li>有人在某区域开始编辑时，状态栏右侧会显示「锁标」</li>
-      </Section>
-
-      <Section title="数据 I/O">
-        <li>
-          <strong>💾 保存</strong> · <strong>⬆ 上传 xlsx</strong> · <strong>⬇ 下载 xlsx</strong>
-          （服务端导出，含脱敏）
-        </li>
-        <li>
-          <strong>🕘 版本历史</strong>：手动 named version + 一键恢复
-        </li>
-      </Section>
-
-      <Section title="组织">
-        <li>
-          <strong>📁 文件夹</strong>：悬停可见 ✎ 重命名 / ⇨ 移动 / 🗑 删除
-        </li>
-        <li>
-          <strong>↗ 分享</strong>：单用户 / 整租户 / 公共链接三种 grant
-        </li>
-        <li>
-          <strong>☁ 公共房间</strong>：与陌生访客共享一份工作簿
-        </li>
-      </Section>
-
-      <Section title="角色">
-        <li>当前角色按 userId 哈希决定（标签上的小色块）</li>
-        <li>
-          <strong>+ 另开一人</strong> 下拉：在新标签以指定角色重新进入
-        </li>
-        <li>查看者角色下，所有编辑按钮自动变灰</li>
-      </Section>
-
-      <Section title="表格能力">
-        <li>
-          Univer ribbon（开始 / 插入 / 公式 /
-          数据）含数字格式、条件格式、数据验证、筛选、排序、查找替换、评论、插图
-        </li>
-        <li>Ctrl+Z 撤销、Ctrl+C/V 复制粘贴、Ctrl+F 查找均可用</li>
-      </Section>
-
-      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+      <header style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+        <strong id="ensemble-onboarding-title" style={{ fontSize: 14 }}>
+          {current.title}
+        </strong>
         <button
           type="button"
+          aria-label="跳过引导"
           onClick={dismiss}
+          style={{
+            marginLeft: 'auto',
+            background: 'transparent',
+            color: '#94a3b8',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 12,
+            padding: 0,
+          }}
+        >
+          跳过
+        </button>
+      </header>
+
+      <div style={{ minHeight: 80 }}>{current.body}</div>
+
+      <div
+        style={{ display: 'flex', gap: 6, justifyContent: 'center', margin: '12px 0' }}
+        aria-label={`步骤 ${step + 1} / ${STEPS.length}`}
+      >
+        {STEPS.map((_, i) => (
+          <span
+            // biome-ignore lint/suspicious/noArrayIndexKey: progress dots have no identity
+            key={i}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: i === step ? '#fff' : '#475569',
+            }}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <button
+          type="button"
+          onClick={prev}
+          disabled={step === 0}
+          style={{
+            background: 'transparent',
+            color: step === 0 ? '#475569' : '#cbd5e1',
+            border: 'none',
+            cursor: step === 0 ? 'default' : 'pointer',
+            fontSize: 12,
+            padding: '4px 8px',
+          }}
+        >
+          ← 上一步
+        </button>
+        <button
+          type="button"
+          onClick={next}
           style={{
             background: '#fff',
             color: '#0f172a',
@@ -103,22 +221,12 @@ export function OnboardingCoach() {
             border: 'none',
             cursor: 'pointer',
             fontWeight: 600,
+            fontSize: 12,
           }}
         >
-          知道了
+          {step >= STEPS.length - 1 ? '完成' : '下一步 →'}
         </button>
       </div>
-    </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>
-        {title.toUpperCase()}
-      </div>
-      <ul style={{ margin: '2px 0 0 0', paddingLeft: 18 }}>{children}</ul>
     </div>
   )
 }

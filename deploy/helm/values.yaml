@@ -1,0 +1,62 @@
+# Default values for the ensemble Helm chart.
+# Override via `helm install --set` or a custom values.yaml.
+
+image:
+  server:
+    repository: ghcr.io/kdldbq/ensemble-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  web:
+    repository: ghcr.io/kdldbq/ensemble-web
+    tag: latest
+    pullPolicy: IfNotPresent
+
+server:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 200m, memory: 256Mi }
+    limits: { cpu: 1000m, memory: 1Gi }
+  env:
+    LOG_LEVEL: info
+    NODE_ENV: production
+
+web:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 200m, memory: 256Mi }
+
+# Bring-your-own Postgres + Redis (recommended for prod) — point these at
+# managed services (RDS / ElastiCache / etc). For ephemeral test clusters,
+# set postgres.embedded=true / redis.embedded=true to spin up in-cluster.
+postgres:
+  embedded: false
+  url: ""  # postgres://user:pass@host:5432/db — required when embedded=false
+  embeddedImage: postgres:16
+  embeddedStorage: 10Gi
+
+redis:
+  embedded: false
+  url: ""  # redis://host:6379 — required when embedded=false
+  embeddedImage: redis:7-alpine
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ensemble.local
+  tls:
+    enabled: false
+    secretName: ""
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+
+service:
+  type: ClusterIP
+  serverPort: 5301
+  webPort: 80
+
+# ServiceMonitor for Prometheus operator. Disabled by default.
+serviceMonitor:
+  enabled: false
+  interval: 30s
