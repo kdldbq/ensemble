@@ -1,15 +1,11 @@
+import { logger } from '../logger'
+
 /**
- * In-memory registry of live WebSocket sessions.
+ * In-memory registry of live WebSocket sessions, indexed by sessionId and
+ * scoped per-tenant on every read/write.
  *
- * Existed-to-fix: WS sessions cache capabilities at open time (see ws/session.ts).
- * Without a registry, a grant revoked via DELETE /api/v1/grants/:id leaves
- * active sockets in place — the user keeps the previous capability until they
- * voluntarily disconnect. The admin kick endpoints (`/api/v1/admin/sessions/*`)
- * and the auto-kick path from the grants DELETE handler look up sockets here
- * to close them out of band.
- *
- * Scope: single-instance only. Multi-instance deployments need Redis pub/sub
- * on top — out of scope for this PR; tracked by an issue follow-up.
+ * Single-instance only. Multi-instance deployments need a Redis pub/sub
+ * layer on top (e.g. to fan out kicks across nodes).
  */
 export interface SessionHandle {
   /** Unique id for this session (the same value the admin route uses to kick). */
@@ -54,14 +50,56 @@ export function createSessionRegistry(): SessionRegistry {
   function closeAndDrop(handle: SessionHandle): void {
     try {
       handle.close()
-    } catch {
-      // close() raising must not leave a stale registry entry behind.
+    } catch (err) {
+      // A handle's close() raising must not leave a stale entry behind, but
+      // we want operators to see it — a buggy host close-callback otherwise
+      // makes kick failures silently invisible.
+      logger.warn({ err, sessionId: handle.sessionId }, 'session-registry: close() threw')
     }
     sessions.delete(handle.sessionId)
   }
 
+  function filter(predicate: (h: SessionHandle) => boolean): SessionHandle[] {
+    const out: SessionHandle[] = []
+    for (const h of sessions.values()) {
+      if (predicate(h)) out.push(h)
+    }
+    return out
+  }
+
+  function kickWhere(predicate: (h: SessionHandle) => boolean): number {
+    // Snapshot via spread so closeAndDrop's sessions.delete during iteration
+    // cannot skip entries (Map iterator is live).
+    let n = 0
+    for (const h of [...sessions.values()]) {
+      if (predicate(h)) {
+        closeAndDrop(h)
+        n++
+      }
+    }
+    return n
+  }
+
   return {
     register(handle) {
+      const existing = sessions.get(handle.sessionId)
+      if (existing) {
+        // Same sessionId registered twice — a duplicate clientId from a
+        // reconnect, or a host wiring bug. Close the evicted handle so the
+        // socket doesn't leak; warn so the duplication is visible.
+        logger.warn(
+          { sessionId: handle.sessionId },
+          'session-registry: register evicted an existing handle',
+        )
+        try {
+          existing.close()
+        } catch (err) {
+          logger.warn(
+            { err, sessionId: handle.sessionId },
+            'session-registry: evicted close() threw',
+          )
+        }
+      }
       sessions.set(handle.sessionId, handle)
     },
     unregister(sessionId) {
@@ -71,25 +109,13 @@ export function createSessionRegistry(): SessionRegistry {
       return sessions.get(sessionId)
     },
     list(tenantId) {
-      const out: SessionHandle[] = []
-      for (const h of sessions.values()) {
-        if (h.tenantId === tenantId) out.push(h)
-      }
-      return out
+      return filter((h) => h.tenantId === tenantId)
     },
     forUser(userId, tenantId) {
-      const out: SessionHandle[] = []
-      for (const h of sessions.values()) {
-        if (h.userId === userId && h.tenantId === tenantId) out.push(h)
-      }
-      return out
+      return filter((h) => h.userId === userId && h.tenantId === tenantId)
     },
     forWorkbook(workbookId, tenantId) {
-      const out: SessionHandle[] = []
-      for (const h of sessions.values()) {
-        if (h.workbookId === workbookId && h.tenantId === tenantId) out.push(h)
-      }
-      return out
+      return filter((h) => h.workbookId === workbookId && h.tenantId === tenantId)
     },
     kick(sessionId, tenantId) {
       const h = sessions.get(sessionId)
@@ -98,24 +124,10 @@ export function createSessionRegistry(): SessionRegistry {
       return true
     },
     kickForUser(userId, tenantId) {
-      let n = 0
-      for (const h of [...sessions.values()]) {
-        if (h.userId === userId && h.tenantId === tenantId) {
-          closeAndDrop(h)
-          n++
-        }
-      }
-      return n
+      return kickWhere((h) => h.userId === userId && h.tenantId === tenantId)
     },
     kickForWorkbook(workbookId, tenantId) {
-      let n = 0
-      for (const h of [...sessions.values()]) {
-        if (h.workbookId === workbookId && h.tenantId === tenantId) {
-          closeAndDrop(h)
-          n++
-        }
-      }
-      return n
+      return kickWhere((h) => h.workbookId === workbookId && h.tenantId === tenantId)
     },
   }
 }

@@ -86,9 +86,8 @@ export const adminRoute = new Hono<AppEnv>()
   })
   /**
    * List live WS sessions in the caller's tenant. Returns an empty list when
-   * the host did not wire `deps.sessionRegistry` — the route never 503s on GET
-   * so a dashboard renders gracefully against a server that does not yet
-   * support live-session inspection.
+   * the host did not wire `deps.sessionRegistry` (vs. 503) so a dashboard can
+   * render against servers that lack live-session inspection.
    */
   .get('/api/v1/admin/sessions', (c) => {
     const id = c.get('identity')

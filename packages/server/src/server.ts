@@ -6,6 +6,7 @@ import type { LLMAdapter } from './adapters/llm'
 import type { StorageAdapter } from './adapters/storage'
 import { createDb } from './db/client'
 import { type AppDeps, type AppEnv, buildApp } from './http/app'
+import { logger } from './logger'
 import { createTokenBucket } from './realtime/backpressure'
 import { createCellLockManager } from './realtime/cell-lock-manager'
 import { createRoomRegistry } from './realtime/collab-room'
@@ -238,10 +239,17 @@ export function createServer(opts: CreateServerOpts) {
       },
 
       onClose(_e, ws) {
+        // Each cleanup step is independently guarded — a throw in any one
+        // must not skip the others (otherwise a buggy session.onClose would
+        // leak the registry entry and the notification subscription).
         const session = (ws as unknown as Record<string, unknown>)._session as
           | ReturnType<typeof createSession>
           | undefined
-        session?.onClose()
+        try {
+          session?.onClose()
+        } catch (err) {
+          logger.warn({ err }, 'WS onClose: session.onClose() threw')
+        }
         const sessionId = (ws as unknown as Record<string, unknown>)._sessionId as
           | string
           | undefined
@@ -251,8 +259,8 @@ export function createServer(opts: CreateServerOpts) {
           | undefined
         try {
           unsub?.()
-        } catch {
-          /* swallow */
+        } catch (err) {
+          logger.warn({ err }, 'WS onClose: notification unsubscribe threw')
         }
       },
     }
