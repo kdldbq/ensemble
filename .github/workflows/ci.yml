@@ -27,6 +27,9 @@ jobs:
       # Build must run before typecheck — packages like mcp-server import
       # from @ensemble-sheets/core's published dist (not the TS source), so
       # tsc cannot resolve cross-package types without the dist artifacts.
+      # Pre-build core + server so downstream adapters (storage-fs, storage-s3,
+      # webhook) don't race against them in pnpm -r's parallel batch.
+      - run: pnpm --filter '@ensemble-sheets/core' --filter '@ensemble-sheets/server' build
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test --coverage
