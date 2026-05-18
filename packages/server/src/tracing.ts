@@ -3,11 +3,28 @@
  *
  * Defines a minimal Span / Tracer contract that maps cleanly onto
  * OpenTelemetry semantics WITHOUT pulling in the OTEL SDK.
+ *
+ * Trace context propagates via node:async_hooks AsyncLocalStorage: every
+ * `traced(...)` (or tracer.withSpan(...)) call reads the surrounding trace
+ * id from ALS, generates its own span id, and runs the user callback inside
+ * a fresh ALS scope so any nested traced() inherits the trace and points
+ * its parentSpanId at this span. Without ALS, sibling spans land in
+ * different traces and the collector can't reconstruct the request.
  */
+
+import { AsyncLocalStorage } from 'node:async_hooks'
 
 export interface SpanAttributes {
   [key: string]: string | number | boolean | undefined
 }
+
+interface TraceCtx {
+  traceId: string
+  /** spanId of the enclosing span; nested spans set their parentSpanId to this. */
+  parentSpanId?: string
+}
+
+const traceCtx = new AsyncLocalStorage<TraceCtx>()
 
 export interface Span {
   setAttribute(key: string, value: string | number | boolean): void
@@ -74,12 +91,21 @@ export interface OtlpHttpTracerOpts {
 
 interface RecordedSpan {
   name: string
+  traceId: string
+  spanId: string
+  parentSpanId?: string
   startNs: number
   endNs: number
   attributes: SpanAttributes
   status: 'ok' | 'error'
   statusMessage?: string
   events: Array<{ ns: number; name: string; attrs?: SpanAttributes }>
+}
+
+interface InternalSpan {
+  span: Span
+  traceId: string
+  spanId: string
 }
 
 export function createOtlpHttpTracer(
@@ -89,17 +115,23 @@ export function createOtlpHttpTracer(
   const flushIntervalMs = opts.flushIntervalMs ?? 5000
   const fetchImpl = opts.fetch ?? fetch
 
-  const startSpan = (name: string, attrs?: SpanAttributes): Span => {
+  const startSpanInternal = (name: string, attrs?: SpanAttributes): InternalSpan => {
+    const current = traceCtx.getStore()
+    const traceId = current?.traceId ?? randomHex(32)
+    const spanId = randomHex(16)
     const start = nowNs()
     const rec: RecordedSpan = {
       name,
+      traceId,
+      spanId,
+      ...(current?.parentSpanId ? { parentSpanId: current.parentSpanId } : {}),
       startNs: start,
       endNs: start,
       attributes: { ...(attrs ?? {}) },
       status: 'ok',
       events: [],
     }
-    return {
+    const span: Span = {
       setAttribute(key, value) {
         rec.attributes[key] = value
       },
@@ -121,7 +153,11 @@ export function createOtlpHttpTracer(
         buf.push(rec)
       },
     }
+    return { span, traceId, spanId }
   }
+
+  const startSpan = (name: string, attrs?: SpanAttributes): Span =>
+    startSpanInternal(name, attrs).span
 
   async function flush(): Promise<void> {
     if (buf.length === 0) return
@@ -164,17 +200,23 @@ export function createOtlpHttpTracer(
       fn: (span: Span) => Promise<T> | T,
       attrs?: SpanAttributes,
     ): Promise<T> {
-      const span = startSpan(name, attrs)
-      try {
-        const out = await fn(span)
-        span.setStatus('ok')
-        return out
-      } catch (err) {
-        span.recordException(err instanceof Error ? err : new Error(String(err)))
-        throw err
-      } finally {
-        span.end()
-      }
+      const { span, traceId, spanId } = startSpanInternal(name, attrs)
+      // Nest the user callback inside an ALS scope so any traced() called
+      // transitively inherits the current trace + parent. Without this, every
+      // sibling span gets a fresh traceId and the collector can't tie them
+      // back to the request.
+      return traceCtx.run({ traceId, parentSpanId: spanId }, async () => {
+        try {
+          const out = await fn(span)
+          span.setStatus('ok')
+          return out
+        } catch (err) {
+          span.recordException(err instanceof Error ? err : new Error(String(err)))
+          throw err
+        } finally {
+          span.end()
+        }
+      })
     },
     flush,
   }
@@ -195,8 +237,9 @@ function buildOtlpPayload(serviceName: string, spans: RecordedSpan[]): unknown {
           {
             scope: { name: 'ensemble-sheets', version: '0.2' },
             spans: spans.map((s) => ({
-              traceId: randomHex(32),
-              spanId: randomHex(16),
+              traceId: s.traceId,
+              spanId: s.spanId,
+              ...(s.parentSpanId ? { parentSpanId: s.parentSpanId } : {}),
               name: s.name,
               kind: 1,
               startTimeUnixNano: s.startNs.toString(),
