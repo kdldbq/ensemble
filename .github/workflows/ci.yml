@@ -32,4 +32,6 @@ jobs:
       - run: pnpm --filter '@ensemble-sheets/core' --filter '@ensemble-sheets/server' build
       - run: pnpm build
       - run: pnpm typecheck
-      - run: pnpm test --coverage
+      # `pnpm test` at root invokes `vitest run` which fires every workspace
+      # project's globalSetup hook with the wrong cwd. Run per-package instead.
+      - run: pnpm -r test
