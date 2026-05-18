@@ -39,7 +39,13 @@ self.addEventListener('fetch', (event) => {
       caches.match(req).then((hit) => {
         if (hit) return hit
         return fetch(req).then((res) => {
-          if (res.ok) caches.open(CACHE).then((c) => c.put(req, res.clone()))
+          if (res.ok) {
+            // Clone synchronously: caches.open() is async, and by the
+            // time its .then() fires the page may already be consuming
+            // res.body, which would lock the stream and make .clone() throw.
+            const copy = res.clone()
+            caches.open(CACHE).then((c) => c.put(req, copy))
+          }
           return res
         })
       }),
@@ -51,7 +57,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          caches.open(CACHE).then((c) => c.put(req, res.clone()))
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put(req, copy))
           return res
         })
         .catch(() => caches.match(req).then((hit) => hit ?? caches.match('/'))),
