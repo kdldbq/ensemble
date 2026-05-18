@@ -105,10 +105,10 @@ describe('public_link grants', () => {
       .from(shareGrants)
       .where(eq(shareGrants.id, json.id))
       .limit(1)
-    expect(grantRow).toBeDefined()
-    expect(grantRow!.linkTokenHmac).toBe(hmacLinkToken(SECRET, json.linkToken))
+    if (!grantRow) throw new Error('grant row not found')
+    expect(grantRow.linkTokenHmac).toBe(hmacLinkToken(SECRET, json.linkToken))
     // cleartext token must NOT be stored anywhere on the row
-    expect(grantRow!.granteeId).not.toBe(json.linkToken)
+    expect(grantRow.granteeId).not.toBe(json.linkToken)
   })
 
   it('resolveCapability matches via HMAC for newly created grants (HMAC path)', async () => {

@@ -1,0 +1,1 @@
+ALTER TABLE "share_grants" ADD COLUMN "link_token_hmac" text;

@@ -1,12 +1,13 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { Capability, IdentityContext, ResourceRef } from '../adapters/types'
+import { verifyLinkTokenHmac } from './link-token'
 
 /**
- * Constant-time string equality for public_link tokens.
+ * Constant-time string equality for legacy cleartext public_link tokens.
  *
- * NOTE: grant.granteeId stores the public_link token in cleartext (Sprint 2
- * design). This blocks timing-attack-based token recovery but DB compromise
- * still leaks tokens. Sprint 4 may wrap with HMAC + server secret.
+ * Used only for the dual-path fallback: legacy grants created before the
+ * HMAC migration store cleartext in `granteeId` with `linkTokenHmac=NULL`.
+ * New grants store HMAC only (see {@link verifyLinkTokenHmac}).
  */
 function safeStringEq(a: string, b: string): boolean {
   const ba = Buffer.from(a)
@@ -20,6 +21,12 @@ export interface Grant {
   resourceId: string
   granteeType: 'user' | 'tenant_member' | 'public_link'
   granteeId: string | null
+  /**
+   * HMAC-SHA256(secret, cleartext_token) for public_link grants. Null for
+   * legacy rows created before the HMAC migration (dual-path fallback uses
+   * `granteeId` cleartext compare for those).
+   */
+  linkTokenHmac?: string | null
   permission: 'view' | 'edit' | 'manage'
   expiresAt: Date | null
 }
@@ -42,6 +49,12 @@ export interface GrantContext {
     refs: Array<{ resourceType: 'folder' | 'workbook'; resourceId: string }>,
   ) => Promise<Grant[]>
   publicLinkToken?: string | undefined
+  /**
+   * HMAC secret used to verify `Grant.linkTokenHmac`. Absent contexts cannot
+   * match HMAC-only rows — the grant is ignored, never matched cleartext-
+   * against-hmac (which would be both wrong and a silent downgrade).
+   */
+  linkHmacSecret?: string | undefined
 }
 
 const EMPTY: Capability = { canView: false, canEdit: false, canShare: false, canDelete: false }
@@ -100,15 +113,30 @@ function merge(a: Capability, b: Capability): Capability {
   return out
 }
 
-function isApplicable(grant: Grant, identity: IdentityContext, presentedToken?: string): boolean {
+function isApplicable(
+  grant: Grant,
+  identity: IdentityContext,
+  presentedToken?: string,
+  linkHmacSecret?: string,
+): boolean {
   if (grant.expiresAt && grant.expiresAt.getTime() < Date.now()) return false
   switch (grant.granteeType) {
     case 'user':
       return grant.granteeId === identity.userId
     case 'tenant_member':
       return true
-    case 'public_link':
-      return !!presentedToken && !!grant.granteeId && safeStringEq(grant.granteeId, presentedToken)
+    case 'public_link': {
+      if (!presentedToken) return false
+      // HMAC path: any non-null linkTokenHmac means this row uses the new
+      // hashed format. Without a secret in context, we MUST refuse — silently
+      // falling back to cleartext compare would let an attacker downgrade.
+      if (grant.linkTokenHmac) {
+        if (!linkHmacSecret) return false
+        return verifyLinkTokenHmac(linkHmacSecret, presentedToken, grant.linkTokenHmac)
+      }
+      // Legacy / dual-path: pre-migration rows store cleartext in granteeId.
+      return !!grant.granteeId && safeStringEq(grant.granteeId, presentedToken)
+    }
   }
 }
 
@@ -128,7 +156,7 @@ export async function resolveCapability(ctx: GrantContext): Promise<Capability> 
   const grants = await ctx.findGrants(refs)
   let acc: Capability = EMPTY
   for (const g of grants) {
-    if (isApplicable(g, ctx.identity, ctx.publicLinkToken)) {
+    if (isApplicable(g, ctx.identity, ctx.publicLinkToken, ctx.linkHmacSecret)) {
       acc = merge(acc, levelToCapability(g.permission))
     }
   }

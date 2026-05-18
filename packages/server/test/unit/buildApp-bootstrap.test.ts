@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  NoopEventAdapter,
   type IdentityAdapter,
+  NoopEventAdapter,
   type PermissionAdapter,
 } from '../../src/adapters/identity'
 import type { AppDeps } from '../../src/http/app'

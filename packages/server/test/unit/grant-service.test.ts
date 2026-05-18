@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { type GrantContext, resolveCapability } from '../../src/services/grant-service'
+import { hmacLinkToken } from '../../src/services/link-token'
 
 function ctx(overrides: Partial<GrantContext> = {}): GrantContext {
   return {
@@ -157,12 +158,7 @@ describe('resolveCapability', () => {
 
   describe('public_link grants (HMAC + dual-path)', () => {
     const SECRET = 'x'.repeat(64)
-    const computeHmac = (token: string): string => {
-      const { hmacLinkToken } = require('../../src/services/link-token') as {
-        hmacLinkToken: (s: string, t: string) => string
-      }
-      return hmacLinkToken(SECRET, token)
-    }
+    const computeHmac = (token: string): string => hmacLinkToken(SECRET, token)
 
     it('HMAC path: applies grant when presented token hashes to stored hmac', async () => {
       const token = 'caller-presented-token'
