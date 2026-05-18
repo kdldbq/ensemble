@@ -94,11 +94,14 @@ export function ShareDialog({ api, workbookId, open, onClose }: ShareDialogProps
       })
 
       if (granteeType === 'public_link') {
-        const url = publicLinkUrl(grant.granteeId ?? '')
+        // grant.linkToken is the cleartext token, returned exactly once on
+        // create. After this response the server only retains the HMAC, so
+        // there is no way to surface the same URL in the list view below.
+        const url = publicLinkUrl(grant.linkToken ?? '')
         try {
           await navigator.clipboard.writeText(url)
           toast.success('公共链接已生成并复制', {
-            description: password ? '已设置密码（仅本次显示）' : undefined,
+            description: password ? '已设置密码（仅本次显示）' : '链接仅本次显示',
           })
         } catch {
           toast.success(`公共链接已生成：${url}`)
