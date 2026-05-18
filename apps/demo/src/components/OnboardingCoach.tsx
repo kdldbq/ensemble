@@ -7,6 +7,8 @@ interface Step {
   body: ReactNode
 }
 
+const kbdCell: CSSProperties = { whiteSpace: 'nowrap', paddingRight: 8 }
+
 const STEPS: Step[] = [
   {
     title: '👋 欢迎来到 ensemble 演示',
@@ -100,8 +102,6 @@ const STEPS: Step[] = [
     ),
   },
 ]
-
-const kbdCell: CSSProperties = { whiteSpace: 'nowrap', paddingRight: 8 }
 
 export function OnboardingCoach() {
   const [show, setShow] = useState(false)
