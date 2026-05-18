@@ -154,4 +154,127 @@ describe('resolveCapability', () => {
       canDelete: true,
     })
   })
+
+  describe('public_link grants (HMAC + dual-path)', () => {
+    const SECRET = 'x'.repeat(64)
+    const computeHmac = (token: string): string => {
+      const { hmacLinkToken } = require('../../src/services/link-token') as {
+        hmacLinkToken: (s: string, t: string) => string
+      }
+      return hmacLinkToken(SECRET, token)
+    }
+
+    it('HMAC path: applies grant when presented token hashes to stored hmac', async () => {
+      const token = 'caller-presented-token'
+      const c = await resolveCapability(
+        ctx({
+          identity: { tenantId: 't1', userId: 'anon' },
+          publicLinkToken: token,
+          linkHmacSecret: SECRET,
+          findGrants: async () => [
+            {
+              resourceType: 'workbook',
+              resourceId: 'wb1',
+              granteeType: 'public_link',
+              granteeId: null,
+              linkTokenHmac: computeHmac(token),
+              permission: 'view',
+              expiresAt: null,
+            },
+          ],
+        }),
+      )
+      expect(c.canView).toBe(true)
+    })
+
+    it('HMAC path: rejects when presented token does not match stored hmac', async () => {
+      const c = await resolveCapability(
+        ctx({
+          identity: { tenantId: 't1', userId: 'anon' },
+          publicLinkToken: 'wrong-token',
+          linkHmacSecret: SECRET,
+          findGrants: async () => [
+            {
+              resourceType: 'workbook',
+              resourceId: 'wb1',
+              granteeType: 'public_link',
+              granteeId: null,
+              linkTokenHmac: computeHmac('right-token'),
+              permission: 'view',
+              expiresAt: null,
+            },
+          ],
+        }),
+      )
+      expect(c.canView).toBe(false)
+    })
+
+    it('HMAC path: no secret in context → grant ignored even with correct token', async () => {
+      const token = 'real-token'
+      const c = await resolveCapability(
+        ctx({
+          identity: { tenantId: 't1', userId: 'anon' },
+          publicLinkToken: token,
+          findGrants: async () => [
+            {
+              resourceType: 'workbook',
+              resourceId: 'wb1',
+              granteeType: 'public_link',
+              granteeId: null,
+              linkTokenHmac: computeHmac(token),
+              permission: 'view',
+              expiresAt: null,
+            },
+          ],
+        }),
+      )
+      expect(c.canView).toBe(false)
+    })
+
+    it('dual-path: legacy grant (hmac null, granteeId set) still verifies cleartext', async () => {
+      const token = 'legacy-cleartext-token'
+      const c = await resolveCapability(
+        ctx({
+          identity: { tenantId: 't1', userId: 'anon' },
+          publicLinkToken: token,
+          linkHmacSecret: SECRET,
+          findGrants: async () => [
+            {
+              resourceType: 'workbook',
+              resourceId: 'wb1',
+              granteeType: 'public_link',
+              granteeId: token,
+              linkTokenHmac: null,
+              permission: 'view',
+              expiresAt: null,
+            },
+          ],
+        }),
+      )
+      expect(c.canView).toBe(true)
+    })
+
+    it('hmac precedence: cleartext mismatch but hmac match still applies', async () => {
+      const token = 'real-token'
+      const c = await resolveCapability(
+        ctx({
+          identity: { tenantId: 't1', userId: 'anon' },
+          publicLinkToken: token,
+          linkHmacSecret: SECRET,
+          findGrants: async () => [
+            {
+              resourceType: 'workbook',
+              resourceId: 'wb1',
+              granteeType: 'public_link',
+              granteeId: 'unrelated-sentinel',
+              linkTokenHmac: computeHmac(token),
+              permission: 'view',
+              expiresAt: null,
+            },
+          ],
+        }),
+      )
+      expect(c.canView).toBe(true)
+    })
+  })
 })
