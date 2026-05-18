@@ -132,13 +132,8 @@ describe('WsClient', () => {
       WebSocketImpl: Ctor as never,
     })
     const p = client.connect()
-    // fire a message with a string that is valid JSON but not welcome/error
-    // to trigger the catch(e) => reject path with a non-Error (simulate by firing
-    // an unparseable message via a direct listener call that throws a non-Error string)
-    const _msgListeners = sockets[0].listeners.get('message') ?? []
-    // Manually call listener with non-string data that JSON.parse throws non-Error on
-    // We can't easily get JSON.parse to throw non-Error, so instead test the
-    // e instanceof Error : false branch by spying on JSON.parse
+    // Firing an unparseable payload trips the JSON.parse catch path in the
+    // client — the rejection's message must be the stringified non-Error.
     sockets[0].fire('message', '{{{invalid')
     await expect(p).rejects.toThrow()
   })

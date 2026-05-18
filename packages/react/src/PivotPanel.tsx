@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: pivot field rows are reordered via drag; index plus stable field name disambiguates.
-// biome-ignore-all lint/style/noNonNullAssertion: test fixtures and statically-known DOM/array shapes are asserted by the test setup, not by runtime checks.
+// biome-ignore-all lint/style/noNonNullAssertion: field rows are accessed under length-guarded conditions that Biome's flow analysis can't see across the drag handlers.
 import {
   computePivot,
   type MountHandle,
