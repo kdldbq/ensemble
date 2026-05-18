@@ -224,16 +224,6 @@ export function createEditor(opts: EditorOpts): Editor {
 }
 
 /**
- * Load Univer locale resources for the browser via dynamic import.
- *
- * Must be passed to the Univer constructor — registering them later via plugin
- * config has no effect on UI components like Ribbon that resolve locale strings
- * at first render. Call this BEFORE createEditor() and pass the result via
- * EditorOpts.locales.
- *
- * Failures are swallowed (returns undefined) so Node/jsdom tests still work.
- */
-/**
  * Deep-merge plain-object locale dicts in place. Univer plugins each contribute
  * to a few top-level keys, but several of them legitimately overlap — e.g.
  * sheets-numfmt-ui, sheets-conditional-formatting-ui, and sheets-ui all nest
@@ -245,7 +235,7 @@ export function createEditor(opts: EditorOpts): Editor {
 function deepMergeLocale(
   target: Record<string, unknown>,
   source: Record<string, unknown>,
-): Record<string, unknown> {
+): void {
   for (const key of Object.keys(source)) {
     const sv = source[key]
     const tv = target[key]
@@ -262,9 +252,22 @@ function deepMergeLocale(
       target[key] = sv
     }
   }
-  return target
 }
 
+/**
+ * Load Univer locale resources for the browser via dynamic import.
+ *
+ * Must be passed to the Univer constructor — registering them later via plugin
+ * config has no effect on UI components like Ribbon that resolve locale strings
+ * at first render. Call this BEFORE createEditor() and pass the result via
+ * EditorOpts.locales.
+ *
+ * Failures are swallowed (returns undefined) so Node/jsdom tests still work.
+ *
+ * TODO(perf): sheets-formula-ui/locale/zh-CN.js is ~316KB raw on the
+ * first-paint critical path. Consider splitting it out and lazy-loading via
+ * Univer's localeService.load() the first time the formula bar gains focus.
+ */
 export async function loadBrowserLocales(): Promise<ILocales | undefined> {
   // Each entry MUST be an inline `import()` with a string literal so bundlers
   // (vite / webpack) can statically resolve and code-split each chunk. Don't

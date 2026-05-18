@@ -57,6 +57,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
+          // Same clone-before-async race as the static branch above.
           const copy = res.clone()
           caches.open(CACHE).then((c) => c.put(req, copy))
           return res
