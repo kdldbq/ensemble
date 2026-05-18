@@ -232,10 +232,7 @@ export function createEditor(opts: EditorOpts): Editor {
  * "raw key shown verbatim in the UI" failure mode (e.g. dropdowns reading
  * `sheet.cf.ruleType.highlightCell` instead of `突出显示单元格`).
  */
-function deepMergeLocale(
-  target: Record<string, unknown>,
-  source: Record<string, unknown>,
-): void {
+function deepMergeLocale(target: Record<string, unknown>, source: Record<string, unknown>): void {
   for (const key of Object.keys(source)) {
     const sv = source[key]
     const tv = target[key]

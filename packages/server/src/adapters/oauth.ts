@@ -44,8 +44,6 @@ export class NotImplementedOAuthAdapter implements OAuthAdapter {
     return []
   }
   async exchangeCode(): Promise<OAuthIdentity> {
-    throw new Error(
-      'OAuthAdapter not implemented — host must provide one via createServer.oauth',
-    )
+    throw new Error('OAuthAdapter not implemented — host must provide one via createServer.oauth')
   }
 }

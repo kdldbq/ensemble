@@ -91,10 +91,7 @@ export const versionsRoute = new Hono<AppEnv>()
         const diff = diffSnapshots(a, b)
         return c.json(diff)
       } catch (err) {
-        return c.json(
-          { error: err instanceof Error ? err.message : 'diff failed' },
-          500,
-        )
+        return c.json({ error: err instanceof Error ? err.message : 'diff failed' }, 500)
       }
     },
   )

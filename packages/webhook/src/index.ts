@@ -116,7 +116,11 @@ export class WebhookIdentityAdapter implements IdentityAdapter {
 export class WebhookPermissionAdapter implements PermissionAdapter {
   constructor(private readonly opts: WebhookOpts) {}
   async getCapabilities(identity: IdentityContext, resource: ResourceRef): Promise<Capability> {
-    const r = await postOnce<Capability>(this.opts, { op: 'capabilities', identity, resource }, true)
+    const r = await postOnce<Capability>(
+      this.opts,
+      { op: 'capabilities', identity, resource },
+      true,
+    )
     if (!r) throw new Error('permission webhook returned no body')
     return r
   }

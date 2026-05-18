@@ -6,9 +6,9 @@
  * stays below its budget. Run as part of CI after `pnpm -r build`.
  */
 
-import { gzipSync } from 'node:zlib'
-import { readFileSync, existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { gzipSync } from 'node:zlib'
 
 const BUDGETS = {
   'packages/core/dist/mount.js': 50_000,

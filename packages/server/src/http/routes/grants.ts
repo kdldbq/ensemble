@@ -94,9 +94,7 @@ export const grantsRoute = new Hono<AppEnv>()
           grantedBy: id.userId,
           ...(body.expiresAt ? { expiresAt: new Date(body.expiresAt) } : {}),
           ...(passwordHash ? { passwordHash } : {}),
-          ...(body.allowedIps && body.allowedIps.length > 0
-            ? { allowedIps: body.allowedIps }
-            : {}),
+          ...(body.allowedIps && body.allowedIps.length > 0 ? { allowedIps: body.allowedIps } : {}),
         })
         .returning()
       if (!row) throw new Error('insert returned no row')

@@ -77,43 +77,38 @@ export function DemoShell() {
 
   return (
     <>
-      <Toaster
-        position="top-right"
-        richColors
-        closeButton
-        toastOptions={{ duration: 3500 }}
-      />
+      <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 3500 }} />
       <KeymapHelp open={keymapHelpOpen} onClose={() => setKeymapHelpOpen(false)} />
       <Inner
-      visitor={visitor}
-      inPublicRoom={inPublicRoom}
-      onTogglePublicRoom={() => {
-        setPinnedWbId(null)
-        setInPublicRoom((v) => !v)
-        setPreviewKey((k) => k + 1)
-      }}
-      folderOpen={folderOpen}
-      versionOpen={versionOpen}
-      shareOpen={shareOpen}
-      setFolderOpen={setFolderOpen}
-      setVersionOpen={setVersionOpen}
-      setShareOpen={setShareOpen}
-      activeWbId={activeWbId}
-      workbookLabel={workbookLabel}
-      remountKey={remountKey}
-      previewKey={previewKey}
-      onRestored={() => {
-        setRemountKey((k) => k + 1)
-        setPreviewKey((k) => k + 1)
-      }}
-      onSaved={() => setPreviewKey((k) => k + 1)}
-      onUploaded={(wbId) => {
-        setInPublicRoom(false)
-        setPinnedWbId(wbId)
-        setRemountKey((k) => k + 1)
-        setPreviewKey((k) => k + 1)
-      }}
-    />
+        visitor={visitor}
+        inPublicRoom={inPublicRoom}
+        onTogglePublicRoom={() => {
+          setPinnedWbId(null)
+          setInPublicRoom((v) => !v)
+          setPreviewKey((k) => k + 1)
+        }}
+        folderOpen={folderOpen}
+        versionOpen={versionOpen}
+        shareOpen={shareOpen}
+        setFolderOpen={setFolderOpen}
+        setVersionOpen={setVersionOpen}
+        setShareOpen={setShareOpen}
+        activeWbId={activeWbId}
+        workbookLabel={workbookLabel}
+        remountKey={remountKey}
+        previewKey={previewKey}
+        onRestored={() => {
+          setRemountKey((k) => k + 1)
+          setPreviewKey((k) => k + 1)
+        }}
+        onSaved={() => setPreviewKey((k) => k + 1)}
+        onUploaded={(wbId) => {
+          setInPublicRoom(false)
+          setPinnedWbId(wbId)
+          setRemountKey((k) => k + 1)
+          setPreviewKey((k) => k + 1)
+        }}
+      />
     </>
   )
 }

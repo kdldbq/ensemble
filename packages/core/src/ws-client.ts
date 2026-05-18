@@ -174,7 +174,7 @@ export class WsClient {
     }
     const initial = cfg.initialDelayMs ?? 200
     const max = cfg.maxDelayMs ?? 30_000
-    const cap = cfg.maxAttempts ?? Infinity
+    const cap = cfg.maxAttempts ?? Number.POSITIVE_INFINITY
     if (this.reconnectAttempts >= cap) {
       this.setState('offline')
       return

@@ -42,60 +42,56 @@ function parseA1Cell(s: string): { row: number; col: number } | null {
   return { row, col }
 }
 
-export const rangeRoute = new Hono<AppEnv>()
-  .use('*', requireIdentity)
-  .post(
-    '/api/v1/workbooks/:id/range/read',
-    requireCapability('canView', (c) => ({
-      type: 'workbook',
-      id: c.req.param('id'),
-      tenantId: c.get('identity')!.tenantId,
-    })),
-    async (c) => {
-      const id = c.get('identity')!
-      const wbId = c.req.param('id')
-      const body = (await c.req.json()) as { sheetId?: string; rangeRef?: string }
-      if (!body.sheetId || !body.rangeRef) {
-        return c.json({ error: 'sheetId and rangeRef required' }, 400)
-      }
-      const parsed = parseA1Range(body.rangeRef)
-      if (!parsed) return c.json({ error: 'invalid rangeRef' }, 400)
+export const rangeRoute = new Hono<AppEnv>().use('*', requireIdentity).post(
+  '/api/v1/workbooks/:id/range/read',
+  requireCapability('canView', (c) => ({
+    type: 'workbook',
+    id: c.req.param('id'),
+    tenantId: c.get('identity')!.tenantId,
+  })),
+  async (c) => {
+    const id = c.get('identity')!
+    const wbId = c.req.param('id')
+    const body = (await c.req.json()) as { sheetId?: string; rangeRef?: string }
+    if (!body.sheetId || !body.rangeRef) {
+      return c.json({ error: 'sheetId and rangeRef required' }, 400)
+    }
+    const parsed = parseA1Range(body.rangeRef)
+    if (!parsed) return c.json({ error: 'invalid rangeRef' }, 400)
 
-      const latest = await c.get('services').snapshots.getLatest(wbId)
-      if (!latest) {
-        return c.json({ values: [], rangeRef: body.rangeRef, empty: true })
-      }
-      // Defense-in-depth: ensure the snapshot belongs to this tenant via workbook.
-      const wb = await c
-        .get('services')
-        .workbooks.get({ tenantId: id.tenantId, id: wbId })
-      if (!wb) return c.json({ error: 'workbook not found in tenant' }, 404)
-      const bytes = await c.get('deps').storage.get(latest.storageKey)
-      let workbook: UniverWorkbookLike
-      try {
-        workbook = JSON.parse(new TextDecoder().decode(bytes)) as UniverWorkbookLike
-      } catch {
-        return c.json({ error: 'snapshot is not valid JSON' }, 500)
-      }
-      const sheet = workbook.sheets?.[body.sheetId]
-      if (!sheet) return c.json({ error: `sheet "${body.sheetId}" not found` }, 404)
+    const latest = await c.get('services').snapshots.getLatest(wbId)
+    if (!latest) {
+      return c.json({ values: [], rangeRef: body.rangeRef, empty: true })
+    }
+    // Defense-in-depth: ensure the snapshot belongs to this tenant via workbook.
+    const wb = await c.get('services').workbooks.get({ tenantId: id.tenantId, id: wbId })
+    if (!wb) return c.json({ error: 'workbook not found in tenant' }, 404)
+    const bytes = await c.get('deps').storage.get(latest.storageKey)
+    let workbook: UniverWorkbookLike
+    try {
+      workbook = JSON.parse(new TextDecoder().decode(bytes)) as UniverWorkbookLike
+    } catch {
+      return c.json({ error: 'snapshot is not valid JSON' }, 500)
+    }
+    const sheet = workbook.sheets?.[body.sheetId]
+    if (!sheet) return c.json({ error: `sheet "${body.sheetId}" not found` }, 404)
 
-      const values: unknown[][] = []
-      for (let r = parsed.startRow; r <= parsed.endRow; r++) {
-        const row: unknown[] = []
-        const rowData = sheet.cellData?.[r.toString()]
-        for (let col = parsed.startCol; col <= parsed.endCol; col++) {
-          const cell = rowData?.[col.toString()]
-          row.push(cell?.v ?? null)
-        }
-        values.push(row)
+    const values: unknown[][] = []
+    for (let r = parsed.startRow; r <= parsed.endRow; r++) {
+      const row: unknown[] = []
+      const rowData = sheet.cellData?.[r.toString()]
+      for (let col = parsed.startCol; col <= parsed.endCol; col++) {
+        const cell = rowData?.[col.toString()]
+        row.push(cell?.v ?? null)
       }
-      return c.json({
-        sheetId: body.sheetId,
-        rangeRef: body.rangeRef,
-        rows: parsed.endRow - parsed.startRow + 1,
-        cols: parsed.endCol - parsed.startCol + 1,
-        values,
-      })
-    },
-  )
+      values.push(row)
+    }
+    return c.json({
+      sheetId: body.sheetId,
+      rangeRef: body.rangeRef,
+      rows: parsed.endRow - parsed.startRow + 1,
+      cols: parsed.endCol - parsed.startCol + 1,
+      values,
+    })
+  },
+)

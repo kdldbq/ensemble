@@ -59,15 +59,15 @@ describe('formatCrossRef', () => {
   })
 
   it('auto-quotes sheet names with spaces', () => {
-    expect(
-      formatCrossRef({ sheetName: 'Q1 2026', rangeRef: 'A1', isRelative: false }),
-    ).toBe("'Q1 2026'!A1")
+    expect(formatCrossRef({ sheetName: 'Q1 2026', rangeRef: 'A1', isRelative: false })).toBe(
+      "'Q1 2026'!A1",
+    )
   })
 
   it('escapes apostrophes', () => {
-    expect(
-      formatCrossRef({ sheetName: "Bob's Sheet", rangeRef: 'A1', isRelative: false }),
-    ).toBe("'Bob''s Sheet'!A1")
+    expect(formatCrossRef({ sheetName: "Bob's Sheet", rangeRef: 'A1', isRelative: false })).toBe(
+      "'Bob''s Sheet'!A1",
+    )
   })
 })
 

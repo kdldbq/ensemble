@@ -34,9 +34,7 @@ export function PivotPanel({ handle, rangeA1, initialSpec, className, style }: P
 
   const { rows, fields, headers } = useMemo(() => parseRange(grid), [grid])
 
-  const [spec, setSpec] = useState<PivotSpec>(
-    initialSpec ?? { rows: [], cols: [], values: [] },
-  )
+  const [spec, setSpec] = useState<PivotSpec>(initialSpec ?? { rows: [], cols: [], values: [] })
 
   useEffect(() => {
     setSpec((s) => ({

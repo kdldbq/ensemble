@@ -1,8 +1,8 @@
 import {
   type ApiClient,
-  buildFolderTree,
   type Folder,
   type FolderTreeNode,
+  buildFolderTree,
 } from '@ensemble-sheets/core'
 import {
   type CSSProperties,
@@ -159,9 +159,7 @@ function FolderNode({
   const filteredChildren =
     matchedIds === null
       ? node.children
-      : node.children.filter(
-          (c) => matchedIds.has(c.id) || hasMatchedDescendant(c, matchedIds),
-        )
+      : node.children.filter((c) => matchedIds.has(c.id) || hasMatchedDescendant(c, matchedIds))
 
   if (matchedIds !== null && !isMatched && filteredChildren.length === 0) return null
 
@@ -510,10 +508,7 @@ export function FolderTree({
     await runMutation(() => api.restoreFolder(folder.id))
   }
 
-  const path = useMemo(
-    () => (selectedId ? findPath(tree, selectedId) : []),
-    [tree, selectedId],
-  )
+  const path = useMemo(() => (selectedId ? findPath(tree, selectedId) : []), [tree, selectedId])
 
   return (
     <div className="ensemble-folder-tree" style={{ fontSize: 13 }} ref={treeContainerRef}>
@@ -573,10 +568,7 @@ export function FolderTree({
       )}
 
       {path.length > 0 && (
-        <nav
-          aria-label="文件夹路径"
-          style={{ fontSize: 11, color: '#6b7280', padding: '4px 0' }}
-        >
+        <nav aria-label="文件夹路径" style={{ fontSize: 11, color: '#6b7280', padding: '4px 0' }}>
           <button
             type="button"
             onClick={() => onSelect?.({ id: '', name: 'root' } as Folder)}
@@ -604,9 +596,7 @@ export function FolderTree({
         </div>
       )}
 
-      {loading && (
-        <div style={{ padding: '12px 0', color: '#9ca3af', fontSize: 12 }}>加载中…</div>
-      )}
+      {loading && <div style={{ padding: '12px 0', color: '#9ca3af', fontSize: 12 }}>加载中…</div>}
 
       {creating && !trashView && (
         <form onSubmit={handleCreate} style={{ display: 'flex', gap: 6, padding: '4px 0' }}>

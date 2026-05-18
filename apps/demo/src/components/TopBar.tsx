@@ -229,7 +229,6 @@ export function TopBar(props: TopBarProps) {
       >
         {badge.label}
       </span>
-
     </header>
   )
 }

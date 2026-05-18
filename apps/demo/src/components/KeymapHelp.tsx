@@ -147,8 +147,7 @@ export function KeymapHelp({ open, onClose }: KeymapHelpProps) {
                             borderRadius: 4,
                             padding: '2px 6px',
                             fontSize: 11,
-                            fontFamily:
-                              'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
                           }}
                         >
                           {s.combo}

@@ -43,12 +43,7 @@ const iconBtn: CSSProperties = {
   marginLeft: 'auto',
 }
 
-export function ActivityTimeline({
-  api,
-  workbookId,
-  limit = 50,
-  style,
-}: ActivityTimelineProps) {
+export function ActivityTimeline({ api, workbookId, limit = 50, style }: ActivityTimelineProps) {
   const [items, setItems] = useState<ActivityEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -130,9 +125,7 @@ export function ActivityTimeline({
         </div>
       )}
 
-      {loading && (
-        <div style={{ padding: '12px 0', color: '#9ca3af', fontSize: 12 }}>加载中…</div>
-      )}
+      {loading && <div style={{ padding: '12px 0', color: '#9ca3af', fontSize: 12 }}>加载中…</div>}
 
       {!loading && items.length === 0 && (
         <div

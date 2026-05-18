@@ -140,12 +140,7 @@ export function createFolderService(db: Database) {
       if (!current) return null
 
       if (
-        await this.hasDuplicateNameAtLevel(
-          input.tenantId,
-          current.parentId ?? null,
-          name,
-          input.id,
-        )
+        await this.hasDuplicateNameAtLevel(input.tenantId, current.parentId ?? null, name, input.id)
       ) {
         throw new FolderValidationError(
           'a folder with this name already exists at this level',

@@ -120,10 +120,7 @@ export function scanText(text: string, rules: DlpRule[] = DEFAULT_DLP_RULES): Dl
   return findings
 }
 
-export function scanPayload(
-  payload: unknown,
-  rules: DlpRule[] = DEFAULT_DLP_RULES,
-): DlpFinding[] {
+export function scanPayload(payload: unknown, rules: DlpRule[] = DEFAULT_DLP_RULES): DlpFinding[] {
   const out: DlpFinding[] = []
   function walk(v: unknown): void {
     if (typeof v === 'string') {

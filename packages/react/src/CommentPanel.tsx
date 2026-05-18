@@ -185,12 +185,7 @@ export function CommentPanel({
           />
           含已解决
         </label>
-        <button
-          type="button"
-          onClick={() => void refresh()}
-          aria-label="刷新评论"
-          style={iconBtn}
-        >
+        <button type="button" onClick={() => void refresh()} aria-label="刷新评论" style={iconBtn}>
           ⟳
         </button>
       </header>
@@ -260,7 +255,9 @@ export function CommentPanel({
                   <span style={{ fontSize: 11, color: '#6b7280' }}>@ {thread.rootCell}</span>
                 )}
                 {root && (
-                  <span style={{ fontSize: 11, color: '#9ca3af' }}>· {relTime(root.createdAt)}</span>
+                  <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                    · {relTime(root.createdAt)}
+                  </span>
                 )}
                 {thread.resolved && (
                   <span
@@ -335,8 +332,7 @@ export function CommentPanel({
                     type="button"
                     onClick={() => void handleReply(thread)}
                     disabled={
-                      !replyDraft[thread.threadId]?.trim() ||
-                      busy === `reply:${thread.threadId}`
+                      !replyDraft[thread.threadId]?.trim() || busy === `reply:${thread.threadId}`
                     }
                     style={{ ...iconBtn, color: '#2563eb' }}
                   >

@@ -112,8 +112,7 @@ export function createProtectionService(db: Database) {
       for (const p of protections) {
         const userMatch = p.allowedUserIds === null || p.allowedUserIds.includes(input.userId)
         const roleMatch =
-          p.allowedRoles === null ||
-          (input.roles ?? []).some((r) => p.allowedRoles?.includes(r))
+          p.allowedRoles === null || (input.roles ?? []).some((r) => p.allowedRoles?.includes(r))
         if (userMatch && roleMatch) return true
       }
       return false

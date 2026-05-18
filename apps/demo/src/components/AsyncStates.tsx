@@ -57,8 +57,7 @@ export function SkeletonRows({ rows = 3, rowHeight = 28, style }: SkeletonRowsPr
           key={i}
           style={{
             height: rowHeight,
-            background:
-              'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+            background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
             backgroundSize: '200% 100%',
             animation: 'ensemble-skeleton 1.4s ease-in-out infinite',
             borderRadius: 4,
@@ -82,13 +81,7 @@ export interface EmptyProps {
   style?: CSSProperties
 }
 
-export function Empty({
-  title = '暂无内容',
-  description,
-  icon = '📭',
-  action,
-  style,
-}: EmptyProps) {
+export function Empty({ title = '暂无内容', description, icon = '📭', action, style }: EmptyProps) {
   return (
     <div style={{ ...baseStyle, ...style }}>
       <div aria-hidden="true" style={{ fontSize: 28 }}>

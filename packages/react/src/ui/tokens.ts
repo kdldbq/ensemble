@@ -109,9 +109,7 @@ export function installCssVars(selector = ':root'): void {
 
   lines.push('[dir="rtl"] .ensemble-mirror-x { transform: scaleX(-1); }')
 
-  lines.push(
-    '@media (max-width: 1199px) { .ensemble-narrow-hide { display: none !important; } }',
-  )
+  lines.push('@media (max-width: 1199px) { .ensemble-narrow-hide { display: none !important; } }')
 
   lines.push('@media (forced-colors: active) {')
   lines.push(`  ${selector} { forced-color-adjust: auto; }`)

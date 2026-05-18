@@ -18,11 +18,7 @@ export interface Span {
 
 export interface Tracer {
   startSpan(name: string, attrs?: SpanAttributes): Span
-  withSpan<T>(
-    name: string,
-    fn: (span: Span) => Promise<T> | T,
-    attrs?: SpanAttributes,
-  ): Promise<T>
+  withSpan<T>(name: string, fn: (span: Span) => Promise<T> | T, attrs?: SpanAttributes): Promise<T>
 }
 
 class NoopSpan implements Span {
@@ -86,7 +82,9 @@ interface RecordedSpan {
   events: Array<{ ns: number; name: string; attrs?: SpanAttributes }>
 }
 
-export function createOtlpHttpTracer(opts: OtlpHttpTracerOpts): Tracer & { flush(): Promise<void> } {
+export function createOtlpHttpTracer(
+  opts: OtlpHttpTracerOpts,
+): Tracer & { flush(): Promise<void> } {
   const buf: RecordedSpan[] = []
   const flushIntervalMs = opts.flushIntervalMs ?? 5000
   const fetchImpl = opts.fetch ?? fetch
@@ -142,7 +140,12 @@ export function createOtlpHttpTracer(opts: OtlpHttpTracerOpts): Tracer & { flush
     const handle = setInterval(() => {
       void flush()
     }, flushIntervalMs)
-    if (typeof handle === 'object' && handle && 'unref' in handle && typeof handle.unref === 'function') {
+    if (
+      typeof handle === 'object' &&
+      handle &&
+      'unref' in handle &&
+      typeof handle.unref === 'function'
+    ) {
       handle.unref()
     }
   }

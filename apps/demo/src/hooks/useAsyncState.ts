@@ -63,9 +63,7 @@ export function useAsyncState<T>(
   }, deps)
 
   const setData = useCallback((next: T | ((prev: T | null) => T)) => {
-    setDataRaw((prev) =>
-      typeof next === 'function' ? (next as (p: T | null) => T)(prev) : next,
-    )
+    setDataRaw((prev) => (typeof next === 'function' ? (next as (p: T | null) => T)(prev) : next))
   }, [])
 
   return { data, loading, error, retry: () => void run(), setData }

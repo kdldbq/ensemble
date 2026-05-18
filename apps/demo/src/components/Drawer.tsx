@@ -40,9 +40,9 @@ export function Drawer({
       if (e.key !== 'Tab') return
       const panel = panelRef.current
       if (!panel) return
-      const focusables = Array.from(
-        panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-      ).filter((el) => el.offsetParent !== null)
+      const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (el) => el.offsetParent !== null,
+      )
       if (focusables.length === 0) {
         e.preventDefault()
         return
@@ -110,8 +110,7 @@ export function Drawer({
           borderLeft: side === 'right' ? '1px solid #e5e7eb' : undefined,
           padding: 16,
           overflowY: 'auto',
-          boxShadow:
-            side === 'left' ? '2px 0 8px rgba(0,0,0,0.08)' : '-2px 0 8px rgba(0,0,0,0.08)',
+          boxShadow: side === 'left' ? '2px 0 8px rgba(0,0,0,0.08)' : '-2px 0 8px rgba(0,0,0,0.08)',
         }}
       >
         <header style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>

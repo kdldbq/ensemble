@@ -109,7 +109,7 @@ function buildEvent(input: EmitInput, at: string): EnsembleEvent {
         commentId: input.resourceId ?? '',
         workbookId: (input.extra?.workbookId as string) ?? '',
         mentioner: input.actorId,
-        mentioned: ((input.extra?.mentioned as string[]) ?? []),
+        mentioned: (input.extra?.mentioned as string[]) ?? [],
         at,
       }
   }

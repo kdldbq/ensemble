@@ -36,9 +36,7 @@ export const foldersRoute = new Hono<AppEnv>()
     const id = c.get('identity')!
     const includeDeleted = c.req.query('include_deleted') === 'true'
     const asTree = c.req.query('tree') === 'true'
-    let items = await c
-      .get('services')
-      .folders.listForTenant(id.tenantId, { includeDeleted })
+    let items = await c.get('services').folders.listForTenant(id.tenantId, { includeDeleted })
     const { permission } = c.get('deps')
     if (permission.filterListVisibility) {
       const filter = await permission.filterListVisibility(id, 'folders')
@@ -109,89 +107,83 @@ export const foldersRoute = new Hono<AppEnv>()
       return c.json({ folders: subfolders, workbooks: workbooksInFolder })
     },
   )
-  .post(
-    '/api/v1/folders/batch',
-    async (c) => {
-      const id = c.get('identity')!
-      const body = (await c.req.json()) as {
-        op?: 'delete' | 'move' | 'restore'
-        ids?: string[]
-        newParentId?: string | null
+  .post('/api/v1/folders/batch', async (c) => {
+    const id = c.get('identity')!
+    const body = (await c.req.json()) as {
+      op?: 'delete' | 'move' | 'restore'
+      ids?: string[]
+      newParentId?: string | null
+    }
+    if (!body.op || !Array.isArray(body.ids) || body.ids.length === 0) {
+      return c.json({ error: 'op and ids (non-empty) required' }, 400)
+    }
+    if (body.ids.length > 100) {
+      return c.json({ error: 'batch limit 100 folders per call' }, 400)
+    }
+    // Pre-flight: verify each target belongs to tenant + caller may act on it.
+    const targets = await c
+      .get('deps')
+      .db.select()
+      .from(foldersTable)
+      .where(and(eq(foldersTable.tenantId, id.tenantId), inArray(foldersTable.id, body.ids)))
+    if (targets.length !== body.ids.length) {
+      return c.json({ error: 'some folder ids not found in tenant' }, 404)
+    }
+    const requiredCap: 'canEdit' | 'canDelete' = body.op === 'delete' ? 'canDelete' : 'canEdit'
+    for (const t of targets) {
+      const cap = await c.get('deps').permission.getCapabilities(id, {
+        type: 'folder',
+        id: t.id,
+        tenantId: id.tenantId,
+      })
+      if (!cap[requiredCap]) {
+        return c.json({ error: `forbidden on folder ${t.id}` }, 403)
       }
-      if (!body.op || !Array.isArray(body.ids) || body.ids.length === 0) {
-        return c.json({ error: 'op and ids (non-empty) required' }, 400)
-      }
-      if (body.ids.length > 100) {
-        return c.json({ error: 'batch limit 100 folders per call' }, 400)
-      }
-      // Pre-flight: verify each target belongs to tenant + caller may act on it.
-      const targets = await c
-        .get('deps')
-        .db.select()
-        .from(foldersTable)
-        .where(
-          and(eq(foldersTable.tenantId, id.tenantId), inArray(foldersTable.id, body.ids)),
-        )
-      if (targets.length !== body.ids.length) {
-        return c.json({ error: 'some folder ids not found in tenant' }, 404)
-      }
-      const requiredCap: 'canEdit' | 'canDelete' =
-        body.op === 'delete' ? 'canDelete' : 'canEdit'
-      for (const t of targets) {
-        const cap = await c.get('deps').permission.getCapabilities(id, {
-          type: 'folder',
-          id: t.id,
-          tenantId: id.tenantId,
-        })
-        if (!cap[requiredCap]) {
-          return c.json({ error: `forbidden on folder ${t.id}` }, 403)
-        }
-      }
-      let ok = 0
-      const errors: Array<{ id: string; message: string }> = []
-      for (const t of targets) {
-        try {
-          if (body.op === 'delete') {
-            await c.get('services').folders.softDelete({ tenantId: id.tenantId, id: t.id })
-            void c.get('services').events.emit({
-              tenantId: id.tenantId,
-              actorId: id.userId,
-              type: 'folder.deleted',
-              resourceId: t.id,
-            })
-          } else if (body.op === 'restore') {
-            await c.get('services').folders.restore({ tenantId: id.tenantId, id: t.id })
-            void c.get('services').events.emit({
-              tenantId: id.tenantId,
-              actorId: id.userId,
-              type: 'folder.restored',
-              resourceId: t.id,
-            })
-          } else if (body.op === 'move') {
-            await c.get('services').folders.move({
-              tenantId: id.tenantId,
-              id: t.id,
-              newParentId: body.newParentId ?? null,
-            })
-            void c.get('services').events.emit({
-              tenantId: id.tenantId,
-              actorId: id.userId,
-              type: 'folder.moved',
-              resourceId: t.id,
-              extra: { fromParentId: t.parentId, toParentId: body.newParentId ?? null },
-            })
-          }
-          ok++
-        } catch (err) {
-          errors.push({
+    }
+    let ok = 0
+    const errors: Array<{ id: string; message: string }> = []
+    for (const t of targets) {
+      try {
+        if (body.op === 'delete') {
+          await c.get('services').folders.softDelete({ tenantId: id.tenantId, id: t.id })
+          void c.get('services').events.emit({
+            tenantId: id.tenantId,
+            actorId: id.userId,
+            type: 'folder.deleted',
+            resourceId: t.id,
+          })
+        } else if (body.op === 'restore') {
+          await c.get('services').folders.restore({ tenantId: id.tenantId, id: t.id })
+          void c.get('services').events.emit({
+            tenantId: id.tenantId,
+            actorId: id.userId,
+            type: 'folder.restored',
+            resourceId: t.id,
+          })
+        } else if (body.op === 'move') {
+          await c.get('services').folders.move({
+            tenantId: id.tenantId,
             id: t.id,
-            message: err instanceof Error ? err.message : String(err),
+            newParentId: body.newParentId ?? null,
+          })
+          void c.get('services').events.emit({
+            tenantId: id.tenantId,
+            actorId: id.userId,
+            type: 'folder.moved',
+            resourceId: t.id,
+            extra: { fromParentId: t.parentId, toParentId: body.newParentId ?? null },
           })
         }
+        ok++
+      } catch (err) {
+        errors.push({
+          id: t.id,
+          message: err instanceof Error ? err.message : String(err),
+        })
       }
-      return c.json({ op: body.op, total: targets.length, ok, errors })
-    },
-  )
+    }
+    return c.json({ op: body.op, total: targets.length, ok, errors })
+  })
   .post('/api/v1/folders', async (c) => {
     const id = c.get('identity')!
     const body = (await c.req.json()) as {
@@ -252,9 +244,7 @@ export const foldersRoute = new Hono<AppEnv>()
       }
       try {
         const before = (
-          await c
-            .get('services')
-            .folders.listForTenant(id.tenantId, { includeDeleted: false })
+          await c.get('services').folders.listForTenant(id.tenantId, { includeDeleted: false })
         ).find((f) => f.id === folderId)
 
         const reordered = await c.get('services').folders.reorder({
@@ -264,11 +254,7 @@ export const foldersRoute = new Hono<AppEnv>()
           ...(body.newParentId !== undefined ? { newParentId: body.newParentId } : {}),
         })
         if (!reordered) return c.json({ error: 'not found' }, 404)
-        if (
-          body.newParentId !== undefined &&
-          before &&
-          before.parentId !== body.newParentId
-        )
+        if (body.newParentId !== undefined && before && before.parentId !== body.newParentId)
           void c.get('services').events.emit({
             tenantId: id.tenantId,
             actorId: id.userId,
@@ -322,9 +308,7 @@ export const foldersRoute = new Hono<AppEnv>()
       try {
         if (body.parentId !== undefined) {
           const before = (
-            await c
-              .get('services')
-              .folders.listForTenant(id.tenantId, { includeDeleted: false })
+            await c.get('services').folders.listForTenant(id.tenantId, { includeDeleted: false })
           ).find((f) => f.id === folderId)
 
           const moved = await c.get('services').folders.move({

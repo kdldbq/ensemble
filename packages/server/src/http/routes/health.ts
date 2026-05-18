@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
-import type { AppEnv } from '../app'
 import { logger } from '../../logger'
+import type { AppEnv } from '../app'
 
 const startTime = Date.now()
 const VERSION = process.env.npm_package_version ?? '0.0.0'

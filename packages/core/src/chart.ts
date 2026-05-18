@@ -27,7 +27,10 @@ export interface ChartData {
  *   - if hasHeader, first row = series names; otherwise series named "Series N"
  *   - non-numeric cells produce 0
  */
-export function buildChartData(grid: Array<Array<string | number | null>>, hasHeader: boolean): ChartData {
+export function buildChartData(
+  grid: Array<Array<string | number | null>>,
+  hasHeader: boolean,
+): ChartData {
   if (grid.length === 0) return { series: [] }
   const headerRow = grid[0] ?? []
   const dataRows = hasHeader ? grid.slice(1) : grid

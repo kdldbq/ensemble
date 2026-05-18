@@ -128,7 +128,9 @@ function BarList({ items }: { items: Array<{ label: string; value: number }> }) 
             {i.label}
           </span>
           <div style={{ background: '#e5e7eb', height: 8, borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ width: `${(i.value / max) * 100}%`, height: '100%', background: '#2563eb' }} />
+            <div
+              style={{ width: `${(i.value / max) * 100}%`, height: '100%', background: '#2563eb' }}
+            />
           </div>
           <span style={{ textAlign: 'right', color: '#6b7280' }}>{i.value}</span>
         </div>

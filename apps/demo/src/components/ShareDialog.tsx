@@ -340,8 +340,8 @@ export function ShareDialog({ api, workbookId, open, onClose }: ShareDialogProps
       </section>
 
       <p style={{ marginTop: 16, fontSize: 12, color: '#6b7280' }}>
-        授权由 host PermissionAdapter 实现；演示里授权信息每日重置前一直有效。
-        链接密码使用 scrypt 哈希存储，不可逆。
+        授权由 host PermissionAdapter 实现；演示里授权信息每日重置前一直有效。 链接密码使用 scrypt
+        哈希存储，不可逆。
       </p>
     </Drawer>
   )

@@ -229,10 +229,13 @@ export function createServer(opts: CreateServerOpts) {
     }
   })
 
-  builtApp = buildApp({ ...deps, notifications }, {
-    beforeRoutes: [{ path: '/api/v1/ws/:workbookId', handler: wsHandler }],
-    ...(opts.extraRoutes ? { extraRoutes: opts.extraRoutes } : {}),
-  })
+  builtApp = buildApp(
+    { ...deps, notifications },
+    {
+      beforeRoutes: [{ path: '/api/v1/ws/:workbookId', handler: wsHandler }],
+      ...(opts.extraRoutes ? { extraRoutes: opts.extraRoutes } : {}),
+    },
+  )
 
   return {
     listen({ port }: { port: number }) {

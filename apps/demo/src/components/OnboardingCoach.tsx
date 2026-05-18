@@ -14,9 +14,8 @@ const STEPS: Step[] = [
     title: '👋 欢迎来到 ensemble 演示',
     body: (
       <>
-        ensemble 是一个 <strong>开源 / 自托管</strong> 的 Univer 协作 SDK。
-        本演示展示 v0.2 GA 的核心能力。按 <kbd>下一步</kbd> 逐项了解，
-        或按 <kbd>跳过</kbd> 直接开始。
+        ensemble 是一个 <strong>开源 / 自托管</strong> 的 Univer 协作 SDK。 本演示展示 v0.2 GA
+        的核心能力。按 <kbd>下一步</kbd> 逐项了解， 或按 <kbd>跳过</kbd> 直接开始。
       </>
     ),
   },
@@ -39,12 +38,10 @@ const STEPS: Step[] = [
     body: (
       <>
         <p style={{ margin: '0 0 6px' }}>
-          <strong>📁 文件夹</strong>：F2 重命名 / Delete 删除（可在回收站恢复）
-          / 搜索框过滤。
+          <strong>📁 文件夹</strong>：F2 重命名 / Delete 删除（可在回收站恢复） / 搜索框过滤。
         </p>
         <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>
-          <strong>↗ 分享</strong>：单用户 / 整租户 / 链接共享三种 grant；
-          链接共享支持密码 + 过期。
+          <strong>↗ 分享</strong>：单用户 / 整租户 / 链接共享三种 grant； 链接共享支持密码 + 过期。
         </p>
       </>
     ),

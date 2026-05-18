@@ -1,6 +1,6 @@
 import { CustomCommandExecutionError } from '@univerjs/core'
 import { ApiClient } from './api-client'
-import { createOfflineCache, type OfflineCache } from './offline-cache'
+import { type OfflineCache, createOfflineCache } from './offline-cache'
 import type { UniverWorkbookData } from './types'
 import { type Editor, createEditor, loadBrowserLocales, loadBrowserPlugins } from './univer-wrapper'
 import {
@@ -103,7 +103,10 @@ export interface MountOpts {
    * the user can type. Equivalent to calling handle.registerCustomFunction
    * for each entry after mount. Names are case-insensitive.
    */
-  customFunctions?: Record<string, (...args: Array<string | number | null>) => string | number | null>
+  customFunctions?: Record<
+    string,
+    (...args: Array<string | number | null>) => string | number | null
+  >
   /** @internal — for tests */
   _editorFactory?: (container: HTMLElement) => Editor
   /** @internal — for tests */
@@ -333,12 +336,7 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
    */
   let cellLockBlockedBy: string | null = null
 
-  function makeCellRegion(
-    unitId: string,
-    subUnitId: string,
-    row: number,
-    col: number,
-  ): string {
+  function makeCellRegion(unitId: string, subUnitId: string, row: number, col: number): string {
     return `cell:${unitId}/${subUnitId}!R${row}C${col}`
   }
 

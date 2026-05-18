@@ -178,9 +178,7 @@ export function VersionHistoryPanel({
       {loading && <div style={{ padding: '12px 0', color: '#9ca3af', fontSize: 12 }}>加载中…</div>}
 
       {!loading && items.length === 0 && (
-        <div
-          style={{ padding: '14px 0', color: '#9ca3af', fontSize: 12, textAlign: 'center' }}
-        >
+        <div style={{ padding: '14px 0', color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>
           暂无命名版本。点 + 保存版本 开始。
         </div>
       )}
