@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { shareGrants } from '../../db/schema'
 import { clientIpFromHeaders, ipMatches } from '../../services/ip-allowlist'
+import { generateLinkToken, hmacLinkToken } from '../../services/link-token'
 import { hashPassword, verifyPassword } from '../../services/password'
 import type { AppEnv } from '../app'
 import { requireIdentity } from '../auth'
@@ -52,7 +53,7 @@ export const grantsRoute = new Hono<AppEnv>()
       .db.select()
       .from(shareGrants)
       .where(and(...conds))
-    const items = rows.map(({ passwordHash, ...rest }) => ({
+    const items = rows.map(({ passwordHash, linkTokenHmac: _hmac, ...rest }) => ({
       ...rest,
       hasPassword: passwordHash != null && passwordHash !== '',
     }))
@@ -82,6 +83,16 @@ export const grantsRoute = new Hono<AppEnv>()
       if (body.allowedIps !== undefined && body.granteeType !== 'public_link') {
         return c.json({ error: 'allowedIps only valid for public_link grants' }, 400)
       }
+      let linkToken: string | null = null
+      let linkTokenHmac: string | null = null
+      if (body.granteeType === 'public_link') {
+        const secret = c.get('deps').linkHmacSecret
+        if (!secret) {
+          return c.json({ error: 'public_link grants are not configured' }, 503)
+        }
+        linkToken = generateLinkToken()
+        linkTokenHmac = hmacLinkToken(secret, linkToken)
+      }
       const [row] = await c
         .get('deps')
         .db.insert(shareGrants)
@@ -90,12 +101,13 @@ export const grantsRoute = new Hono<AppEnv>()
           resourceType: body.resourceType,
           resourceId: body.resourceId,
           granteeType: body.granteeType,
-          granteeId: body.granteeId ?? null,
+          granteeId: body.granteeType === 'public_link' ? null : (body.granteeId ?? null),
           permission: body.permission,
           grantedBy: id.userId,
           ...(body.expiresAt ? { expiresAt: new Date(body.expiresAt) } : {}),
           ...(passwordHash ? { passwordHash } : {}),
           ...(body.allowedIps && body.allowedIps.length > 0 ? { allowedIps: body.allowedIps } : {}),
+          ...(linkTokenHmac ? { linkTokenHmac } : {}),
         })
         .returning()
       if (!row) throw new Error('insert returned no row')
@@ -105,8 +117,15 @@ export const grantsRoute = new Hono<AppEnv>()
         type: 'share.granted',
         resourceId: row.id,
       })
-      const { passwordHash: _h, ...safe } = row
-      return c.json({ ...safe, hasPassword: passwordHash != null }, 201)
+      const { passwordHash: _h, linkTokenHmac: _hmac, ...safe } = row
+      return c.json(
+        {
+          ...safe,
+          hasPassword: passwordHash != null,
+          ...(linkToken ? { linkToken } : {}),
+        },
+        201,
+      )
     },
   )
   .post('/api/v1/grants/:id/verify', async (c) => {

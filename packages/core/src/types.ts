@@ -87,6 +87,12 @@ export interface Grant {
   grantedAt: string
   /** True iff a password was set on this grant (passwordHash is never sent). */
   hasPassword?: boolean
+  /**
+   * Cleartext public_link token. Server-generated, returned exactly once in
+   * the createGrant response when granteeType=public_link. Never present on
+   * listGrants results — the server stores only the HMAC.
+   */
+  readonly linkToken?: string
 }
 
 export interface Version {

@@ -74,6 +74,15 @@ export interface AppDeps {
    * bridge so REST publishers and WS subscribers reach each other.
    */
   notifications?: import('../realtime/notification-bus').NotificationBus
+  /**
+   * Server secret used to HMAC-wrap `public_link` grant tokens before storing
+   * them in `share_grants.link_token_hmac`. Hosts SHOULD load this from
+   * `process.env.ENSEMBLE_LINK_HMAC_SECRET`. Required in `NODE_ENV=production`
+   * — `buildApp` throws if absent or shorter than 32 chars. Absence outside
+   * production disables new-grant creation for `public_link` (route returns 503)
+   * but legacy cleartext rows still resolve through the dual-path fallback.
+   */
+  linkHmacSecret?: string
 }
 
 export interface AppServices {
@@ -111,7 +120,17 @@ export interface BuildAppOpts {
   extraRoutes?: Hono<AppEnv>
 }
 
+/** Minimum acceptable length for the HMAC secret (32 bytes / 256 bits). */
+const LINK_HMAC_SECRET_MIN_LEN = 32
+
 export function buildApp(deps: AppDeps, opts?: BuildAppOpts) {
+  if (process.env.NODE_ENV === 'production') {
+    if (!deps.linkHmacSecret || deps.linkHmacSecret.length < LINK_HMAC_SECRET_MIN_LEN) {
+      throw new Error(
+        `ENSEMBLE_LINK_HMAC_SECRET must be set (>=${LINK_HMAC_SECRET_MIN_LEN} chars) in production`,
+      )
+    }
+  }
   const maskCache = new MaskRuleCache(
     (identity, wbId) =>
       deps.permission.getMaskRules(identity, {

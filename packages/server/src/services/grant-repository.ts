@@ -81,6 +81,7 @@ export function createGrantRepository(db: Database) {
         resourceId: r.resourceId,
         granteeType: r.granteeType,
         granteeId: r.granteeId,
+        linkTokenHmac: r.linkTokenHmac,
         permission: r.permission,
         expiresAt: r.expiresAt,
       }))

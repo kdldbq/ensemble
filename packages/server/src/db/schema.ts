@@ -94,6 +94,14 @@ export const shareGrants = pgTable('share_grants', {
   resourceId: uuid('resource_id').notNull(),
   granteeType: granteeType('grantee_type').notNull(),
   granteeId: text('grantee_id'),
+  /**
+   * HMAC-SHA256(server_secret, cleartext_token) for public_link grants.
+   * Replaces the prior practice of storing the cleartext token in
+   * `granteeId` (Sprint 2 design that left tokens exposed in DB dumps).
+   * Lowercase hex, 64 chars. Nullable during dual-path rollout — legacy
+   * rows with hmac=NULL fall back to cleartext compare on `granteeId`.
+   */
+  linkTokenHmac: text('link_token_hmac'),
   permission: permissionLevel('permission').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   /**
