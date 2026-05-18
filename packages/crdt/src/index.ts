@@ -123,7 +123,7 @@ export class InMemoryLwwCrdtAdapter implements CRDTAdapter {
 
   merge(update: Uint8Array): CellOp[] {
     const parsed: unknown = JSON.parse(new TextDecoder().decode(update))
-    if (!Array.isArray(parsed)) throw new Error('crdt-yjs: merge(update) expected an array')
+    if (!Array.isArray(parsed)) throw new Error('crdt: merge(update) expected an array')
     const ops: CellOp[] = []
     for (const raw of parsed) {
       if (
@@ -134,7 +134,7 @@ export class InMemoryLwwCrdtAdapter implements CRDTAdapter {
         !(raw as { addr?: unknown }).addr ||
         typeof (raw as { addr?: { sheet?: unknown } }).addr?.sheet !== 'string'
       ) {
-        throw new Error('crdt-yjs: merge(update) malformed CellOp')
+        throw new Error('crdt: merge(update) malformed CellOp')
       }
       const op = raw as CellOp
       this.applyOp(op)

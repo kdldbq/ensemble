@@ -1,11 +1,11 @@
 {
-  "name": "@ensemble-sheets/crdt-yjs",
+  "name": "@ensemble-sheets/crdt",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/kdldbq/ensemble.git",
-    "directory": "packages/crdt-yjs"
+    "directory": "packages/crdt"
   },
   "type": "module",
   "main": "./dist/index.js",

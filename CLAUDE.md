@@ -69,7 +69,7 @@ The data plane sits on Postgres (drizzle schema in `packages/server/src/db/schem
 
 ### The two non-obvious load-bearing ideas
 
-1. **Cell-region locks instead of CRDT** (ADR-0002). When two users hit the same cell concurrently, ensemble does *not* last-write-wins — the server arbitrates via a Redis lock and rejects the loser with `lock_required`. The CRDT alternative ships as a separate adapter contract in `@ensemble-sheets/crdt-yjs` (LWW reference impl) — never mix the two on the same workbook.
+1. **Cell-region locks instead of CRDT** (ADR-0002). When two users hit the same cell concurrently, ensemble does *not* last-write-wins — the server arbitrates via a Redis lock and rejects the loser with `lock_required`. The CRDT alternative ships as a separate adapter contract in `@ensemble-sheets/crdt` (LWW reference impl; a Yjs binding will land here in a future sprint) — never mix the two on the same workbook.
 2. **Per-recipient mask broadcast.** Every outbound `apply_mutation` frame is re-rendered through the recipient's *current* `MaskRuleCache` entry (no cached snapshot ever leaves the server unmasked). Same applies to `versions/diff` (4.5 fix) and `export.{xlsx,pdf}` routes. **If you add any code path that emits snapshot bytes to a user, you must apply `applyMaskRules(data, await services.masks.get(idCtx, wbId))` first.**
 
 ### Mount lifecycle (client)
