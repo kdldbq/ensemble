@@ -24,6 +24,9 @@ jobs:
         with: { node-version-file: '.nvmrc', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm typecheck
+      # Build must run before typecheck — packages like mcp-server import
+      # from @ensemble-sheets/core's published dist (not the TS source), so
+      # tsc cannot resolve cross-package types without the dist artifacts.
       - run: pnpm build
+      - run: pnpm typecheck
       - run: pnpm test --coverage
