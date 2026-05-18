@@ -83,6 +83,17 @@ export interface AppDeps {
    * but legacy cleartext rows still resolve through the dual-path fallback.
    */
   linkHmacSecret?: string
+  /**
+   * In-memory registry of live WS sessions. When provided, the admin sessions
+   * endpoints (`GET /api/v1/admin/sessions`, `POST /api/v1/admin/sessions/:id/kick`)
+   * and the grants DELETE auto-kick path become functional. When absent, the
+   * list endpoint returns an empty list and kick returns 503.
+   *
+   * The host MUST share the same instance with the WS bridge — see `server.ts`
+   * which constructs it once and passes it both into `buildApp` and into the
+   * WS onOpen/onClose handlers.
+   */
+  sessionRegistry?: import('../realtime/session-registry').SessionRegistry
 }
 
 export interface AppServices {

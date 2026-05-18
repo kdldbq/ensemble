@@ -6,6 +6,7 @@ import type { LLMAdapter } from './adapters/llm'
 import type { StorageAdapter } from './adapters/storage'
 import { createDb } from './db/client'
 import { type AppDeps, type AppEnv, buildApp } from './http/app'
+import { logger } from './logger'
 import { createTokenBucket } from './realtime/backpressure'
 import { createCellLockManager } from './realtime/cell-lock-manager'
 import { createRoomRegistry } from './realtime/collab-room'
@@ -13,6 +14,7 @@ import { createMutationBroadcaster } from './realtime/mutation-broadcaster'
 import { createNotificationBus } from './realtime/notification-bus'
 import { createPerTenantBucket } from './realtime/per-tenant-bucket'
 import { createPresenceTracker } from './realtime/presence-tracker'
+import { createSessionRegistry } from './realtime/session-registry'
 import { createRedis } from './redis/client'
 import { createMutationService } from './services/mutation-service'
 import { createSession } from './ws/session'
@@ -40,6 +42,10 @@ export function createServer(opts: CreateServerOpts) {
   // Realtime infrastructure
   const redis = createRedis(opts.redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379')
 
+  // Shared between the WS bridge (onOpen registers, onClose unregisters) and
+  // the admin sessions endpoints / grants DELETE auto-kick path.
+  const sessionRegistry = createSessionRegistry()
+
   const deps: AppDeps = {
     db,
     identity: opts.identity,
@@ -47,6 +53,7 @@ export function createServer(opts: CreateServerOpts) {
     storage: opts.storage,
     event: opts.event,
     redis,
+    sessionRegistry,
     ...(opts.llm ? { llm: opts.llm } : {}),
   }
   const roomRegistry = createRoomRegistry()
@@ -185,6 +192,25 @@ export function createServer(opts: CreateServerOpts) {
         // Attach session to the raw WS so onMessage/onClose can reach it
         ;(ws as unknown as Record<string, unknown>)._session = session
 
+        // Register in the in-memory session registry so admin/kick endpoints
+        // and the grants DELETE auto-kick path can close this socket out of band.
+        const sessionId = clientId
+        sessionRegistry.register({
+          sessionId,
+          userId: identity.userId,
+          tenantId: identity.tenantId,
+          workbookId,
+          openedAt: new Date(),
+          close: () => {
+            try {
+              ws.close()
+            } catch {
+              /* socket may already be closing */
+            }
+          },
+        })
+        ;(ws as unknown as Record<string, unknown>)._sessionId = sessionId
+
         // Subscribe to in-room notifications (e.g. @mention) and forward to
         // this socket when this user is in the recipients list (or the list is
         // empty, meaning broadcast). Unsubscribe on close.
@@ -213,17 +239,28 @@ export function createServer(opts: CreateServerOpts) {
       },
 
       onClose(_e, ws) {
+        // Each cleanup step is independently guarded — a throw in any one
+        // must not skip the others (otherwise a buggy session.onClose would
+        // leak the registry entry and the notification subscription).
         const session = (ws as unknown as Record<string, unknown>)._session as
           | ReturnType<typeof createSession>
           | undefined
-        session?.onClose()
+        try {
+          session?.onClose()
+        } catch (err) {
+          logger.warn({ err }, 'WS onClose: session.onClose() threw')
+        }
+        const sessionId = (ws as unknown as Record<string, unknown>)._sessionId as
+          | string
+          | undefined
+        if (sessionId) sessionRegistry.unregister(sessionId)
         const unsub = (ws as unknown as Record<string, unknown>)._notifUnsub as
           | (() => void)
           | undefined
         try {
           unsub?.()
-        } catch {
-          /* swallow */
+        } catch (err) {
+          logger.warn({ err }, 'WS onClose: notification unsubscribe threw')
         }
       },
     }
