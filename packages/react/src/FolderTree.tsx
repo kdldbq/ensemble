@@ -1,6 +1,8 @@
 // biome-ignore-all lint/a11y/useSemanticElements: tree role intentionally builds on div/span for nesting flexibility.
 // biome-ignore-all lint/a11y/noStaticElementInteractions: row click is part of the tree widget's composite focus model, not a standalone button.
 // biome-ignore-all lint/a11y/useFocusableInteractive: tree row is interactive via the parent role=tree; child interactivity is delegated.
+// biome-ignore-all lint/a11y/noNoninteractiveElementToInteractiveRole: <ul role="tree"> is the canonical WAI-ARIA tree pattern; the rule's "use div/span" suggestion contradicts the spec.
+// biome-ignore-all lint/a11y/noNoninteractiveTabindex: tree rows must be keyboard-focusable for the tree widget's roving-tabindex / arrow-key navigation.
 import {
   type ApiClient,
   buildFolderTree,
@@ -189,6 +191,7 @@ function FolderNode({
   return (
     <li role="treeitem" aria-expanded={hasChildren ? isOpen : undefined}>
       <div
+        tabIndex={0}
         onKeyDown={handleKeyDown}
         style={{
           display: 'flex',
@@ -625,7 +628,7 @@ export function FolderTree({
       )}
 
       {!trashView && tree.length > 0 && (
-        <ul aria-label="文件夹树" style={listStyle}>
+        <ul role="tree" aria-label="文件夹树" style={listStyle}>
           {tree.map((node) => (
             <FolderNode
               key={node.id}
