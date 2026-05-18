@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { Capability, IdentityContext, ResourceRef } from '../adapters/types'
-import { verifyLinkTokenHmac } from './link-token'
+import { constantTimeHexEq, hmacLinkToken } from './link-token'
 
 /**
  * Constant-time string equality for legacy cleartext public_link tokens.
@@ -116,8 +116,8 @@ function merge(a: Capability, b: Capability): Capability {
 function isApplicable(
   grant: Grant,
   identity: IdentityContext,
-  presentedToken?: string,
-  linkHmacSecret?: string,
+  presentedToken: string | undefined,
+  presentedHmacHex: string | undefined,
 ): boolean {
   if (grant.expiresAt && grant.expiresAt.getTime() < Date.now()) return false
   switch (grant.granteeType) {
@@ -128,11 +128,13 @@ function isApplicable(
     case 'public_link': {
       if (!presentedToken) return false
       // HMAC path: any non-null linkTokenHmac means this row uses the new
-      // hashed format. Without a secret in context, we MUST refuse — silently
-      // falling back to cleartext compare would let an attacker downgrade.
+      // hashed format. Without a precomputed HMAC of the presented token we
+      // MUST refuse — silently falling back to cleartext compare would let an
+      // attacker downgrade.
       if (grant.linkTokenHmac) {
-        if (!linkHmacSecret) return false
-        return verifyLinkTokenHmac(linkHmacSecret, presentedToken, grant.linkTokenHmac)
+        return (
+          presentedHmacHex !== undefined && constantTimeHexEq(presentedHmacHex, grant.linkTokenHmac)
+        )
       }
       // Legacy / dual-path: pre-migration rows store cleartext in granteeId.
       return !!grant.granteeId && safeStringEq(grant.granteeId, presentedToken)
@@ -154,9 +156,14 @@ export async function resolveCapability(ctx: GrantContext): Promise<Capability> 
   for (const fid of ancestors) refs.push({ resourceType: 'folder', resourceId: fid })
 
   const grants = await ctx.findGrants(refs)
+  // Hash the presented token once — same input on every grant iteration.
+  const presentedHmacHex =
+    ctx.publicLinkToken && ctx.linkHmacSecret
+      ? hmacLinkToken(ctx.linkHmacSecret, ctx.publicLinkToken)
+      : undefined
   let acc: Capability = EMPTY
   for (const g of grants) {
-    if (isApplicable(g, ctx.identity, ctx.publicLinkToken, ctx.linkHmacSecret)) {
+    if (isApplicable(g, ctx.identity, ctx.publicLinkToken, presentedHmacHex)) {
       acc = merge(acc, levelToCapability(g.permission))
     }
   }

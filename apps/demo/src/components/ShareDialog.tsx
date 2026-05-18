@@ -94,9 +94,6 @@ export function ShareDialog({ api, workbookId, open, onClose }: ShareDialogProps
       })
 
       if (granteeType === 'public_link') {
-        // grant.linkToken is the cleartext token, returned exactly once on
-        // create. After this response the server only retains the HMAC, so
-        // there is no way to surface the same URL in the list view below.
         const url = publicLinkUrl(grant.linkToken ?? '')
         try {
           await navigator.clipboard.writeText(url)

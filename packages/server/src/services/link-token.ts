@@ -15,6 +15,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
  */
 
 const HMAC_HEX_LEN = 64
+const HMAC_HEX_RE = /^[0-9a-f]{64}$/
 
 /**
  * Generate a CSPRNG-backed token (32 bytes, base64url-encoded, ~43 chars).
@@ -33,16 +34,33 @@ export function hmacLinkToken(secret: string, token: string): string {
 }
 
 /**
+ * Constant-time equality on two HMAC-hex strings. Returns false if either
+ * is not a well-formed 64-char lowercase-hex value. Used by callers that
+ * have already computed the HMAC of the presented token once and want to
+ * compare it against many stored values without re-hashing.
+ */
+export function constantTimeHexEq(a: string, b: string): boolean {
+  if (
+    a.length !== HMAC_HEX_LEN ||
+    b.length !== HMAC_HEX_LEN ||
+    !HMAC_HEX_RE.test(a) ||
+    !HMAC_HEX_RE.test(b)
+  ) {
+    return false
+  }
+  // Validate format BEFORE Buffer.from — node's 'hex' decoder silently drops
+  // non-hex chars, so a 64-char-but-mostly-garbage string would yield a short
+  // buffer and a length-mismatch side-channel.
+  const ab = Buffer.from(a, 'hex')
+  const bb = Buffer.from(b, 'hex')
+  return ab.length === bb.length && timingSafeEqual(ab, bb)
+}
+
+/**
  * Constant-time verify that `hmacLinkToken(secret, token) === storedHex`.
  * Returns false (no throw) when `storedHex` is malformed or empty.
  */
 export function verifyLinkTokenHmac(secret: string, token: string, storedHex: string): boolean {
-  if (!secret) return false
-  if (!token) return false
-  if (storedHex.length !== HMAC_HEX_LEN) return false
-  const computed = hmacLinkToken(secret, token)
-  const a = Buffer.from(computed, 'hex')
-  const b = Buffer.from(storedHex, 'hex')
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
+  if (!secret || !token) return false
+  return constantTimeHexEq(hmacLinkToken(secret, token), storedHex)
 }

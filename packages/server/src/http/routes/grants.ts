@@ -53,7 +53,7 @@ export const grantsRoute = new Hono<AppEnv>()
       .db.select()
       .from(shareGrants)
       .where(and(...conds))
-    const items = rows.map(({ passwordHash, ...rest }) => ({
+    const items = rows.map(({ passwordHash, linkTokenHmac: _hmac, ...rest }) => ({
       ...rest,
       hasPassword: passwordHash != null && passwordHash !== '',
     }))
@@ -83,21 +83,12 @@ export const grantsRoute = new Hono<AppEnv>()
       if (body.allowedIps !== undefined && body.granteeType !== 'public_link') {
         return c.json({ error: 'allowedIps only valid for public_link grants' }, 400)
       }
-      // For public_link grants we generate the token server-side and only
-      // persist the HMAC, so DB compromise no longer leaks usable tokens.
-      // The cleartext is returned to the caller exactly once in the response.
       let linkToken: string | null = null
       let linkTokenHmac: string | null = null
       if (body.granteeType === 'public_link') {
         const secret = c.get('deps').linkHmacSecret
         if (!secret) {
-          return c.json(
-            {
-              error:
-                'public_link grants are disabled: ENSEMBLE_LINK_HMAC_SECRET is not configured on this server',
-            },
-            503,
-          )
+          return c.json({ error: 'public_link grants are not configured' }, 503)
         }
         linkToken = generateLinkToken()
         linkTokenHmac = hmacLinkToken(secret, linkToken)
@@ -110,9 +101,6 @@ export const grantsRoute = new Hono<AppEnv>()
           resourceType: body.resourceType,
           resourceId: body.resourceId,
           granteeType: body.granteeType,
-          // For public_link, granteeId stays null — cleartext lives only in
-          // the response. For user / tenant_member we still accept the
-          // caller-supplied identifier.
           granteeId: body.granteeType === 'public_link' ? null : (body.granteeId ?? null),
           permission: body.permission,
           grantedBy: id.userId,

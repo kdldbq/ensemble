@@ -62,9 +62,9 @@ const openApiDoc = {
           hasPassword: { type: 'boolean' },
           linkToken: {
             type: 'string',
+            readOnly: true,
             description:
               'Cleartext public_link token. Server-generated, returned exactly ONCE in the POST /api/v1/grants response when granteeType=public_link. Never returned from GET. Persist client-side immediately — the server stores only its HMAC.',
-            nullable: true,
           },
         },
       },

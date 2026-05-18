@@ -92,7 +92,7 @@ export interface Grant {
    * the createGrant response when granteeType=public_link. Never present on
    * listGrants results — the server stores only the HMAC.
    */
-  linkToken?: string
+  readonly linkToken?: string
 }
 
 export interface Version {
