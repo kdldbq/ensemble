@@ -84,3 +84,46 @@ export const adminRoute = new Hono<AppEnv>()
       topActors7d: topUsers7d.map((r) => ({ actorId: r.actorId, count: r.c })),
     })
   })
+  /**
+   * List live WS sessions in the caller's tenant. Returns an empty list when
+   * the host did not wire `deps.sessionRegistry` — the route never 503s on GET
+   * so a dashboard renders gracefully against a server that does not yet
+   * support live-session inspection.
+   */
+  .get('/api/v1/admin/sessions', (c) => {
+    const id = c.get('identity')
+    if (!id) return c.json({ error: 'unauthorized' }, 401)
+    const reg = c.get('deps').sessionRegistry
+    if (!reg) return c.json({ sessions: [] })
+    return c.json({
+      sessions: reg.list(id.tenantId).map((h) => ({
+        sessionId: h.sessionId,
+        userId: h.userId,
+        workbookId: h.workbookId,
+        openedAt: h.openedAt.toISOString(),
+      })),
+    })
+  })
+  /**
+   * Force-close a single WS session. Returns:
+   *   - 204 on success
+   *   - 404 for unknown ids OR sessions belonging to a different tenant
+   *     (cross-tenant existence is not leaked)
+   *   - 503 when sessionRegistry is not configured on this server
+   *
+   * Hosts may layer additional admin-role enforcement by wrapping this route.
+   */
+  .post('/api/v1/admin/sessions/:id/kick', (c) => {
+    const id = c.get('identity')
+    if (!id) return c.json({ error: 'unauthorized' }, 401)
+    const reg = c.get('deps').sessionRegistry
+    if (!reg) {
+      return c.json(
+        { error: 'session registry is not configured on this server', code: 'no_registry' },
+        503,
+      )
+    }
+    const ok = reg.kick(c.req.param('id'), id.tenantId)
+    if (!ok) return c.json({ error: 'session not found' }, 404)
+    return c.body(null, 204)
+  })

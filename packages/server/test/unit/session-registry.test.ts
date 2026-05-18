@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  createSessionRegistry,
   type SessionHandle,
   type SessionRegistry,
+  createSessionRegistry,
 } from '../../src/realtime/session-registry'
 
 function handle(overrides: Partial<SessionHandle> = {}): SessionHandle {

@@ -75,6 +75,7 @@ export interface AppDeps {
    */
   notifications?: import('../realtime/notification-bus').NotificationBus
   /**
+<<<<<<< HEAD
    * Server secret used to HMAC-wrap `public_link` grant tokens before storing
    * them in `share_grants.link_token_hmac`. Hosts SHOULD load this from
    * `process.env.ENSEMBLE_LINK_HMAC_SECRET`. Required in `NODE_ENV=production`
@@ -83,6 +84,18 @@ export interface AppDeps {
    * but legacy cleartext rows still resolve through the dual-path fallback.
    */
   linkHmacSecret?: string
+=======
+   * In-memory registry of live WS sessions. When provided, the admin sessions
+   * endpoints (`GET /api/v1/admin/sessions`, `POST /api/v1/admin/sessions/:id/kick`)
+   * and the grants DELETE auto-kick path become functional. When absent, the
+   * list endpoint returns an empty list and kick returns 503.
+   *
+   * The host MUST share the same instance with the WS bridge — see `server.ts`
+   * which constructs it once and passes it both into `buildApp` and into the
+   * WS onOpen/onClose handlers.
+   */
+  sessionRegistry?: import('../realtime/session-registry').SessionRegistry
+>>>>>>> 5e38b7b (fix(server/admin): add in-memory session registry + admin kick endpoints (#3))
 }
 
 export interface AppServices {
