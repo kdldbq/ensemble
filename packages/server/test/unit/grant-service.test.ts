@@ -6,6 +6,7 @@ function ctx(overrides: Partial<GrantContext> = {}): GrantContext {
     identity: { tenantId: 't1', userId: 'u1' },
     resource: { type: 'workbook', id: 'wb1', tenantId: 't1' },
     workbookOwnerId: 'someone-else',
+    workbookTenantId: 't1',
     workbookFolderId: null,
     folderAncestors: async () => [],
     findGrants: async () => [],

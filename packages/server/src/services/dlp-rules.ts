@@ -120,11 +120,24 @@ export function scanText(text: string, rules: DlpRule[] = DEFAULT_DLP_RULES): Dl
   return findings
 }
 
-export function scanPayload(payload: unknown, rules: DlpRule[] = DEFAULT_DLP_RULES): DlpFinding[] {
+export interface ScanOpts {
+  /** Minimum string length to scan. Default 5 — skips trivial values. */
+  minLength?: number
+  /** Maximum string length to scan. Default 10_000. Set higher to cover larger cell notes. */
+  maxLength?: number
+}
+
+export function scanPayload(
+  payload: unknown,
+  rules: DlpRule[] = DEFAULT_DLP_RULES,
+  opts: ScanOpts = {},
+): DlpFinding[] {
+  const minLen = opts.minLength ?? 5
+  const maxLen = opts.maxLength ?? 10_000
   const out: DlpFinding[] = []
   function walk(v: unknown): void {
     if (typeof v === 'string') {
-      if (v.length > 4 && v.length < 10_000) out.push(...scanText(v, rules))
+      if (v.length >= minLen && v.length <= maxLen) out.push(...scanText(v, rules))
     } else if (Array.isArray(v)) {
       for (const x of v) walk(x)
     } else if (v && typeof v === 'object') {

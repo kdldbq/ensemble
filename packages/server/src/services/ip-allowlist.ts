@@ -89,17 +89,35 @@ export function ipMatches(candidate: string, allowed: string[]): boolean {
   return false
 }
 
+export interface ClientIpOpts {
+  /**
+   * Trust the FIRST entry of `X-Forwarded-For` as the real client IP. Only
+   * enable this when your reverse proxy (nginx, ALB, Cloudflare, etc.) STRIPS
+   * client-supplied XFF and reinserts it itself — otherwise attackers can
+   * spoof IP by sending their own XFF header. Default `false`.
+   */
+  trustXForwardedFor?: boolean
+}
+
 /**
- * Extract the client IP from a Hono request. Prefers X-Forwarded-For (first
- * hop = original client when behind a single reverse proxy). Falls back to
- * X-Real-IP. Production deployments should sanitize XFF at the reverse
- * proxy (nginx real_ip_header).
+ * Extract the client IP from a Hono request.
+ *
+ * Security: by default this does NOT trust `X-Forwarded-For` — that header is
+ * attacker-controlled unless the edge proxy strips and reinserts it. Pass
+ * `{ trustXForwardedFor: true }` only when your edge proxy is configured to
+ * sanitize XFF (nginx `real_ip_header` + `real_ip_recursive`, ALB targets in
+ * IP mode, Cloudflare with restricted-IP firewall rule, etc.).
+ *
+ * `X-Real-IP` is trusted because it is conventionally set by edge proxies
+ * (never the client). If your edge does not set it, don't pass it through.
  */
-export function clientIpFromHeaders(headers: Headers): string | null {
-  const xff = headers.get('x-forwarded-for')
-  if (xff) {
-    const first = xff.split(',')[0]?.trim()
-    if (first) return first
+export function clientIpFromHeaders(headers: Headers, opts: ClientIpOpts = {}): string | null {
+  if (opts.trustXForwardedFor) {
+    const xff = headers.get('x-forwarded-for')
+    if (xff) {
+      const first = xff.split(',')[0]?.trim()
+      if (first) return first
+    }
   }
   const realIp = headers.get('x-real-ip')
   if (realIp) return realIp.trim()

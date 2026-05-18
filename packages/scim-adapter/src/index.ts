@@ -203,6 +203,9 @@ export async function handleScimRequest(
 
     return err(405, `method ${req.method} not allowed on ${req.path}`)
   } catch (e) {
-    return err(500, e instanceof Error ? e.message : String(e))
+    // Log internally; expose only a generic detail to the IdP so DB constraint
+    // names / stack hints / model internals don't leak in the SCIM response.
+    console.error('scim-adapter: handler threw', e)
+    return err(500, 'internal server error')
   }
 }

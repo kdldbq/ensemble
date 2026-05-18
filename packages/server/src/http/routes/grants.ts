@@ -120,8 +120,12 @@ export const grantsRoute = new Hono<AppEnv>()
     if (!row) return c.json({ error: 'not found' }, 404)
 
     // 1. IP allowlist check (D3) — applies before password.
+    // trustXForwardedFor: true assumes the server runs behind a reverse proxy
+    // (nginx / ALB / Cloudflare) that strips client-supplied XFF and inserts
+    // the real client IP itself. If you deploy without such a proxy, set this
+    // to false — otherwise attackers spoof the IP allowlist via fake XFF.
     if (row.allowedIps && row.allowedIps.length > 0) {
-      const clientIp = clientIpFromHeaders(c.req.raw.headers)
+      const clientIp = clientIpFromHeaders(c.req.raw.headers, { trustXForwardedFor: true })
       if (!clientIp || !ipMatches(clientIp, row.allowedIps)) {
         return c.json({ error: 'IP not in allowlist', code: 'ip_blocked' }, 403)
       }

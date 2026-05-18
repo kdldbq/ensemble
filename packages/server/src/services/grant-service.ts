@@ -28,6 +28,14 @@ export interface GrantContext {
   identity: IdentityContext
   resource: ResourceRef
   workbookOwnerId: string
+  /**
+   * Tenant that owns the workbook. The workbook-owner short-circuit MUST
+   * verify identity.tenantId === workbookTenantId before granting full
+   * capability — otherwise an attacker whose userId happens to collide
+   * with another tenant's workbook owner would inherit that workbook.
+   * UUID collisions are vanishingly rare but defense-in-depth.
+   */
+  workbookTenantId: string
   workbookFolderId: string | null
   folderAncestors: () => Promise<string[]>
   findGrants: (
@@ -105,7 +113,10 @@ function isApplicable(grant: Grant, identity: IdentityContext, presentedToken?: 
 }
 
 export async function resolveCapability(ctx: GrantContext): Promise<Capability> {
-  if (ctx.workbookOwnerId === ctx.identity.userId) {
+  if (
+    ctx.workbookOwnerId === ctx.identity.userId &&
+    ctx.workbookTenantId === ctx.identity.tenantId
+  ) {
     return { canView: true, canEdit: true, canShare: true, canDelete: true }
   }
   const refs: Array<{ resourceType: 'folder' | 'workbook'; resourceId: string }> = [

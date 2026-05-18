@@ -59,9 +59,14 @@ describe('ipMatches', () => {
 })
 
 describe('clientIpFromHeaders', () => {
-  it('returns first hop from X-Forwarded-For', () => {
+  it('returns first hop from X-Forwarded-For when trustXForwardedFor=true', () => {
     const h = new Headers({ 'x-forwarded-for': '203.0.113.5, 10.0.0.1' })
-    expect(clientIpFromHeaders(h)).toBe('203.0.113.5')
+    expect(clientIpFromHeaders(h, { trustXForwardedFor: true })).toBe('203.0.113.5')
+  })
+
+  it('ignores X-Forwarded-For by default (secure default)', () => {
+    const h = new Headers({ 'x-forwarded-for': '203.0.113.5, 10.0.0.1' })
+    expect(clientIpFromHeaders(h)).toBeNull()
   })
 
   it('falls back to X-Real-IP', () => {
@@ -73,16 +78,24 @@ describe('clientIpFromHeaders', () => {
     expect(clientIpFromHeaders(new Headers())).toBeNull()
   })
 
-  it('XFF takes precedence over X-Real-IP', () => {
+  it('XFF takes precedence over X-Real-IP when trustXForwardedFor=true', () => {
     const h = new Headers({
       'x-forwarded-for': '203.0.113.5',
       'x-real-ip': '10.0.0.1',
     })
-    expect(clientIpFromHeaders(h)).toBe('203.0.113.5')
+    expect(clientIpFromHeaders(h, { trustXForwardedFor: true })).toBe('203.0.113.5')
   })
 
-  it('trims whitespace in XFF', () => {
+  it('with trustXForwardedFor=false, X-Real-IP is used even when XFF present', () => {
+    const h = new Headers({
+      'x-forwarded-for': '203.0.113.5',
+      'x-real-ip': '10.0.0.1',
+    })
+    expect(clientIpFromHeaders(h)).toBe('10.0.0.1')
+  })
+
+  it('trims whitespace in XFF when trusted', () => {
     const h = new Headers({ 'x-forwarded-for': '  203.0.113.5  , 10.0.0.1' })
-    expect(clientIpFromHeaders(h)).toBe('203.0.113.5')
+    expect(clientIpFromHeaders(h, { trustXForwardedFor: true })).toBe('203.0.113.5')
   })
 })
