@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noAssignInExpressions: iterator pattern; the assignment inside while is canonical and clearer than a refactor.
 import * as XLSX from 'xlsx'
 import type { UniverSheet, UniverWorkbookData } from './types'
 

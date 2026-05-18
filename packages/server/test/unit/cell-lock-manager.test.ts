@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: test fixtures and statically-known DOM/array shapes are asserted by the test setup, not by runtime checks.
 import { describe, expect, it, vi } from 'vitest'
 import { createCellLockManager } from '../../src/realtime/cell-lock-manager'
 

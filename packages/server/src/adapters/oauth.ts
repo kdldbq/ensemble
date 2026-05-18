@@ -32,11 +32,7 @@ export interface OAuthIdentity {
 
 export interface OAuthAdapter {
   listProviders(): OAuthProviderConfig[]
-  exchangeCode(input: {
-    provider: string
-    code: string
-    state: OAuthState
-  }): Promise<OAuthIdentity>
+  exchangeCode(input: { provider: string; code: string; state: OAuthState }): Promise<OAuthIdentity>
 }
 
 export class NotImplementedOAuthAdapter implements OAuthAdapter {

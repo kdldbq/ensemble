@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/useIterableCallbackReturn: test predicate intentionally returns non-boolean for assertion clarity.
 import { describe, expect, it } from 'vitest'
 import { createWorkbookService } from '../../src/services/workbook-service'
 

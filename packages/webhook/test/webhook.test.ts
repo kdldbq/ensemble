@@ -1,4 +1,5 @@
-import { type IncomingMessage, type ServerResponse, createServer } from 'node:http'
+// biome-ignore-all lint/style/noNonNullAssertion: test fixtures and statically-known DOM/array shapes are asserted by the test setup, not by runtime checks.
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebhookEventAdapter, WebhookIdentityAdapter, WebhookPermissionAdapter } from '../src/index'
 

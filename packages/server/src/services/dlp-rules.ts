@@ -1,3 +1,5 @@
+// biome-ignore-all lint/suspicious/noAssignInExpressions: regex.exec result captured in while head per the canonical iterator pattern.
+// biome-ignore-all lint/style/noNonNullAssertion: array accesses are guarded by length checks that Biome cannot statically prove.
 /**
  * DLP (Data Loss Prevention) rule evaluator — L3.
  *

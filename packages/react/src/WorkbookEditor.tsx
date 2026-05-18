@@ -1,5 +1,5 @@
-import { type CollabCapability, mountWorkbookEditor } from '@ensemble-sheets/core'
 import type { MountHandle, WsClient } from '@ensemble-sheets/core'
+import { type CollabCapability, mountWorkbookEditor } from '@ensemble-sheets/core'
 import { useEffect, useRef } from 'react'
 
 export interface WorkbookWatermark {

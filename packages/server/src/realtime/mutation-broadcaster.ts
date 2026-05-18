@@ -1,5 +1,5 @@
 import type { MaskRule } from '../adapters/types'
-import { type WorkbookData, applyMaskRules } from '../services/mask-service'
+import { applyMaskRules, type WorkbookData } from '../services/mask-service'
 import type { MutationService } from '../services/mutation-service'
 import type { CollabRoom } from './collab-room'
 

@@ -35,6 +35,7 @@ import {
 // see a well-named interface and don't accidentally trip on the value/type
 // collision at the call site.
 type ICommandServiceType = import('@univerjs/core').ICommandService
+
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
 import { UniverDocsDrawingUIPlugin } from '@univerjs/docs-drawing-ui'

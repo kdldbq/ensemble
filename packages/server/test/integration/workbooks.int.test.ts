@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { NoopEventAdapter } from '../../src/adapters/identity'
 import type { IdentityAdapter, PermissionAdapter } from '../../src/adapters/identity'
+import { NoopEventAdapter } from '../../src/adapters/identity'
 import { tenants } from '../../src/db/schema'
 import { buildApp } from '../../src/http/app'
 import { db } from './_dbHelpers'

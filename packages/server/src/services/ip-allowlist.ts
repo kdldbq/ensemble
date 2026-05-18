@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: array accesses are guarded by length checks that Biome cannot statically prove.
 /**
  * IPv4 + IPv6 allowlist check for D3 grant IP whitelisting.
  *

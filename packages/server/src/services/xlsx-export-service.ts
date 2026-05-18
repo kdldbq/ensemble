@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noAssignInExpressions: stream iterator pattern; assignment inside while head is canonical.
 import * as XLSX from 'xlsx'
 import type { WorkbookData } from './mask-service'
 

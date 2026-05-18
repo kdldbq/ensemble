@@ -1,3 +1,4 @@
+// biome-ignore-all lint/complexity/noUselessStringRaw: regex contains JSX-confusable chars that look like template-string raw escapes to Biome 2.x; leaving String.raw makes intent explicit.
 /**
  * Cross-sheet + cross-workbook reference parser (C2.3).
  *

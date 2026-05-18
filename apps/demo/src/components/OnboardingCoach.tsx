@@ -1,3 +1,4 @@
+// biome-ignore-all lint/a11y/useAriaPropsSupportedByRole: aria-label kept on the live-region container for screen reader announcement consistency.
 import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ev_demo_onboarded_v3'

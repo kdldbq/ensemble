@@ -1,9 +1,11 @@
+// biome-ignore-all lint/suspicious/noArrayIndexKey: pivot field rows are reordered via drag; index plus stable field name disambiguates.
+// biome-ignore-all lint/style/noNonNullAssertion: field rows are accessed under length-guarded conditions that Biome's flow analysis can't see across the drag handlers.
 import {
+  computePivot,
   type MountHandle,
   type PivotAgg,
   type PivotResult,
   type PivotSpec,
-  computePivot,
 } from '@ensemble-sheets/core'
 import { useEffect, useMemo, useState } from 'react'
 

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/a11y/noStaticElementInteractions: Drawer overlay intentionally captures backdrop clicks; switching to a button would inflate keyboard tab order.
 import { type ReactNode, useEffect, useId, useRef } from 'react'
 
 export interface DrawerProps {
@@ -86,7 +87,6 @@ export function Drawer({
   if (!open) return null
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: Escape handled by document listener above
     <div
       role="presentation"
       style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.25)' }}

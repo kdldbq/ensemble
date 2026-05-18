@@ -4,20 +4,30 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/kdldbq/ensemble.git",
     "directory": "packages/adapter-conformance"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "peerDependencies": { "@ensemble-sheets/server": "workspace:*", "vitest": "^2.1.0" },
+  "peerDependencies": {
+    "@ensemble-sheets/server": "workspace:*",
+    "vitest": "^2.1.0"
+  },
   "devDependencies": {
     "@ensemble-sheets/server": "workspace:*",
     "@types/node": "20.16.10",

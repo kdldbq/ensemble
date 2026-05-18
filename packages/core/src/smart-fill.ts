@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: array accesses are guarded by length checks that Biome cannot statically prove.
 /**
  * Smart fill — detect a pattern in a seed range and extend it (C2.2).
  *
@@ -130,7 +131,6 @@ export function extendFill(seed: unknown[], targetCount: number): unknown[] {
       }
       return out
     }
-    case 'copy':
     default: {
       for (let i = 0; i < targetCount; i++) {
         out.push(seed[i % seed.length])

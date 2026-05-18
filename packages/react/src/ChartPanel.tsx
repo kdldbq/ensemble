@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noArrayIndexKey: chart legend/axis lists are derived once per render from immutable arrays; key collision is impossible.
 import type { ChartData, ChartKind } from '@ensemble-sheets/core'
 
 export interface ChartPanelProps {

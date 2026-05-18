@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: test fixtures and statically-known DOM/array shapes are asserted by the test setup, not by runtime checks.
 import { expect, test } from '@playwright/test'
 
 // FIXME (Sprint 4): demo server-runner ioredis 5 crashes on RESP parse error

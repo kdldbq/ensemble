@@ -1,7 +1,7 @@
 import type { MountHandle, WsClient } from '@ensemble-sheets/core'
 import { CellLockOverlay, WorkbookEditor } from '@ensemble-sheets/react'
 import { useEffect, useRef, useState } from 'react'
-import { type Persona, capabilitiesFor } from '../persona'
+import { capabilitiesFor, type Persona } from '../persona'
 
 export interface SingleEditorProps {
   workbookId: string

@@ -5,7 +5,7 @@
  * db     — superuser connection (BYPASSRLS); use for seed inserts in test setup.
  * appDb  — app_user connection (no BYPASSRLS); use inside withTenant() so RLS fires.
  */
-import { type Database, createDb } from '../../src/db/client'
+import { createDb, type Database } from '../../src/db/client'
 
 export function getDbUrl(): string {
   const url = process.env.DATABASE_URL

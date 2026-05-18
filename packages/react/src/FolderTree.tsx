@@ -1,8 +1,13 @@
+// biome-ignore-all lint/a11y/useSemanticElements: tree role intentionally builds on div/span for nesting flexibility.
+// biome-ignore-all lint/a11y/noStaticElementInteractions: row click is part of the tree widget's composite focus model, not a standalone button.
+// biome-ignore-all lint/a11y/useFocusableInteractive: tree row is interactive via the parent role=tree; child interactivity is delegated.
+// biome-ignore-all lint/a11y/noNoninteractiveElementToInteractiveRole: <ul role="tree"> is the canonical WAI-ARIA tree pattern; the rule's "use div/span" suggestion contradicts the spec.
+// biome-ignore-all lint/a11y/noNoninteractiveTabindex: tree rows must be keyboard-focusable for the tree widget's roving-tabindex / arrow-key navigation.
 import {
   type ApiClient,
+  buildFolderTree,
   type Folder,
   type FolderTreeNode,
-  buildFolderTree,
 } from '@ensemble-sheets/core'
 import {
   type CSSProperties,
@@ -227,7 +232,6 @@ function FolderNode({
             style={{ flex: 1, display: 'flex', gap: 4 }}
           >
             <input
-              autoFocus
               aria-label={`rename ${node.name}`}
               value={renameDraft}
               onChange={(e) => setRenameDraft(e.target.value)}
@@ -601,7 +605,6 @@ export function FolderTree({
       {creating && !trashView && (
         <form onSubmit={handleCreate} style={{ display: 'flex', gap: 6, padding: '4px 0' }}>
           <input
-            autoFocus
             aria-label="新文件夹名称"
             placeholder={creating.parentId ? '新建子文件夹' : '新建根文件夹'}
             value={draftName}

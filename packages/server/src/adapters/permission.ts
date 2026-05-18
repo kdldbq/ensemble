@@ -1,1 +1,1 @@
-export { type PermissionAdapter, NotImplementedPermissionAdapter } from './identity'
+export { NotImplementedPermissionAdapter, type PermissionAdapter } from './identity'

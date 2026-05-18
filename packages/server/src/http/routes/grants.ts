@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: c.get(...) values are narrowed by the requireIdentity / requireCapability middleware that runs before every handler in this file; Biome cannot see the cross-middleware invariant.
 import { and, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { shareGrants } from '../../db/schema'

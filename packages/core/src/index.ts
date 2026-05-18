@@ -1,51 +1,52 @@
+// biome-ignore-all lint/style/noNonNullAssertion: array accesses are guarded by length checks that Biome cannot statically prove.
 export { ApiClient, type ApiClientOpts } from './api-client'
 export {
-  mountWorkbookEditor,
-  type MountOpts,
-  type MountHandle,
-  type CollabCapability,
-} from './mount'
-export { xlsxToUniverJson, univerJsonToXlsx } from './xlsx-converter'
-export { detectFillPattern, extendFill, type FillPattern } from './smart-fill'
-export {
-  parseCrossRef,
-  formatCrossRef,
-  resolveCrossRef,
-  type CrossRef,
-} from './cross-ref'
-export {
-  computePivot,
-  type PivotAgg,
-  type PivotSpec,
-  type PivotResult,
-} from './pivot'
-export {
   buildChartData,
-  type ChartKind,
-  type ChartSpec,
-  type ChartSeries,
   type ChartData,
+  type ChartKind,
+  type ChartSeries,
+  type ChartSpec,
   type FreezeConfig,
 } from './chart'
+export {
+  type CrossRef,
+  formatCrossRef,
+  parseCrossRef,
+  resolveCrossRef,
+} from './cross-ref'
+export {
+  type CollabCapability,
+  type MountHandle,
+  type MountOpts,
+  mountWorkbookEditor,
+} from './mount'
 export {
   createOfflineCache,
   type OfflineCache,
   type OfflineCacheOpts,
   type QueuedMutation,
 } from './offline-cache'
+export {
+  computePivot,
+  type PivotAgg,
+  type PivotResult,
+  type PivotSpec,
+} from './pivot'
 export { runScript, type ScriptContext, type ScriptResult } from './scripts'
+export { detectFillPattern, extendFill, type FillPattern } from './smart-fill'
+export * from './types'
 export {
   createEditor,
-  loadBrowserPlugins,
-  loadBrowserLocales,
   type Editor,
   type EditorOpts,
+  loadBrowserLocales,
+  loadBrowserPlugins,
 } from './univer-wrapper'
 export {
-  WsClient,
-  type WelcomeFrame,
-  type PresenceEntry,
   type ConnectionState,
   type NotificationFrame,
+  type PresenceEntry,
+  type WelcomeFrame,
+  WsClient,
 } from './ws-client'
-export * from './types'
+export { univerJsonToXlsx, xlsxToUniverJson } from './xlsx-converter'

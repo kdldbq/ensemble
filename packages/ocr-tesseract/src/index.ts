@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: OCR adapter wraps a third-party result whose type is intentionally opaque at this seam.
 /**
  * Tesseract.js OCR adapter (C2.5).
  *

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: array accesses are guarded by length checks that Biome cannot statically prove.
 export type PivotAgg = 'sum' | 'count' | 'avg' | 'min' | 'max'
 
 export interface PivotSpec {

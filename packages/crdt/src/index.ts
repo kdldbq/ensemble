@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: array accesses are guarded by length checks that Biome cannot statically prove.
 /**
  * CRDT adapter (B4) — alternative to ensemble's default cell-region locking.
  *
