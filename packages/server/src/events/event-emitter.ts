@@ -157,6 +157,13 @@ export function createEventEmitter(deps: EventEmitterDeps) {
 
   async function appendChained(input: EmitInput, occurredIso: string): Promise<void> {
     // Look up the latest row's chain_hash for this tenant (genesis = '').
+    //
+    // Backwards-compat note (migration 0012): pre-migration audit rows were
+    // backfilled with chain_hash = '' (the NOT NULL DEFAULT). When a tenant's
+    // first post-migration row appends to those legacy rows, prevHash is the
+    // empty backfill value — treat that as genesis. Any future chain verifier
+    // MUST skip rows where row_hash = '' (a real hash is never empty); those
+    // rows are legacy and unverifiable.
     const prev = await deps.db
       .select({ chainHash: auditLog.chainHash })
       .from(auditLog)
