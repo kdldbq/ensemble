@@ -67,6 +67,10 @@ Browser (React / Vue) ──► @ensemble-sheets/core ──► Univer editor
 
 The data plane sits on Postgres (drizzle schema in `packages/server/src/db/schema.ts`) with **Postgres RLS** enforcing tenant isolation (ADR-0001) — every request runs in a transaction with `SET LOCAL app.tenant_id`. Redis backs cell-region locks (`SET NX EX`, 30s TTL) and mask-cache pub/sub invalidation.
 
+### Single-user mode
+
+Both `createServer` and `mountWorkbookEditor` accept a `collab?: boolean` flag (default `true`). Pass `collab: false` on both ends to disable all real-time collab subsystems — no WS bridge, no Redis client, no cell-region locks, no presence, no mutation broadcaster, no session registry, no offline mutation queue. The editor still loads and saves via REST snapshots. Use this mode when you only need editor + persistence and don't need multi-user cursors / locks / live broadcast. The server-side mode also makes Redis optional at startup.
+
 ### The two non-obvious load-bearing ideas
 
 1. **Cell-region locks instead of CRDT** (ADR-0002). When two users hit the same cell concurrently, ensemble does *not* last-write-wins — the server arbitrates via a Redis lock and rejects the loser with `lock_required`. The CRDT alternative ships as a separate adapter contract in `@ensemble-sheets/crdt` (LWW reference impl; a Yjs binding will land here in a future sprint) — never mix the two on the same workbook.
