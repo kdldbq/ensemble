@@ -1,20 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mountWorkbookEditor } from '../src/mount'
-
-function makeFakeEditor() {
-  const loaded: unknown[] = []
-  const editor = {
-    load: (d: unknown) => loaded.push(d),
-    getData: () => ({
-      id: 'w',
-      sheetOrder: ['s'],
-      sheets: { s: { id: 's', name: 'S', cellData: {} } },
-    }),
-    destroy: vi.fn(),
-    _loaded: loaded,
-  }
-  return editor
-}
+import { makeFakeEditor } from './_helpers'
 
 const noopFetch = vi.fn(async (url: string) => {
   if (url.endsWith('/snapshot'))

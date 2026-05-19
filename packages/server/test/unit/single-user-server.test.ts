@@ -1,70 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import {
-  type IdentityAdapter,
-  NoopEventAdapter,
-  type PermissionAdapter,
-} from '../../src/adapters/identity'
 import { createServer } from '../../src/server'
+import {
+  makeStubIdentity,
+  makeStubPermission,
+  STUB_DATABASE_URL,
+  stubEvent,
+  stubStorage,
+} from './_stubAdapters'
 
-const identity: IdentityAdapter = {
-  resolveFromToken: async () => ({ tenantId: 't1', userId: 'u1' }),
-}
-const permission: PermissionAdapter = {
-  getCapabilities: async () => ({
-    canView: true,
-    canEdit: true,
-    canShare: false,
-    canDelete: false,
-  }),
-  getMaskRules: async () => [],
-}
-const storage = {
-  put: async () => {},
-  get: async () => new Uint8Array(),
-  delete: async () => {},
+function baseOpts() {
+  return {
+    databaseUrl: STUB_DATABASE_URL,
+    identity: makeStubIdentity(),
+    permission: makeStubPermission({ canView: true, canEdit: true }),
+    storage: stubStorage,
+    event: stubEvent,
+  }
 }
 
 describe('createServer — single-user mode (collab: false)', () => {
-  it('returns a handle without contacting Redis', () => {
-    // No Redis container is started in this unit test; if `collab: false`
-    // attempted to create / connect a Redis client at construction time the
-    // call would either throw (in strict mode) or hang. The fact that this
-    // returns synchronously and the handle is well-formed is the contract.
-    const handle = createServer({
-      databaseUrl: 'postgres://stub:stub@127.0.0.1:1/stub',
-      identity,
-      permission,
-      storage,
-      event: new NoopEventAdapter(),
-      collab: false,
-    })
+  it('returns a handle without constructing collab infra (no Redis client created)', () => {
+    // collab:false short-circuits before buildCollabInfra runs; if it tried to
+    // create a Redis client the ioredis constructor would eagerly open a
+    // socket to 127.0.0.1:1 and the test would log a connection error.
+    const handle = createServer({ ...baseOpts(), collab: false })
     expect(typeof handle.listen).toBe('function')
   })
 
   it('honors collab default of true when not specified (back-compat)', () => {
-    // We can't actually call listen() here without a Postgres + Redis pair,
-    // but we can verify createServer() returns synchronously — meaning the
-    // collab subsystems were *constructed* (lazy connection, no eager IO).
-    const handle = createServer({
-      databaseUrl: 'postgres://stub:stub@127.0.0.1:1/stub',
-      identity,
-      permission,
-      storage,
-      event: new NoopEventAdapter(),
-      // collab omitted -> defaults to true
-    })
+    // collab omitted -> defaults to true -> buildCollabInfra runs. We can't
+    // call listen() here without real Postgres + Redis but createServer must
+    // still return synchronously with a well-formed handle.
+    const handle = createServer(baseOpts())
     expect(typeof handle.listen).toBe('function')
   })
 
   it('accepts collab: true explicitly', () => {
-    const handle = createServer({
-      databaseUrl: 'postgres://stub:stub@127.0.0.1:1/stub',
-      identity,
-      permission,
-      storage,
-      event: new NoopEventAdapter(),
-      collab: true,
-    })
+    const handle = createServer({ ...baseOpts(), collab: true })
     expect(typeof handle.listen).toBe('function')
   })
 })

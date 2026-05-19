@@ -52,18 +52,62 @@ export interface CreateServerOpts {
   collab?: boolean
 }
 
-export function createServer(opts: CreateServerOpts) {
-  const collab = opts.collab !== false
-  const db = createDb(opts.databaseUrl)
-  // Realtime infrastructure — only created when collab is enabled. In single-
-  // user mode `redis` stays undefined; everything WS-related is skipped below.
-  const redis = collab
-    ? createRedis(opts.redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379')
-    : undefined
+/**
+ * Build every collab subsystem in one shot. Used by createServer when
+ * `collab` is enabled; not exported because the lifecycle (Redis connection,
+ * presence-sweep timer) is owned by createServer. Returning a single object
+ * lets the WS handler destructure once and avoids per-field narrowing
+ * asserts at the call site.
+ */
+function buildCollabInfra(opts: CreateServerOpts, db: ReturnType<typeof createDb>) {
+  const redis = createRedis(opts.redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379')
+  const sessionRegistry = createSessionRegistry()
+  const roomRegistry = createRoomRegistry()
+  const notifications = createNotificationBus()
+  const cellLocks = createCellLockManager({ redis, ttlSec: 30 })
+  // Aggregate per-tenant quota (I7). Layered above the per-session 30/s bucket so
+  // one noisy tenant can't starve others. 500 ops/sec accommodates ~20 active users.
+  const tenantBucket = createPerTenantBucket({ capacity: 500, refillPerSec: 500 })
+  const presence = createPresenceTracker({ evictAfterMs: 15000 })
+  const mutationService = createMutationService({ db })
+  const broadcaster = createMutationBroadcaster({
+    mutations: mutationService,
+    getMaskRulesFor: async (userId, workbookId) => {
+      // PermissionAdapter implementations that need a tenantId must resolve it
+      // from userId internally — at this layer we only have userId.
+      return opts.permission.getMaskRules(
+        { userId, tenantId: '' },
+        { type: 'workbook', id: workbookId, tenantId: '' },
+      )
+    },
+  })
+  presence.startSweep({
+    intervalMs: 1000,
+    onEvict: (wbId, cid) => {
+      const room = roomRegistry.get(wbId)
+      room?.broadcast({ type: 'user_left', clientId: cid })
+      room?.removeClient(cid)
+    },
+  })
+  return {
+    redis,
+    sessionRegistry,
+    roomRegistry,
+    notifications,
+    cellLocks,
+    tenantBucket,
+    presence,
+    mutationService,
+    broadcaster,
+  }
+}
 
-  // Shared between the WS bridge (onOpen registers, onClose unregisters) and
-  // the admin sessions endpoints / grants DELETE auto-kick path.
-  const sessionRegistry = collab ? createSessionRegistry() : undefined
+export function createServer(opts: CreateServerOpts) {
+  const db = createDb(opts.databaseUrl)
+  // Either every collab subsystem is constructed (default) or none of them
+  // are (single-user mode). The discriminated `undefined` lets every WS-side
+  // usage just check `if (collab)` and pick fields off via destructure.
+  const collab = opts.collab !== false ? buildCollabInfra(opts, db) : undefined
 
   const deps: AppDeps = {
     db,
@@ -71,50 +115,8 @@ export function createServer(opts: CreateServerOpts) {
     permission: opts.permission,
     storage: opts.storage,
     event: opts.event,
-    ...(redis ? { redis } : {}),
-    ...(sessionRegistry ? { sessionRegistry } : {}),
+    ...(collab ? { redis: collab.redis, sessionRegistry: collab.sessionRegistry } : {}),
     ...(opts.llm ? { llm: opts.llm } : {}),
-  }
-  const roomRegistry = collab ? createRoomRegistry() : undefined
-  // Single notification bus shared between REST publishers (e.g. comments
-  // route emitting comment.mentioned) and the WS bridge below. Single-process
-  // for now — wrap in Redis pub/sub if scaling out.
-  const notifications = collab ? createNotificationBus() : undefined
-  const cellLocks = collab && redis ? createCellLockManager({ redis, ttlSec: 30 }) : undefined
-  // Aggregate per-tenant quota (I7). Layered above the per-session 30/s bucket so
-  // one noisy tenant can't starve others. 500 ops/sec accommodates ~20 active users.
-  const tenantBucket = collab
-    ? createPerTenantBucket({ capacity: 500, refillPerSec: 500 })
-    : undefined
-  const presence = collab ? createPresenceTracker({ evictAfterMs: 15000 }) : undefined
-  const mutationService = collab ? createMutationService({ db }) : undefined
-  const broadcaster =
-    collab && mutationService
-      ? createMutationBroadcaster({
-          mutations: mutationService,
-          getMaskRulesFor: async (userId, workbookId) => {
-            // We need a tenantId to call getMaskRules but at this layer we only have userId.
-            // Use a synthetic identity with empty tenantId; PermissionAdapter implementations
-            // that need the tenantId should look it up from userId internally.
-            return opts.permission.getMaskRules(
-              { userId, tenantId: '' },
-              { type: 'workbook', id: workbookId, tenantId: '' },
-            )
-          },
-        })
-      : undefined
-
-  // Sweep stale presence entries every second (collab only — single-user has
-  // no presence to evict)
-  if (collab && presence && roomRegistry) {
-    presence.startSweep({
-      intervalMs: 1000,
-      onEvict: (wbId, cid) => {
-        const room = roomRegistry.get(wbId)
-        room?.broadcast({ type: 'user_left', clientId: cid })
-        room?.removeClient(cid)
-      },
-    })
   }
 
   // WS bridge — only registered when collab is enabled. The two-phase wiring
@@ -126,21 +128,17 @@ export function createServer(opts: CreateServerOpts) {
   let wsHandler: ReturnType<ReturnType<typeof createNodeWebSocket>['upgradeWebSocket']> | undefined
 
   if (collab) {
-    // Explicit asserts so the WS handler closure below sees narrowed (non-undefined)
-    // types for all the collab subsystems created above.
-    if (
-      !redis ||
-      !sessionRegistry ||
-      !roomRegistry ||
-      !notifications ||
-      !cellLocks ||
-      !tenantBucket ||
-      !presence ||
-      !mutationService ||
-      !broadcaster
-    ) {
-      throw new Error('createServer: collab infra missing despite collab=true (internal bug)')
-    }
+    const {
+      redis,
+      sessionRegistry,
+      roomRegistry,
+      notifications,
+      cellLocks,
+      tenantBucket,
+      presence,
+      mutationService,
+      broadcaster,
+    } = collab
 
     const nodeWsInit = {
       get app() {
@@ -314,7 +312,7 @@ export function createServer(opts: CreateServerOpts) {
   } // end of `if (collab)` — WS bridge block
 
   builtApp = buildApp(
-    { ...deps, ...(notifications ? { notifications } : {}) },
+    { ...deps, ...(collab ? { notifications: collab.notifications } : {}) },
     {
       ...(wsHandler
         ? { beforeRoutes: [{ path: '/api/v1/ws/:workbookId', handler: wsHandler }] }
@@ -333,7 +331,7 @@ export function createServer(opts: CreateServerOpts) {
             close: () =>
               new Promise((r) =>
                 server.close(async () => {
-                  if (redis) await redis.quit()
+                  if (collab) await collab.redis.quit()
                   r()
                 }),
               ),
