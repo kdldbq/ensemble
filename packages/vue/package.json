@@ -1,6 +1,6 @@
 {
   "name": "@ensemble-sheets/vue",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "vue": "^3.5.0",
+    "vue": "^3.3.0",
     "@ensemble-sheets/core": "workspace:*"
   },
   "devDependencies": {

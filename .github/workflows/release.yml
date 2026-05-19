@@ -16,6 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version-file: '.nvmrc', cache: 'pnpm', registry-url: 'https://registry.npmjs.org' }
       - run: pnpm install --frozen-lockfile
+      # Pre-build core + server so downstream adapters (storage-fs, storage-s3,
+      # webhook) don't race against them in pnpm -r's parallel batch.
+      # Same fix as ci.yml — kept in sync.
+      - run: pnpm --filter '@ensemble-sheets/core' --filter '@ensemble-sheets/server' build
       - run: pnpm build
       - uses: changesets/action@v1
         with:

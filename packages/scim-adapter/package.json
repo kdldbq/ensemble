@@ -1,6 +1,6 @@
 {
   "name": "@ensemble-sheets/scim-adapter",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "description": "SCIM 2.0 (RFC 7644) Users + Groups handler for ensemble host applications. Wires identity-provider provisioning (Okta, Azure AD, JumpCloud) into a custom IdentityAdapter.",
   "repository": {

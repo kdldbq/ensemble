@@ -1,6 +1,6 @@
 {
   "name": "@ensemble-sheets/mcp-server",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "description": "Model Context Protocol server exposing ensemble spreadsheet tools to AI agents (Claude, GPT, etc).",
   "repository": {
