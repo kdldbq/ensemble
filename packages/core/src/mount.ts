@@ -94,6 +94,22 @@ export interface MountOpts {
    */
   offlineQueue?: boolean | { idbFactory?: IDBFactory }
   /**
+   * Enable real-time collab features. Default `true`.
+   *
+   * When `false` (single-user mode):
+   *  - The WebSocket client is constructed but `connect()` is skipped — the
+   *    socket stays null and `ws.isConnected()` returns false, so every
+   *    locks / mutations / heartbeat path in the editor short-circuits.
+   *  - `onWsConnected` callback never fires.
+   *  - `onMutationApplied`, `onPresence`, `onConnectionChange`, `onNotification`
+   *    subscriptions are registered but never receive frames (no socket).
+   *  - The offline mutation queue is not constructed (nothing to queue against).
+   *  - `save()` and `exportXlsx()` continue to work — both are REST-only.
+   *
+   * Pair with `createServer({ collab: false })` server-side.
+   */
+  collab?: boolean
+  /**
    * Initial freeze applied right after the editor mounts. Same shape as
    * MountHandle.setFrozen — declarative version for hosts that don't want to
    * await the handle.
@@ -165,13 +181,18 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
   )(opts.container)
   const ws = new WsClient({ url: opts.wsBaseUrl, workbookId: opts.workbookId, token: opts.token })
 
-  if (opts._wsConnect) {
-    await opts._wsConnect()
-  } else {
-    /* v8 ignore next 2 — real WebSocket path; covered by T23 Playwright e2e */
-    await ws.connect()
+  // Single-user mode skips ws.connect() — the socket stays null so every
+  // lock / mutation / heartbeat path in this file short-circuits via the
+  // existing `ws.isConnected()` guards. See MountOpts.collab for the contract.
+  if (opts.collab !== false) {
+    if (opts._wsConnect) {
+      await opts._wsConnect()
+    } else {
+      /* v8 ignore next 2 — real WebSocket path; covered by T23 Playwright e2e */
+      await ws.connect()
+    }
+    opts.onWsConnected?.(ws)
   }
-  opts.onWsConnected?.(ws)
 
   // In a real browser, load UI plugins (canvas, toolbar, formula bar) before
   // creating the workbook unit. In jsdom / Node _univer is present but the
@@ -537,7 +558,8 @@ export async function mountWorkbookEditor(opts: MountOpts): Promise<MountHandle>
   // host opts in via `offlineQueue`. Drain happens on the 5 s keepalive when
   // the socket is reachable again.
   let offlineCache: OfflineCache | null = null
-  if (opts.offlineQueue) {
+  // Single-user mode doesn't queue mutations — saves go via REST snapshots.
+  if (opts.offlineQueue && opts.collab !== false) {
     const cacheOpts = typeof opts.offlineQueue === 'object' ? opts.offlineQueue : {}
     offlineCache = createOfflineCache(cacheOpts)
   }

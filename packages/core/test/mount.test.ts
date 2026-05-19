@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mountWorkbookEditor } from '../src/mount'
 import type { WelcomeFrame } from '../src/ws-client'
+import { makeFakeEditor } from './_helpers'
 
 const wsStub = async (): Promise<WelcomeFrame> => ({
   type: 'welcome',
@@ -8,21 +9,6 @@ const wsStub = async (): Promise<WelcomeFrame> => ({
   seqNum: 0,
   snapshot: null,
 })
-
-function makeFakeEditor() {
-  const loaded: unknown[] = []
-  const editor = {
-    load: (d: unknown) => loaded.push(d),
-    getData: () => ({
-      id: 'w',
-      sheetOrder: ['s'],
-      sheets: { s: { id: 's', name: 'S', cellData: {} } },
-    }),
-    destroy: vi.fn(),
-    _loaded: loaded,
-  }
-  return editor
-}
 
 describe('mountWorkbookEditor', () => {
   it('fetches snapshot, loads editor, returns save/destroy handles', async () => {

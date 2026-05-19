@@ -1,33 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import {
-  type IdentityAdapter,
-  NoopEventAdapter,
-  type PermissionAdapter,
-} from '../../src/adapters/identity'
 import type { AppDeps } from '../../src/http/app'
 import { buildApp } from '../../src/http/app'
-
-const identity: IdentityAdapter = {
-  resolveFromToken: async () => ({ tenantId: 't1', userId: 'u1' }),
-}
-const permission: PermissionAdapter = {
-  getCapabilities: async () => ({
-    canView: false,
-    canEdit: false,
-    canShare: false,
-    canDelete: false,
-  }),
-  getMaskRules: async () => [],
-}
-
-const stubDb = {} as AppDeps['db']
+import {
+  makeStubIdentity,
+  makeStubPermission,
+  stubDb,
+  stubEvent,
+  stubStorage,
+} from './_stubAdapters'
 
 const baseDeps: AppDeps = {
   db: stubDb,
-  identity,
-  permission,
-  storage: { put: async () => {}, get: async () => new Uint8Array(), delete: async () => {} },
-  event: new NoopEventAdapter(),
+  identity: makeStubIdentity(),
+  permission: makeStubPermission(),
+  storage: stubStorage,
+  event: stubEvent,
 }
 
 describe('buildApp bootstrap: ENSEMBLE_LINK_HMAC_SECRET', () => {
